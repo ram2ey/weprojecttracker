@@ -13,7 +13,7 @@ services:
     environment:
       POSTGRES_DB: wassa
       POSTGRES_USER: wassa
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set a unique production database password}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
     volumes:
       - postgres:/var/lib/postgresql/data
     healthcheck:
@@ -24,7 +24,7 @@ services:
     mem_limit: 1g
     cpus: 1
   migrate:
-    image: ${TOOLS_IMAGE:?Set the published tools image for this release}
+    image: ${TOOLS_IMAGE:?}
     restart: "no"
     init: true
     # Coolify removes this extension before passing the definition to Compose.
@@ -38,10 +38,10 @@ services:
     environment: &runtime
       NODE_ENV: production
       APP_ENV: production
-      BETTER_AUTH_URL: ${APP_URL:?Set the public HTTPS origin without a port suffix}
+      BETTER_AUTH_URL: ${APP_URL:?}
       NEXT_PUBLIC_APP_URL: ${APP_URL}
-      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Set a unique production authentication secret}
-      MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:?Set a unique 64-character hex encryption key}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?}
+      MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:?}
       PGHOST: database
       PGPORT: "5432"
       PGDATABASE: wassa
@@ -59,7 +59,7 @@ services:
     mem_limit: 512m
     cpus: 0.5
   web:
-    image: ${WEB_IMAGE:?Set the published web image for this release}
+    image: ${WEB_IMAGE:?}
     restart: unless-stopped
     init: true
     logging: *bounded-logging
@@ -91,7 +91,7 @@ services:
     mem_limit: 1536m
     cpus: 1
   worker:
-    image: ${TOOLS_IMAGE:?Set the published tools image for this release}
+    image: ${TOOLS_IMAGE:?}
     restart: unless-stopped
     init: true
     logging: *bounded-logging
