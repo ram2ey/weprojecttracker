@@ -4,14 +4,14 @@
   --font-sans: var(--font-creato), Arial, sans-serif;
   --font-serif: var(--font-sans);
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #111111;
   --card: #ffffff;
   --primary: #006633;
   --primary-foreground: #fff;
   --muted: #f7f7f7;
   --muted-foreground: #5b5b5b;
-  --border: #e5e5e5;
-  --ring: #006633;
+  --border: #dedede;
+  --ring: #ce1126;
   --accent: #ce1126;
   --radius: 0.65rem;
 }
@@ -97,8 +97,8 @@ h2 {
   font-size: clamp(28px, 3vw, 38px);
 }
 ::selection {
-  background: #d7e5b9;
-  color: #173629;
+  background: #fbe7ea;
+  color: #111111;
 }
 :focus-visible {
   outline: 3px solid var(--ring);
@@ -140,30 +140,30 @@ h2 {
   cursor: pointer;
 }
 .button-primary {
-  background: var(--primary);
+  background: var(--accent);
   color: white;
 }
 .button-primary:hover:not(:disabled) {
-  background: #004d26;
+  background: #a10d1d;
 }
 .button-outline {
   background: transparent;
-  color: var(--primary);
-  border-color: #bfcbbc;
+  color: var(--foreground);
+  border-color: #171717;
 }
 .button-outline:hover:not(:disabled) {
   background: var(--muted);
 }
 .button-ghost {
-  color: var(--primary);
+  color: var(--foreground);
   background: transparent;
 }
 .button-light {
-  background: #f7f7f7;
-  color: var(--primary);
+  background: #111111;
+  color: #ffffff;
 }
 .button-light:hover {
-  background: white;
+  background: #303030;
 }
 .button-sm {
   min-height: 40px;
@@ -183,7 +183,7 @@ h2 {
   min-height: 40px;
 }
 .text-link:hover {
-  color: #006633;
+  color: var(--accent);
 }
 .eyebrow {
   display: block;
@@ -218,7 +218,8 @@ h2 {
 }
 .site-header {
   background: var(--background);
-  border-bottom: 1px solid var(--border);
+  border-top: 3px solid #111111;
+  border-bottom: 1px solid #171717;
 }
 .constituency-brand {
   display: inline-flex;
@@ -297,7 +298,7 @@ h2 {
   color: #525252;
 }
 .nav-link.active {
-  color: var(--primary);
+  color: var(--foreground);
   font-weight: 700;
 }
 .nav-link.active::after {
@@ -305,7 +306,7 @@ h2 {
   content: "";
   height: 2px;
   bottom: 23px;
-  width: 15px;
+  width: 24px;
   background: var(--accent);
 }
 .staff-link {
@@ -363,6 +364,9 @@ h2 {
 }
 .hero h1 {
   line-height: 1.1;
+}
+.hero-accent {
+  color: var(--accent);
 }
 .hero h1 em {
   color: var(--muted-foreground);
@@ -452,7 +456,8 @@ h2 {
   font-weight: 700;
 }
 .stats-section {
-  border-block: 1px solid var(--border);
+  border-top: 2px solid #171717;
+  border-bottom: 1px solid var(--border);
   background: #ffffff;
 }
 .stats-grid {
@@ -489,6 +494,7 @@ h2 {
   color: var(--muted-foreground);
 }
 .stat-number {
+  color: #111111;
   display: flex;
   align-items: flex-end;
   gap: 15px;
@@ -516,6 +522,8 @@ h2 {
   gap: 24px;
 }
 .section-header h2 {
+  border-left: 3px solid var(--accent);
+  padding-left: 12px;
   margin-top: 10px;
   font-size: 39px;
 }
@@ -863,7 +871,7 @@ h2 {
 }
 .site-footer {
   background: #ffffff;
-  border-top: 1px solid var(--border);
+  border-top: 3px solid #111111;
 }
 .footer-top {
   padding-block: 40px;
@@ -911,6 +919,8 @@ h2 {
   margin-bottom: 35px;
 }
 .page-heading h1 {
+  border-left: 4px solid var(--accent);
+  padding-left: 14px;
   font-size: 58px;
   margin-top: 17px;
 }
@@ -1391,12 +1401,13 @@ label > textarea {
   color: var(--muted-foreground);
 }
 .console-sidebar nav a.active {
-  background: #eaf0df;
-  color: #355c38;
+  background: #f7f7f7;
+  color: #111111;
+  box-shadow: inset 3px 0 var(--accent);
   font-weight: 700;
 }
 .console-sidebar nav a:hover {
-  background: #edf1e7;
+  background: #f7f7f7;
 }
 .nav-count {
   margin-left: auto;
@@ -2201,7 +2212,7 @@ td > small {
     min-height: 42px;
   }
   .bottom-nav a.active {
-    color: var(--primary);
+    color: var(--accent);
     font-weight: 700;
   }
   .preview-notice {
@@ -2892,9 +2903,9 @@ td > small {
 }
 .view-switch [aria-current],
 .publication-nav [aria-current] {
-  background: #1b6042;
+  background: #111111;
   color: white;
-  border-color: #1b6042;
+  border-color: #111111;
 }
 .project-map-panel {
   background: #fafafa;
@@ -3481,7 +3492,7 @@ td > small {
 }
 .button.button-outline {
   display: inline-flex;
-  border: 1px solid #ccd6cd;
+  border: 1px solid #171717;
   border-radius: 8px;
   padding: 10px 16px;
   font-size: 0.85rem;

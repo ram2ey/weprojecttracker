@@ -41,7 +41,7 @@ export default async function HomePage() {
           <h1>
             Our communities.
             <br />
-            Our progress.
+            <span className="hero-accent">Our progress.</span>
           </h1>
           <p className="hero-description">Track projects across Wassa East.</p>
           <div className="hero-actions">
