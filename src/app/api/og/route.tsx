@@ -16,13 +16,20 @@ export async function GET(request: Request) {
         flexDirection: "column",
         width: "100%",
         height: "100%",
-        background: "#f6f5ed",
+        background: "#ffffff",
         padding: "68px 76px",
-        color: "#173f31",
-        borderTop: "12px solid #b43d35",
+        color: "#171717",
+        borderTop: "4px solid #ce1126",
       }}
     >
-      <div style={{ display: "flex", fontSize: 25, letterSpacing: 3 }}>
+      <div
+        style={{
+          display: "flex",
+          fontSize: 25,
+          letterSpacing: 3,
+          color: "#006633",
+        }}
+      >
         WASSA EAST · PROJECT TRACKER
       </div>
       <div
@@ -44,7 +51,7 @@ export async function GET(request: Request) {
           display: "flex",
           justifyContent: "space-between",
           fontSize: 23,
-          borderTop: "1px solid #bdccbc",
+          borderTop: "1px solid #e5e5e5",
           paddingTop: 24,
         }}
       >

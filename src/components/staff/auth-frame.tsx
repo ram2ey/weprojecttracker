@@ -1,12 +1,11 @@
 import Link from "next/link";
-import { ArrowLeft, Landmark } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { SiteBrand } from "../site-brand";
 export function AuthFrame({ children }: { children: React.ReactNode }) {
   return (
     <div className="auth-shell">
       <main id="main-content" className="auth-main" tabIndex={-1}>
-        <Link href="/" className="auth-brand">
-          <Landmark size={22} /> Wassa East Projects
-        </Link>
+        <SiteBrand className="auth-brand" />
         <Link href="/" className="text-link auth-back">
           <ArrowLeft size={16} /> Back to website
         </Link>

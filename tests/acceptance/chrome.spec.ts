@@ -186,6 +186,17 @@ async function audit(page: Page, path: string) {
     "creato",
   );
   expect(typography.loaded, `Self-hosted font loaded on ${path}`).toBe(true);
+  const brand = page
+    .getByAltText("Wassa East Constituency", { exact: true })
+    .first();
+  await expect(brand, `Constituency logo visible on ${path}`).toBeVisible();
+  expect(
+    await brand.evaluate((image) => (image as HTMLImageElement).naturalWidth),
+  ).toBeGreaterThan(0);
+  expect(
+    await page.evaluate(() => getComputedStyle(document.body).backgroundColor),
+    `White page background on ${path}`,
+  ).toBe("rgb(255, 255, 255)");
   if (path.startsWith("/staff/"))
     await expect(page.locator(".auth-story")).toHaveCount(0);
   const result = await new AxeBuilder({ page })

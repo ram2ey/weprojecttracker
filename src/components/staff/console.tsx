@@ -3,7 +3,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import {
-  Landmark,
   LayoutDashboard,
   FolderOpen,
   ClipboardCheck,
@@ -31,6 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { type PublicProject, statusTone, categories } from "@/lib/projects";
 import type { Role } from "@/lib/security/policy";
 import { TeamForm } from "./team-form";
+import { SiteBrand } from "../site-brand";
 export function Console({
   preview,
   view,
@@ -104,14 +104,7 @@ export function Console({
         className="console-sidebar"
         aria-label="Staff workspace navigation"
       >
-        <Link href="/" className="brand">
-          <span className="brand-mark">
-            <Landmark size={21} />
-          </span>
-          <span>
-            Wassa East<span className="brand-subtitle">STAFF WORKSPACE</span>
-          </span>
-        </Link>
+        <SiteBrand staff />
         <span className="sidebar-label">WORKSPACE</span>
         <nav aria-label="Staff navigation">
           {nav.map(({ key, label, icon: Icon }) => (

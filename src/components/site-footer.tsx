@@ -1,13 +1,12 @@
 import Link from "next/link";
-import { ArrowUpRight, Landmark } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
+import { SiteBrand } from "./site-brand";
 export function SiteFooter() {
   return (
     <footer className="site-footer">
       <div className="container footer-top">
         <div>
-          <div className="footer-brand">
-            <Landmark size={25} /> Wassa East Projects
-          </div>
+          <SiteBrand className="footer-brand" />
         </div>
         <div className="footer-links">
           <Link href="/projects">

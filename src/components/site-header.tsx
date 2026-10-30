@@ -3,7 +3,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ArrowUpRight,
-  Landmark,
   Menu,
   X,
   House,
@@ -13,6 +12,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { SiteBrand } from "./site-brand";
 const links = [
   { href: "/", label: "Home", icon: House },
   { href: "/projects", label: "Projects", icon: FolderOpen },
@@ -36,14 +36,7 @@ export function SiteHeader() {
     <>
       <header className="site-header">
         <div className="container header-inner">
-          <Link href="/" className="brand">
-            <span className="brand-mark">
-              <Landmark size={23} strokeWidth={1.6} />
-            </span>
-            <span>
-              Wassa East <span className="brand-subtitle">PROJECT TRACKER</span>
-            </span>
-          </Link>
+          <SiteBrand />
           <nav className="desktop-nav" aria-label="Main navigation">
             {links.map((link) => (
               <Link
