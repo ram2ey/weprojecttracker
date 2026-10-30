@@ -1,0 +1,30 @@
+# Temporary funding-demo transport. No account, domain or tunnel token required.
+# A new connector process receives a new URL: update the app's APP_URL before
+# redeploying it. No automatic restart prevents an unnoticed origin change.
+services:
+  tunnel:
+    # Official 2026.10.6 image, verified on the target host.
+    image: cloudflare/cloudflared@sha256:004d843fa5fdc3103983fd580ee19fab4a8fa98add31f87249c1659e848c98e0
+    command:
+      - tunnel
+      - --no-autoupdate
+      - --protocol
+      - http2
+      - --url
+      - http://127.0.0.1:33187
+    network_mode: host
+    restart: "no"
+    init: true
+    user: "65532:65532"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    mem_limit: 256m
+    cpus: 0.25
