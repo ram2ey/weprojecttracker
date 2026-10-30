@@ -1,0 +1,91 @@
+name: Prepare Coolify images
+
+# Manually run after these files are added to the repository's default branch.
+# Builds use GitHub runners, never the shared Coolify production server.
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish release images to GitHub Container Registry
+        type: boolean
+        default: false
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint
+      - run: npx next typegen
+      - run: npm run typecheck
+      - run: npm test
+
+  images:
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [web, tools]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Set release image name
+        id: image
+        env:
+          REPOSITORY: ${{ github.repository }}
+          TARGET: ${{ matrix.target }}
+        run: echo "name=ghcr.io/${REPOSITORY,,}-${TARGET}" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+      - name: Log in to GitHub Container Registry
+        if: ${{ inputs.publish }}
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build Linux image
+        id: build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: .
+          target: ${{ matrix.target }}
+          platforms: linux/amd64
+          push: ${{ inputs.publish }}
+          load: ${{ !inputs.publish }}
+          tags: ${{ steps.image.outputs.name }}:sha-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+      - name: Check non-root media access
+        if: ${{ !inputs.publish }}
+        env:
+          IMAGE: ${{ steps.image.outputs.name }}:sha-${{ github.sha }}
+        run: >-
+          docker run --rm --entrypoint node "$IMAGE" -e
+          "const fs=require('node:fs');if(process.getuid()!==1001)process.exit(1);fs.writeFileSync('/data/media/.permission-check','ok');fs.unlinkSync('/data/media/.permission-check');console.log('Non-root media write passed')"
+      - name: Record published digest for Coolify
+        if: ${{ inputs.publish }}
+        env:
+          IMAGE: ${{ steps.image.outputs.name }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+          TARGET: ${{ matrix.target }}
+        run: |
+          printf '%s\n' "${TARGET} image: ${IMAGE}@${DIGEST}" >> "$GITHUB_STEP_SUMMARY"

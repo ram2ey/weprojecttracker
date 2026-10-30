@@ -1,0 +1,13 @@
+node_modules
+.next
+.next-test
+.next-ci
+.local
+.git
+.env*
+!.env.example
+test-results
+playwright-report
+*.pdf
+tests
+*.tsbuildinfo

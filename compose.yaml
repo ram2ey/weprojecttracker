@@ -1,0 +1,99 @@
+name: wassa-${DEPLOY_ENV:-production}
+x-logging: &bounded-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+services:
+  database:
+    image: postgres:16-bookworm
+    restart: unless-stopped
+    logging: *bounded-logging
+    environment:
+      POSTGRES_DB: wassa
+      POSTGRES_USER: wassa
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set a unique database password}
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U wassa -d wassa"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    mem_limit: 1g
+    cpus: 1
+  web:
+    image: ${WEB_IMAGE:-wassa-web:local}
+    build:
+      context: .
+      target: web
+    restart: unless-stopped
+    init: true
+    logging: *bounded-logging
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    depends_on:
+      database:
+        condition: service_healthy
+    environment: &runtime
+      APP_ENV: ${DEPLOY_ENV:-production}
+      BETTER_AUTH_URL: ${APP_URL:?Set the HTTPS application URL}
+      NEXT_PUBLIC_APP_URL: ${APP_URL}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Set a unique authentication secret}
+      MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:?Set a unique 64-character hex encryption key}
+      PGHOST: database
+      PGPORT: "5432"
+      PGDATABASE: wassa
+      PGUSER: wassa
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GEOAPIFY_API_KEY: ${GEOAPIFY_API_KEY:-}
+      ENABLE_DESIGN_PREVIEW: "false"
+      ENABLE_PUBLIC_RENDER_CACHE: ${ENABLE_PUBLIC_RENDER_CACHE:-true}
+      ENABLE_BROWSER_PUSH: ${ENABLE_BROWSER_PUSH:-false}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      TRUST_PROXY_HEADERS: ${TRUST_PROXY_HEADERS:-false}
+      MEDIA_ROOT: /data/media
+    expose: ["3000"]
+    volumes:
+      - media:/data/media
+    mem_limit: 1536m
+    cpus: 1
+  worker:
+    image: ${TOOLS_IMAGE:-wassa-tools:local}
+    build:
+      context: .
+      target: tools
+    restart: unless-stopped
+    init: true
+    logging: *bounded-logging
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    depends_on:
+      database:
+        condition: service_healthy
+    environment: *runtime
+    volumes:
+      - media:/data/media
+    mem_limit: 512m
+    cpus: 0.5
+  migrate:
+    image: ${TOOLS_IMAGE:-wassa-tools:local}
+    build:
+      context: .
+      target: tools
+    profiles: [tools]
+    logging: *bounded-logging
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    depends_on:
+      database:
+        condition: service_healthy
+    environment: *runtime
+    command: [npm, run, db:migrate]
+volumes:
+  postgres:
+  media:

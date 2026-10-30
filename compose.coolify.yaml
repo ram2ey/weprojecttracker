@@ -1,0 +1,112 @@
+# Production: paste into Coolify Docker Compose Empty, or select this file in a
+# Git-based Compose application. Images must be built outside the shared server.
+x-logging: &bounded-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+services:
+  database:
+    image: postgres:16-bookworm
+    restart: unless-stopped
+    logging: *bounded-logging
+    environment:
+      POSTGRES_DB: wassa
+      POSTGRES_USER: wassa
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set a unique production database password}
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U wassa -d wassa"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    mem_limit: 1g
+    cpus: 1
+  migrate:
+    image: ${TOOLS_IMAGE:?Set the published tools image for this release}
+    restart: "no"
+    init: true
+    # Coolify removes this extension before passing the definition to Compose.
+    exclude_from_hc: true
+    logging: *bounded-logging
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    depends_on:
+      database:
+        condition: service_healthy
+    environment: &runtime
+      NODE_ENV: production
+      APP_ENV: production
+      BETTER_AUTH_URL: ${APP_URL:?Set the public HTTPS origin without a port suffix}
+      NEXT_PUBLIC_APP_URL: ${APP_URL}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Set a unique production authentication secret}
+      MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:?Set a unique 64-character hex encryption key}
+      PGHOST: database
+      PGPORT: "5432"
+      PGDATABASE: wassa
+      PGUSER: wassa
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GEOAPIFY_API_KEY: ${GEOAPIFY_API_KEY:-}
+      ENABLE_DESIGN_PREVIEW: "false"
+      ENABLE_PUBLIC_RENDER_CACHE: ${ENABLE_PUBLIC_RENDER_CACHE:-true}
+      ENABLE_BROWSER_PUSH: "false"
+      TRUST_PROXY_HEADERS: ${TRUST_PROXY_HEADERS:-false}
+      MEDIA_ROOT: /data/media
+    command: [npm, run, db:migrate]
+    mem_limit: 512m
+    cpus: 0.5
+  web:
+    image: ${WEB_IMAGE:?Set the published web image for this release}
+    restart: unless-stopped
+    init: true
+    logging: *bounded-logging
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    depends_on:
+      database:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment: *runtime
+    # Coolify Domains targets web at https://YOUR_HOST:3000.
+    # APP_URL above is the public origin: https://YOUR_HOST (without :3000).
+    expose: ["3000"]
+    volumes:
+      - media:/data/media
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:3000/api/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    mem_limit: 1536m
+    cpus: 1
+  worker:
+    image: ${TOOLS_IMAGE:?Set the published tools image for this release}
+    restart: unless-stopped
+    init: true
+    logging: *bounded-logging
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    depends_on:
+      database:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment: *runtime
+    volumes:
+      - media:/data/media
+    mem_limit: 512m
+    cpus: 0.5
+volumes:
+  postgres:
+  media:
