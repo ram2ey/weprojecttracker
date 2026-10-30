@@ -246,12 +246,8 @@ export function ModerationPanel({
     <>
       <div className="console-heading">
         <div>
-          <span className="eyebrow">COMMUNITY ENGAGEMENT</span>
-          <h1>A thoughtful response starts here.</h1>
-          <p>
-            Review guest comments, private feedback, corrections, reports, and
-            official responses. No visitor email is collected.
-          </p>
+          <h1>Comments & feedback</h1>
+          <p>Review comments, private feedback and official responses.</p>
         </div>
       </div>
       <form className="action-row moderation-filters" action="/admin">

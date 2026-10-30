@@ -48,9 +48,8 @@ export function FollowingFeed() {
   return (
     <>
       <p>
-        Follow projects from their detail pages to keep a reading list here.
-        Follows and read preferences stay on this device; clearing browser data
-        removes them.
+        Follow projects to see their updates here. Preferences stay on this
+        device and are removed when you clear browser data.
       </p>
       {error && (
         <p role="alert" className="notice">

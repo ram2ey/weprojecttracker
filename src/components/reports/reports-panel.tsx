@@ -22,11 +22,9 @@ export async function ReportsPanel({
     <>
       <div className="console-heading">
         <div>
-          <span className="eyebrow">APPLICATION REPORTS</span>
-          <h1>A clear view of the register.</h1>
+          <h1>Reports</h1>
           <p>
-            Internal reports use the latest project revision, including private
-            drafts. Counts describe project and moderation records.
+            Internal reports include private drafts and the latest revisions.
           </p>
         </div>
       </div>

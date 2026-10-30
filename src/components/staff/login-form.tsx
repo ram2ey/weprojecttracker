@@ -71,15 +71,10 @@ export function LoginForm({
       <span className="auth-icon">
         <LockKeyhole size={23} />
       </span>
-      <span className="eyebrow">STAFF WORKSPACE</span>
-      <h1>Welcome back.</h1>
-      <p className="auth-description">
-        Sign in to manage and review project information.
-      </p>
+      <h1>Staff sign-in</h1>
       {!configured && (
         <p className="notice" role="status">
-          Staff access is awaiting database and security configuration. No
-          default login is provided.
+          Staff sign-in is not configured yet.
         </p>
       )}
       <form onSubmit={signIn} className="form-stack">
@@ -110,7 +105,7 @@ export function LoginForm({
           </p>
         )}
         <Button type="submit" disabled={!configured || busy}>
-          {busy ? "Signing in…" : "Continue securely"}
+          {busy ? "Signing in…" : "Sign in"}
           <ArrowRight size={17} />
         </Button>
       </form>
@@ -131,8 +126,7 @@ export function LoginForm({
         </>
       )}
       <p className="auth-help">
-        Need access or a password reset? Contact your platform operator for a
-        one-use setup or recovery link.
+        Need access or a password reset? Contact your operator.
       </p>
     </>
   );

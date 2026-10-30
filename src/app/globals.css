@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --font-sans: "DM Sans Variable", "DM Sans", Arial, sans-serif;
-  --font-serif: "Newsreader Variable", "Newsreader", Georgia, serif;
+  --font-sans: var(--font-creato), Arial, sans-serif;
+  --font-serif: var(--font-sans);
   --background: #fcfcf9;
   --foreground: #263c32;
   --card: #ffffff;
@@ -25,8 +25,8 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
   --color-ring: var(--ring);
-  --font-sans: "DM Sans Variable", "DM Sans", Arial, sans-serif;
-  --font-serif: "Newsreader Variable", "Newsreader", Georgia, serif;
+  --font-sans: var(--font-creato), Arial, sans-serif;
+  --font-serif: var(--font-creato), Arial, sans-serif;
 }
 * {
   box-sizing: border-box;
@@ -40,7 +40,7 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
   font-size: 15px;
-  line-height: 1.65;
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
 }
 a {
@@ -82,19 +82,19 @@ p {
 h1,
 h2,
 h3 {
-  font-weight: 500;
-  line-height: 1.12;
+  font-weight: 700;
+  line-height: 1.18;
 }
 h1,
 h2 {
   font-family: var(--font-serif);
-  letter-spacing: -0.035em;
+  letter-spacing: -0.025em;
 }
 h1 {
-  font-size: clamp(44px, 5.9vw, 80px);
+  font-size: clamp(36px, 5vw, 64px);
 }
 h2 {
-  font-size: clamp(32px, 3.5vw, 45px);
+  font-size: clamp(28px, 3vw, 38px);
 }
 ::selection {
   background: #d7e5b9;
@@ -130,7 +130,7 @@ h2 {
   border: 1px solid transparent;
   border-radius: 5px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.4;
   transition:
     background 0.18s,
@@ -179,7 +179,7 @@ h2 {
   align-items: center;
   gap: 12px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   min-height: 40px;
 }
 .text-link:hover {
@@ -188,7 +188,7 @@ h2 {
 .eyebrow {
   display: block;
   font-size: 10px;
-  font-weight: 650;
+  font-weight: 700;
   line-height: 1.6;
   letter-spacing: 0.16em;
 }
@@ -232,7 +232,7 @@ h2 {
   gap: 11px;
   font-size: 22px;
   letter-spacing: -0.035em;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.05;
 }
 .brand-mark {
@@ -249,7 +249,7 @@ h2 {
   margin-top: 7px;
   font-size: 8px;
   letter-spacing: 0.22em;
-  font-weight: 550;
+  font-weight: 500;
 }
 .desktop-nav {
   display: flex;
@@ -265,7 +265,7 @@ h2 {
 }
 .nav-link.active {
   color: var(--primary);
-  font-weight: 650;
+  font-weight: 700;
 }
 .nav-link.active::after {
   position: absolute;
@@ -329,11 +329,11 @@ h2 {
   margin-bottom: 27px;
 }
 .hero h1 {
-  line-height: 1.015;
+  line-height: 1.1;
 }
 .hero h1 em {
   color: var(--muted-foreground);
-  font-weight: 430;
+  font-weight: 500;
 }
 .hero-description {
   margin-top: 24px;
@@ -416,7 +416,7 @@ h2 {
   line-height: 1.6;
 }
 .hero-stamp strong {
-  font-weight: 600;
+  font-weight: 700;
 }
 .stats-section {
   border-block: 1px solid var(--border);
@@ -424,7 +424,7 @@ h2 {
 }
 .stats-grid {
   display: grid;
-  grid-template-columns: 1.15fr 1fr 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   padding-block: 31px;
 }
 .stats-intro p {
@@ -440,6 +440,10 @@ h2 {
 .stat {
   padding-inline: 30px;
   border-left: 1px solid #d8dece;
+}
+.stat:first-child {
+  border-left: 0;
+  padding-left: 0;
 }
 .stat-label {
   display: flex;
@@ -457,7 +461,7 @@ h2 {
   gap: 15px;
   font-size: 45px;
   line-height: 1.15;
-  font-weight: 450;
+  font-weight: 500;
   letter-spacing: -0.065em;
   margin-top: 7px;
 }
@@ -513,7 +517,7 @@ h2 {
 .category-card > span {
   display: block;
   font-size: 12px;
-  font-weight: 550;
+  font-weight: 500;
   min-height: 23px;
 }
 .category-card small {
@@ -554,7 +558,7 @@ h2 {
   border-radius: 3px;
   color: #314732;
   font-size: 9px;
-  font-weight: 650;
+  font-weight: 700;
   letter-spacing: 0.025em;
 }
 .featured-copy {
@@ -593,7 +597,7 @@ h2 {
   gap: 5px;
   border-radius: 4px;
   font-size: 9px;
-  font-weight: 550;
+  font-weight: 500;
   padding: 4px 8px;
   line-height: 1.5;
   white-space: nowrap;
@@ -647,7 +651,7 @@ h2 {
 }
 .progress-label strong {
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 700;
   color: var(--primary);
 }
 .progress-track {
@@ -837,7 +841,7 @@ h2 {
   align-items: center;
   gap: 10px;
   font-size: 18px;
-  font-weight: 550;
+  font-weight: 500;
   letter-spacing: -0.03em;
 }
 .footer-top p {
@@ -1042,7 +1046,7 @@ select {
 .detail-panel dd {
   margin: 3px 0 0;
   font-size: 12px;
-  font-weight: 550;
+  font-weight: 500;
 }
 .panel-note {
   padding: 15px 0 0;
@@ -1152,72 +1156,30 @@ select {
 /* Staff access */
 .auth-shell {
   min-height: 100dvh;
-  display: grid;
-  grid-template-columns: 0.95fr 1.05fr;
-}
-.auth-story {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  background: #224a37;
-  color: #fff;
-  padding: 42px 55px;
-  min-height: 100dvh;
-  background-image: radial-gradient(
-    ellipse at 100% 80%,
-    #718d3d28,
-    transparent 60%
-  );
 }
 .auth-brand {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 21px;
+  font-size: 18px;
   letter-spacing: -0.02em;
-}
-.auth-story .eyebrow {
-  color: #bacba8;
-  margin-bottom: 26px;
-}
-.auth-story .auth-story-title {
-  font-family: var(--font-serif);
-  letter-spacing: -0.035em;
-  margin: 0;
-  color: white;
-  font-size: clamp(44px, 4.5vw, 68px);
-  line-height: 1.09;
-}
-.auth-story .auth-story-title em {
-  color: #bdce9e;
-}
-.auth-story p {
-  color: #b9cbbb;
-  font-size: 13px;
-  line-height: 1.9;
-  margin-top: 26px;
-}
-.auth-security {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  font-size: 10px;
-  color: #c3cfb8;
+  font-weight: 700;
 }
 .auth-main {
-  padding: 36px 60px 25px;
+  padding: 32px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
   min-width: 0;
+  min-height: 100dvh;
 }
 .auth-back {
-  align-self: flex-start;
-  font-size: 11px;
+  margin-top: 16px;
+  font-size: 13px;
   color: var(--muted-foreground);
 }
 .auth-card {
-  width: min(390px, 100%);
+  width: min(400px, 100%);
   margin-block: auto;
   padding-block: 45px;
 }
@@ -1236,10 +1198,11 @@ select {
   margin-bottom: 12px;
 }
 .auth-card h1 {
-  font-size: 43px;
+  font-size: 32px;
+  margin-bottom: 24px;
 }
 .auth-description {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted-foreground);
   margin-block: 15px 27px;
 }
@@ -1252,7 +1215,7 @@ label,
 .block-label {
   display: block;
   font-size: 11px;
-  font-weight: 550;
+  font-weight: 500;
 }
 label > input,
 label > select,
@@ -1264,7 +1227,7 @@ label > textarea {
   margin-top: 3px;
 }
 .auth-help {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--muted-foreground);
   margin-top: 26px;
 }
@@ -1395,7 +1358,7 @@ label > textarea {
 .console-sidebar nav a.active {
   background: #eaf0df;
   color: #355c38;
-  font-weight: 600;
+  font-weight: 700;
 }
 .console-sidebar nav a:hover {
   background: #edf1e7;
@@ -1461,7 +1424,7 @@ label > textarea {
 .staff-profile strong {
   display: block;
   font-size: 11px;
-  font-weight: 550;
+  font-weight: 500;
 }
 .staff-profile small {
   display: block;
@@ -1575,7 +1538,7 @@ label > textarea {
   display: block;
   font-size: 40px;
   letter-spacing: -0.05em;
-  font-weight: 450;
+  font-weight: 500;
   line-height: 1.3;
   margin-block: 13px 7px;
 }
@@ -1605,7 +1568,7 @@ label > textarea {
 .panel-heading h2 {
   font-family: var(--font-sans);
   font-size: 15px;
-  font-weight: 550;
+  font-weight: 500;
   letter-spacing: -0.02em;
 }
 .panel-heading p {
@@ -1636,7 +1599,7 @@ td {
 }
 td > a {
   font-size: 11px;
-  font-weight: 550;
+  font-weight: 500;
 }
 td > small {
   display: flex;
@@ -1740,7 +1703,7 @@ td > small {
 .team-panel h2 {
   font-family: var(--font-sans);
   font-size: 16px;
-  font-weight: 550;
+  font-weight: 500;
   letter-spacing: -0.02em;
   margin-bottom: 7px;
 }
@@ -1813,7 +1776,7 @@ td > small {
 }
 @media (min-width: 1500px) {
   .hero h1 {
-    font-size: 87px;
+    font-size: clamp(36px, 4.6vw, 64px);
   }
   .hero-image {
     height: 450px;
@@ -1827,7 +1790,7 @@ td > small {
     gap: 28px;
   }
   .hero h1 {
-    font-size: 65px;
+    font-size: clamp(36px, 4.6vw, 64px);
   }
   .hero-image {
     height: 390px;
@@ -1902,9 +1865,6 @@ td > small {
   .review-panel {
     display: none;
   }
-  .auth-story {
-    padding-inline: 35px;
-  }
   .auth-main {
     padding-inline: 35px;
   }
@@ -1940,7 +1900,7 @@ td > small {
     padding-block: 35px;
   }
   .hero h1 {
-    font-size: 53px;
+    font-size: clamp(36px, 4.6vw, 64px);
   }
   .hero-image {
     height: 340px;
@@ -1965,8 +1925,9 @@ td > small {
     font-size: 9px;
     margin-top: 15px;
   }
-  .hero-caption > span:last-child {
-    display: none;
+  .hero-caption {
+    flex-wrap: wrap;
+    gap: 8px;
   }
   .hero-stamp {
     font-size: 9px;
@@ -2084,9 +2045,6 @@ td > small {
   }
   .auth-shell {
     grid-template-columns: 1fr;
-  }
-  .auth-story {
-    display: none;
   }
   .auth-main {
     min-height: 100dvh;
@@ -2206,7 +2164,7 @@ td > small {
   }
   .bottom-nav a.active {
     color: var(--primary);
-    font-weight: 650;
+    font-weight: 700;
   }
   .preview-notice {
     gap: 7px;
@@ -2228,7 +2186,7 @@ td > small {
     padding-block: 30px;
   }
   .hero h1 {
-    font-size: 65px;
+    font-size: clamp(36px, 4.6vw, 64px);
   }
   .hero-copy {
     padding-block: 0;
@@ -2275,7 +2233,7 @@ td > small {
   .stat {
     padding-inline: 14px;
   }
-  .stat:nth-child(2) {
+  .stat:first-child {
     border: 0;
     padding-left: 0;
   }
@@ -2494,7 +2452,7 @@ td > small {
     padding: 20px 25px;
   }
   .auth-card h1 {
-    font-size: 39px;
+    font-size: 30px;
   }
   .console-shell {
     flex-direction: column;
@@ -2706,7 +2664,7 @@ td > small {
 .internal-label {
   color: #725017;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
 }
 .comparison-panel {
   padding: 22px;
@@ -2717,7 +2675,7 @@ td > small {
 .comparison-panel summary,
 .timeline-entry summary {
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.6;
 }
 .comparison-grid > div {
@@ -2828,7 +2786,7 @@ td > small {
   display: grid;
   gap: 9px;
   font-size: 13px;
-  font-weight: 550;
+  font-weight: 500;
 }
 .discovery-search {
   grid-column: span 2;
@@ -3362,7 +3320,7 @@ td > small {
   gap: 7px;
   align-items: center;
   font-size: 0.78rem;
-  font-weight: 600;
+  font-weight: 700;
   color: #31533f;
 }
 .official-response p {
@@ -3376,7 +3334,7 @@ td > small {
 }
 .visitor-own summary {
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 700;
 }
 .moderation-item,
 .preference-card {
@@ -3443,7 +3401,7 @@ td > small {
   border-bottom: 1px solid #edf0e9;
 }
 .report-summaries dd {
-  font-weight: 600;
+  font-weight: 700;
 }
 .staff-inbox article {
   display: flex;

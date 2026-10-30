@@ -46,13 +46,12 @@ export function OfflineControls() {
     <section className="preference-card">
       <h2>Install & offline reading</h2>
       <p>
-        Opt in to save up to 10 recently viewed public pages for 7 days and 30
-        public thumbnails for 24 hours. Saved copies may become outdated or
-        include content withdrawn while you are offline.
+        Save up to 10 public pages for 7 days and 30 thumbnails for 24 hours.
+        Copies may be outdated or include content withdrawn while offline.
       </p>
       <p>
-        Private messages and staff pages are never saved. Sending and moderation
-        require a connection; submissions are never queued offline.
+        Staff pages and private messages are never saved. Sending and moderation
+        require a connection; submissions are not queued offline.
       </p>
       <div className="action-row">
         <Button

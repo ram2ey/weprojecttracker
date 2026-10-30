@@ -1,7 +1,24 @@
 import type { Metadata } from "next";
-import "@fontsource-variable/dm-sans";
-import "@fontsource-variable/newsreader";
+import localFont from "next/font/local";
 import "./globals.css";
+const creato = localFont({
+  src: [
+    {
+      path: "./fonts/CreatoDisplay-Regular.otf",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "./fonts/CreatoDisplay-Medium.otf",
+      weight: "500",
+      style: "normal",
+    },
+    { path: "./fonts/CreatoDisplay-Bold.otf", weight: "700", style: "normal" },
+  ],
+  variable: "--font-creato",
+  display: "swap",
+  fallback: ["Arial", "sans-serif"],
+});
 export function generateMetadata(): Metadata {
   return {
     metadataBase: new URL(
@@ -27,7 +44,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" data-scroll-behavior="smooth">
+    <html lang="en" className={creato.variable} data-scroll-behavior="smooth">
       <body>
         <a href="#main-content" className="skip-link">
           Skip to content

@@ -128,12 +128,11 @@ export function GuestDiscussion({ recordId }: { recordId: string }) {
   }
   return (
     <section className="detail-section discussion" id="discussion">
-      <span className="eyebrow">COMMUNITY VOICES</span>
       <h2>Comments & feedback</h2>
       <p>
-        Comments are reviewed before they appear. Keep messages relevant and
-        respectful, and leave out personal details, confidential information and
-        allegations about individuals.
+        Comments are reviewed. Keep messages relevant and respectful. Do not
+        include personal details, confidential information or allegations about
+        individuals.
       </p>
       <div className="action-row">
         <Button

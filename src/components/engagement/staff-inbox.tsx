@@ -39,11 +39,9 @@ export function StaffInbox() {
     <>
       <div className="console-heading">
         <div>
-          <span className="eyebrow">YOUR STAFF INBOX</span>
-          <h1>Keep the work moving.</h1>
+          <h1>Inbox</h1>
           <p>
             {data ? `${data.unread} unread notices. ` : "Loading notices… "}
-            Review reminders never change a project&apos;s status.
           </p>
         </div>
       </div>

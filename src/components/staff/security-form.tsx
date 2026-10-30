@@ -62,7 +62,7 @@ export function SecurityForm({ enrolled }: { enrolled: boolean }) {
         <span className="auth-icon">
           <ShieldCheck />
         </span>
-        <h1>Keep a way back in.</h1>
+        <h1>Save recovery codes</h1>
         <p className="auth-description">
           Save these recovery codes somewhere secure. Each works once if you
           lose your authenticator. They will not be shown again.
@@ -105,12 +105,11 @@ export function SecurityForm({ enrolled }: { enrolled: boolean }) {
       <span className="auth-icon">
         <ShieldCheck />
       </span>
-      <span className="eyebrow">ONE MORE SECURITY CHECK</span>
-      <h1>{enrolled ? "Verify it’s you." : "Protect your workspace."}</h1>
+      <h1>{enrolled ? "Verify identity" : "Set up MFA"}</h1>
       <p className="auth-description">
         {enrolled
-          ? "Enter the code from your authenticator app. This check is required after password and Google sign-in."
-          : "Set up an authenticator app before you access project records. Scan the QR code, then enter the six-digit code."}
+          ? "Enter your authenticator code."
+          : "Scan the QR code with your authenticator, then enter its six-digit code."}
       </p>
       {!enrolled && !enrolment && (
         <Button disabled={busy} onClick={start}>

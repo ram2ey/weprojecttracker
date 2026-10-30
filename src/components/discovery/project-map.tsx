@@ -57,8 +57,7 @@ export function ProjectMap({
     <section className="project-map-panel" aria-labelledby="project-map-title">
       <div className="map-panel-heading">
         <div>
-          <span className="eyebrow">PROJECTS BY LOCATION</span>
-          <h2 id="project-map-title">A closer look at your community.</h2>
+          <h2 id="project-map-title">Project map</h2>
         </div>
         <MapPin size={28} strokeWidth={1.5} />
       </div>
@@ -72,9 +71,8 @@ export function ProjectMap({
           {state === "idle" && (
             <div className="map-state">
               <p>
-                Load the map to explore approved project locations. Map tiles
-                are provided by Geoapify and OpenStreetMap; loading connects
-                your browser to Geoapify.
+                Loading connects to Geoapify for map tiles. Map data:
+                OpenStreetMap.
               </p>
               <Button onClick={load}>
                 <MapPin size={16} />
@@ -89,8 +87,7 @@ export function ProjectMap({
           )}
           {state === "unavailable" && (
             <p className="map-state" role="status">
-              The interactive map is not available yet. You can explore every
-              matching project in the list below.
+              Map unavailable. Browse matching projects below.
             </p>
           )}
           {state === "error" && (

@@ -265,6 +265,7 @@ Verify current versions, compatibility, service terms, and quotas when implement
 
 ## Continuation notes
 
+- 30 October 2026: User approved and requested implementation of interface simplification and Creato Display throughout public and staff screens. Removed the shared green authentication panel, centered login/setup/MFA forms, self-hosted the original Regular/Medium/Bold font files with their SIL OFL licence, and removed the former font dependencies. Trimmed promotional/repeated copy, header ribbon and footer slogans while preserving security/privacy/approval guidance and authored records. Local checks: lint, TypeScript, 23 unit tests, Chrome phone/desktop accessibility and workflow checks; affected checks rerun successfully after updating changed labels. Added real font-loading assertions. Preparing the updated image release and redeployment of the existing app, preserving the running Cloudflare connector and current demo URL. No API or database changes; backups and further guide documentation remain deferred.
 - 29 October 2026: Source PDF reviewed and requirements discussed. Phased plan approved for saving.
 - 29 October 2026: Phase 1 application foundation, public/admin design previews, PostgreSQL migrations, staff authentication, universal application MFA, one-use setup/recovery links, worker, Docker/Coolify configuration, tests, and operating documentation implemented locally.
 - 29 October 2026: Operator explicitly chose no separate staging environment. Local development and review precede a single production deployment.

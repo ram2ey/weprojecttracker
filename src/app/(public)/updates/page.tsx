@@ -44,11 +44,7 @@ export default async function UpdatesPage({
         <Link href="/reports">Public reports</Link>
       </nav>
       <div className="page-heading">
-        <span className="eyebrow">THE LATEST ON THE GROUND</span>
-        <h1>Progress, as it happens.</h1>
-        <p>
-          A clear record of project developments and constituency announcements.
-        </p>
+        <h1>Updates</h1>
       </div>
       <div className="updates-list">
         {updates.map((project) => (

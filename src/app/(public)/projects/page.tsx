@@ -88,12 +88,7 @@ export default async function ProjectsPage({
   return (
     <div className="container section directory">
       <div className="page-heading">
-        <span className="eyebrow">THE PROJECT DIRECTORY</span>
-        <h1>Every project. Every step.</h1>
-        <p>
-          Find the work that matters to your community, and see how it is
-          progressing.
-        </p>
+        <h1>Projects</h1>
       </div>
       <form
         className="discovery-filters"

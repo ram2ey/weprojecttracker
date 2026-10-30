@@ -24,23 +24,11 @@ export async function PublicationIndex({
           Announcements
         </Link>
         <Link href="/reports" aria-current={report ? "page" : undefined}>
-          Public reports
+          Reports
         </Link>
       </nav>
       <div className="page-heading">
-        <span className="eyebrow">
-          {report ? "DOCUMENTS IN THE OPEN" : "FROM THE CONSTITUENCY"}
-        </span>
-        <h1>
-          {report
-            ? "Public reports, clearly recorded."
-            : "Information for our communities."}
-        </h1>
-        <p>
-          {report
-            ? "Read independently approved reports and their supporting public documents."
-            : "Read independently reviewed constituency announcements and information."}
-        </p>
+        <h1>{report ? "Reports" : "Announcements"}</h1>
       </div>
       <form
         className="publication-search"
@@ -94,12 +82,8 @@ export async function PublicationIndex({
       {!listing.items.length && (
         <div className="empty-state">
           <FileText size={30} />
-          <h2>No {report ? "reports" : "announcements"} to show yet.</h2>
-          <p>
-            {filters.q
-              ? "Try a different search."
-              : "Approved publications will appear here."}
-          </p>
+          <h2>No {report ? "reports" : "announcements"} found.</h2>
+          {filters.q && <p>Try a different search.</p>}
         </div>
       )}
       {listing.total > 0 && (

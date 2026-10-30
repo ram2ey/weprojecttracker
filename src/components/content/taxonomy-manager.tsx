@@ -41,8 +41,7 @@ export function TaxonomyManager({ terms }: { terms: Taxonomy[] }) {
     <>
       <div className="console-heading">
         <div>
-          <span className="eyebrow">OPERATOR SETTINGS</span>
-          <h1>Categories & communities.</h1>
+          <h1>Categories & communities</h1>
           <p>
             Manage approved choices for new records. Retire old terms without
             rewriting publication history.

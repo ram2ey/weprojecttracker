@@ -93,8 +93,7 @@ export function PushControls() {
     <section className="preference-card">
       <h2>Browser notifications</h2>
       <p>
-        Optional, generic notifications open your following feed. Project
-        details are shown only after you open the website.
+        Notifications open your following feed without showing project details.
       </p>
       {config?.enabled || active ? (
         <Button
@@ -106,8 +105,7 @@ export function PushControls() {
         </Button>
       ) : (
         <p className="notice">
-          Live push is disabled while the sender identity awaits approval. The
-          following feed works without it.
+          Notifications are unavailable. Your following feed still works.
         </p>
       )}
       {message && <p role="status">{message}</p>}

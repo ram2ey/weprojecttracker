@@ -12,7 +12,6 @@ import {
   MapPin,
   Check,
   MoveUpRight,
-  ShieldCheck,
 } from "lucide-react";
 import { statusTone } from "@/lib/projects";
 import { publicDataset } from "@/lib/content/showcase";
@@ -39,43 +38,24 @@ export default async function HomePage() {
     <>
       <section className="hero container">
         <div className="hero-copy">
-          <div className="eyebrow">
-            <span className="tiny-dot" /> DEVELOPMENT, IN THE OPEN
-          </div>
           <h1>
             Our communities.
             <br />
-            Our <em>progress.</em>
+            Our progress.
           </h1>
-          <p className="hero-description">
-            From the first foundation to the finishing touches.
-            <br className="desktop-break" /> See the projects shaping Wassa
-            East, and follow
-            <br className="desktop-break" /> the work happening in your
-            community.
-          </p>
+          <p className="hero-description">Track projects across Wassa East.</p>
           <div className="hero-actions">
             <Button asChild>
               <Link href="/projects">
-                Explore projects <ArrowUpRight size={18} />
+                View projects <ArrowUpRight size={18} />
               </Link>
             </Button>
             <Link className="text-link" href="/about">
-              About this platform <ArrowRight size={16} />
+              About <ArrowRight size={16} />
             </Link>
-          </div>
-          <div className="hero-footnote">
-            <ShieldCheck size={16} />
-            <span>Open to everyone. No account needed.</span>
           </div>
         </div>
         <div className="hero-visual">
-          <div className="hero-visual-top">
-            <span>BUILDING A BETTER EVERYDAY</span>
-            <span className="compass">
-              N <MoveUpRight size={24} />
-            </span>
-          </div>
           <Image
             priority
             src={featured?.coverUrl ?? "/illustrations/school.svg"}
@@ -99,46 +79,27 @@ export default async function HomePage() {
                 : "Architectural illustration"}
             </span>
           </div>
-          <div className="hero-stamp">
-            <LandmarkIcon />
-            <span>
-              Local projects.
-              <br />
-              <strong>Lasting impact.</strong>
-            </span>
-          </div>
         </div>
       </section>
       <section className="stats-section">
         <div className="container stats-grid">
-          <div className="stats-intro">
-            <span className="eyebrow">THE BIG PICTURE</span>
-            <p>
-              Every project,
-              <br />
-              part of our progress.
-            </p>
-          </div>
           {[
             {
               label: "Projects tracked",
               count: stats.total,
-              note: "Across our communities",
               icon: Shapes,
             },
             {
               label: "Ongoing projects",
               count: stats.ongoing,
-              note: "Work moving forward",
               icon: MoveUpRight,
             },
             {
               label: "Completed projects",
               count: stats.completed,
-              note: "Ready to serve",
               icon: Check,
             },
-          ].map(({ label, count, note, icon: Icon }) => (
+          ].map(({ label, count, icon: Icon }) => (
             <div className="stat" key={label}>
               <div className="stat-label">
                 {label}
@@ -146,7 +107,6 @@ export default async function HomePage() {
               </div>
               <div className="stat-number">
                 {String(count).padStart(2, "0")}
-                <span>{note}</span>
               </div>
             </div>
           ))}
@@ -155,14 +115,8 @@ export default async function HomePage() {
       <section className="container section">
         <div className="section-header">
           <div>
-            <span className="eyebrow">FIND WHAT MATTERS TO YOU</span>
-            <h2>Progress in every sector.</h2>
+            <h2>Categories</h2>
           </div>
-          <p>
-            Explore the work making a difference
-            <br />
-            in everyday life.
-          </p>
         </div>
         <div className="category-grid">
           {categories.map((category) => {
@@ -188,8 +142,7 @@ export default async function HomePage() {
         <div className="container">
           <div className="section-header">
             <div>
-              <span className="eyebrow">A CLOSER LOOK</span>
-              <h2>Work worth following.</h2>
+              <h2>Featured project</h2>
             </div>
             <Link href="/projects" className="text-link">
               View all projects <ArrowRight size={17} />
@@ -253,43 +206,31 @@ export default async function HomePage() {
           ) : (
             <div className="empty-state">
               <School size={36} />
-              <h3>The first project story starts here.</h3>
-              <p>
-                Approved projects will appear once the constituency team begins
-                publishing.
-              </p>
+              <h3>No published projects yet.</h3>
             </div>
           )}
         </div>
       </section>
-      <section className="container section">
-        <div className="section-header">
-          <div>
-            <span className="eyebrow">FROM ACROSS THE CONSTITUENCY</span>
-            <h2>The latest on the ground.</h2>
+      {projects.length > 1 && (
+        <section className="container section">
+          <div className="section-header">
+            <div>
+              <h2>Latest projects</h2>
+            </div>
+            <Link href="/projects" className="text-link">
+              View all projects <ArrowRight size={17} />
+            </Link>
           </div>
-          <Link href="/projects" className="text-link">
-            Explore the directory <ArrowRight size={17} />
-          </Link>
-        </div>
-        <div className="project-grid">
-          {projects.slice(1, 4).map((project) => (
-            <ProjectCard key={project.id} project={project} />
-          ))}
-        </div>
-        {!projects.length && (
-          <p className="empty-state">No published projects yet.</p>
-        )}
-      </section>
+          <div className="project-grid">
+            {projects.slice(1, 4).map((project) => (
+              <ProjectCard key={project.id} project={project} />
+            ))}
+          </div>
+        </section>
+      )}
       <section className="container discover-banner">
         <div>
-          <span className="eyebrow">YOUR COMMUNITY, IN FOCUS</span>
-          <h2>
-            What&apos;s happening
-            <br />
-            near you?
-          </h2>
-          <p>Find local projects and see how they&apos;re taking shape.</p>
+          <h2>Project map</h2>
           <Button variant="light" asChild>
             <Link href="/projects?view=map">
               Explore project map <Search size={17} />
@@ -314,7 +255,4 @@ export default async function HomePage() {
       </section>
     </>
   );
-}
-function LandmarkIcon() {
-  return <School size={27} strokeWidth={1.4} />;
 }

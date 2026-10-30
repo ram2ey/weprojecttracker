@@ -31,12 +31,8 @@ export function RecordCreator() {
     <>
       <div className="console-heading">
         <div>
-          <span className="eyebrow">A CLEAR STARTING POINT</span>
-          <h1>Start a new record.</h1>
-          <p>
-            Create a private draft, add the details and evidence, then send it
-            for independent review.
-          </p>
+          <h1>New record</h1>
+          <p>Drafts stay private until independently approved.</p>
         </div>
       </div>
       <section className="team-panel">
@@ -56,7 +52,7 @@ export function RecordCreator() {
               name="title"
               minLength={3}
               maxLength={160}
-              placeholder="Give this record a clear, descriptive title"
+              placeholder="Record title"
               required
             />
           </label>

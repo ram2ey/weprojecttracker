@@ -93,12 +93,8 @@ export default async function AdminPage({
       <>
         <div className="console-heading">
           <div>
-            <span className="eyebrow">OPERATOR CONTROLS</span>
-            <h1>People behind the platform.</h1>
-            <p>
-              Staff setup and recovery links are generated here and shared
-              personally.
-            </p>
+            <h1>Staff</h1>
+            <p>Share setup and recovery links privately.</p>
           </div>
         </div>
         <TeamForm preview={false} />
@@ -121,12 +117,8 @@ export default async function AdminPage({
       <>
         <div className="console-heading">
           <div>
-            <span className="eyebrow">OPERATOR OVERSIGHT</span>
-            <h1>A record of decisions.</h1>
-            <p>
-              Latest 100 administrative actions. Published snapshots remain in
-              each record&apos;s revision history.
-            </p>
+            <h1>Audit log</h1>
+            <p>Latest 100 administrative actions.</p>
           </div>
         </div>
         <div className="table-panel">

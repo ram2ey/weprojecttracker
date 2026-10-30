@@ -244,7 +244,7 @@ test("map is opt-in, missing-key fallback preserves the list, and filters are re
   expect(configCalls).toBe(0);
   await page.getByRole("button", { name: "Load interactive map" }).click();
   await expect(
-    page.getByRole("status").filter({ hasText: "not available yet" }),
+    page.getByRole("status").filter({ hasText: "Map unavailable" }),
   ).toBeVisible();
   await expect(
     page.getByText("10 of 52 matching projects have published coordinates.", {

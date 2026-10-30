@@ -130,10 +130,8 @@ export function Console({
         </nav>
         <div className="sidebar-note">
           <ShieldIcon />
-          <strong>A second pair of eyes.</strong>
-          <p>
-            Every publication needs approval from someone other than its author.
-          </p>
+          <strong>Independent approval</strong>
+          <p>Another staff member must approve publication.</p>
         </div>
         <div className="sidebar-bottom">
           <Link href="/">
@@ -206,12 +204,8 @@ export function Console({
                   </Link>
                   <div className="console-heading">
                     <div>
-                      <span className="eyebrow">PROJECT REGISTRATION</span>
-                      <h1>Start a project record.</h1>
-                      <p>
-                        Build a clear picture. Save your draft before sending it
-                        for review.
-                      </p>
+                      <h1>New project</h1>
+                      <p>Save a draft, then submit it for review.</p>
                     </div>
                     <Badge>Draft</Badge>
                   </div>
@@ -228,8 +222,7 @@ export function Console({
                       <div className="form-section-heading">
                         <span>01</span>
                         <div>
-                          <h2>The essentials</h2>
-                          <p>Give the project a clear name and purpose.</p>
+                          <h2>Details</h2>
                         </div>
                       </div>
                       <div className="form-stack">
@@ -347,12 +340,8 @@ export function Console({
                 <>
                   <div className="console-heading">
                     <div>
-                      <span className="eyebrow">OPERATOR CONTROLS</span>
-                      <h1>People behind the platform.</h1>
-                      <p>
-                        Create one-use account setup or recovery links. No
-                        application emails are sent.
-                      </p>
+                      <h1>Staff</h1>
+                      <p>Share setup and recovery links privately.</p>
                     </div>
                   </div>
                   {role === "super_admin" && <TeamForm preview={preview} />}
@@ -361,23 +350,13 @@ export function Console({
                 <>
                   <div className="console-heading">
                     <div>
-                      <span className="eyebrow">
-                        {preview
-                          ? "YOUR CONSTITUENCY WORKSPACE"
-                          : "SECURE WORKSPACE"}
-                      </span>
                       <h1>
                         {view === "review"
-                          ? "A second pair of eyes."
+                          ? "Independent approval"
                           : view === "projects"
-                            ? "The project register."
-                            : `Good to have you here, ${name.split(" ")[0]}.`}
+                            ? "Projects"
+                            : "Overview"}
                       </h1>
-                      <p>
-                        {preview
-                          ? "A clear view of the work, and what needs your attention."
-                          : "Your account is secured. Project workflows will be connected in Phase 2."}
-                      </p>
                     </div>
                     {(preview || role !== "approver") && (
                       <Button asChild>
@@ -501,11 +480,7 @@ export function Console({
                       aria-label="Publication review guidance"
                     >
                       <span className="eyebrow">THE REVIEW DESK</span>
-                      <h2>
-                        {preview
-                          ? "Ready when you are."
-                          : "A clear publishing process."}
-                      </h2>
+                      <h2>{preview ? "Review queue" : "Publication review"}</h2>
                       <p>
                         Check the facts, review the evidence, and keep a record
                         of every decision.

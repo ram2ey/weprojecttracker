@@ -36,19 +36,10 @@ export function RecordList({
     <>
       <div className="console-heading">
         <div>
-          <span className="eyebrow">
-            {pending ? "THE REVIEW DESK" : "YOUR CONSTITUENCY WORKSPACE"}
-          </span>
-          <h1>
-            {pending
-              ? "Ready for a second pair of eyes."
-              : "The project & content register."}
-          </h1>
-          <p>
-            {pending
-              ? "Review submitted information and evidence. The last approved version stays public until a new decision."
-              : "Projects, announcements, and reports, with a clear record of every revision."}
-          </p>
+          <h1>{pending ? "Review queue" : "Content register"}</h1>
+          {pending && (
+            <p>The last approved version stays public during review.</p>
+          )}
         </div>
         {role !== "approver" && (
           <Button asChild>
@@ -76,7 +67,6 @@ export function RecordList({
               <Icon size={17} />
             </span>
             <strong>{String(count).padStart(2, "0")}</strong>
-            <small>Calculated from current records</small>
           </article>
         ))}
       </div>

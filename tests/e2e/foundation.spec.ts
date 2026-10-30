@@ -82,7 +82,7 @@ test("public preview loads, filters and opens a project", async ({ page }) => {
     page.getByText("Sample records and illustrations", { exact: false }),
   ).toBeVisible();
   await page
-    .getByRole("link", { name: "Explore projects", exact: true })
+    .getByRole("link", { name: "View projects", exact: true })
     .first()
     .click();
   await page.getByLabel("Category", { exact: true }).selectOption("Health");
@@ -134,12 +134,12 @@ test("administrative design screens are reviewable without real data access", as
 }) => {
   await page.goto("/preview/console");
   await expect(
-    page.getByRole("heading", { name: /Good to have you/ }),
+    page.getByRole("heading", { name: "Overview", exact: true }),
   ).toBeVisible();
   await page.screenshot({ path: ".local/admin-desktop.png", fullPage: true });
   await page.getByRole("link", { name: "New project", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Start a project record." }),
+    page.getByRole("heading", { name: "New project", exact: true }),
   ).toBeVisible();
   await page.getByLabel("Project title").fill("Design review example");
   await page.getByLabel("Category", { exact: true }).selectOption("Education");
@@ -203,7 +203,7 @@ test("password authentication cannot bypass MFA or the operator role", async ({
   expect((await verified.json()).recoveryCodes).toHaveLength(8);
   await page.goto("/admin");
   await expect(
-    page.getByRole("heading", { name: /The project & content register/ }),
+    page.getByRole("heading", { name: "Content register", exact: true }),
   ).toBeVisible();
   expect(
     (
@@ -411,7 +411,7 @@ test("staff can complete setup, password sign-in, and MFA enrolment through the 
   await page.getByRole("link", { name: "Continue to sign-in" }).click();
   await page.getByLabel("Email address").fill(person.email);
   await page.getByLabel("Password", { exact: true }).fill(password);
-  await page.getByRole("button", { name: "Continue securely" }).click();
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page).toHaveURL(/\/staff\/security/);
   await page.getByRole("button", { name: "Set up authenticator" }).click();
   await expect(

@@ -9,33 +9,25 @@ export default function AboutPage() {
   return (
     <div className="container section">
       <div className="page-heading">
-        <span className="eyebrow">INFORMATION FOR EVERYONE</span>
-        <h1>
-          Our progress belongs
-          <br />
-          in the open.
-        </h1>
-        <p>
-          A public window into development in Wassa East, available to everyone,
-          wherever they are.
-        </p>
+        <h1>About</h1>
+        <p>Project information for Wassa East. No account needed.</p>
       </div>
       <div className="values-grid">
         {[
           {
             icon: Eye,
-            title: "See the work",
-            text: "Explore project locations, progress, milestones, and supporting evidence in one place.",
+            title: "Project records",
+            text: "View locations, progress, milestones and evidence.",
           },
           {
             icon: ShieldCheck,
-            title: "Information with a process",
-            text: "Authorised officers submit records. A different approver reviews them before publication.",
+            title: "Independent review",
+            text: "A different staff member approves each record before publication.",
           },
           {
             icon: Users,
-            title: "Open to every community",
-            text: "No membership or public account is required to read project information and evidence.",
+            title: "Public access",
+            text: "Everyone can browse published records.",
           },
         ].map(({ icon: Icon, title, text }) => (
           <article key={title}>
@@ -46,24 +38,19 @@ export default function AboutPage() {
         ))}
       </div>
       <section className="contact-panel">
-        <span className="eyebrow">HOW TO READ A PROJECT RECORD</span>
-        <h2>A clear record, with context.</h2>
+        <h2>Understanding the records</h2>
         <p>
-          Progress percentages are reported by the constituency team, with an
-          explanation of how they were assessed. Milestones are tracked
-          separately. A completed project requires a completion date, summary,
-          and supporting evidence before independent approval.
+          Progress is reported by the constituency team. Completed projects
+          require a completion date, summary, evidence and independent approval.
         </p>
         <p>
-          Dates in the directory refer to approved public updates. While a
-          correction is being reviewed, the last approved record stays
-          available. Earlier approved versions can be inspected in the
-          publication history.
+          Directory dates refer to approved updates. The last approved version
+          stays public during review. Earlier versions appear in publication
+          history.
         </p>
         <p>
-          Map markers use published coordinates. Projects without reliable
-          coordinates remain in the directory. Illustrations are identified and
-          are never presented as project evidence.
+          Projects without coordinates remain in the directory. Illustrations
+          are labelled and are not project evidence.
         </p>
       </section>
     </div>

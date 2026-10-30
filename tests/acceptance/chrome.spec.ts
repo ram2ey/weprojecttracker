@@ -165,6 +165,29 @@ test.afterAll(async () => {
 async function audit(page: Page, path: string) {
   await page.goto(path);
   await expect(page.locator("h1")).toBeVisible();
+  const typography = await page.evaluate(async () => {
+    await document.fonts.ready;
+    const body = getComputedStyle(document.body).fontFamily;
+    const heading = getComputedStyle(document.querySelector("h1")!).fontFamily;
+    return {
+      body,
+      heading,
+      loaded: [...document.fonts].some(
+        (font) =>
+          font.family.toLowerCase().includes("creato") &&
+          font.status === "loaded",
+      ),
+    };
+  });
+  expect(typography.body.toLowerCase(), `Body font on ${path}`).toContain(
+    "creato",
+  );
+  expect(typography.heading.toLowerCase(), `Heading font on ${path}`).toContain(
+    "creato",
+  );
+  expect(typography.loaded, `Self-hosted font loaded on ${path}`).toBe(true);
+  if (path.startsWith("/staff/"))
+    await expect(page.locator(".auth-story")).toHaveCount(0);
   const result = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
     .analyze();
@@ -243,7 +266,7 @@ test("phone navigation, guest form and follow controls work with touch", async (
     await expect(page).toHaveURL(/\/projects$/);
     await expect(
       page.getByRole("heading", {
-        name: "Every project. Every step.",
+        name: "Projects",
         exact: true,
       }),
     ).toBeVisible();

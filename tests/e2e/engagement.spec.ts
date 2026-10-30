@@ -772,15 +772,15 @@ test("device follows and offline copies work without caching private routes", as
   ).toBeVisible();
   await page.goto("/admin?view=engagement&state=all");
   await expect(
-    page.getByRole("heading", { name: "A thoughtful response starts here." }),
+    page.getByRole("heading", { name: "Comments & feedback" }),
   ).toBeVisible();
   await page.goto("/admin?view=inbox");
   await expect(
-    page.getByRole("heading", { name: "Keep the work moving." }),
+    page.getByRole("heading", { name: "Inbox", exact: true }),
   ).toBeVisible();
   await page.goto("/admin?view=reports");
   await expect(
-    page.getByRole("heading", { name: "A clear view of the register." }),
+    page.getByRole("heading", { name: "Reports", exact: true }),
   ).toBeVisible();
   const image = await sharp({
     create: { width: 40, height: 40, channels: 3, background: "#35724e" },

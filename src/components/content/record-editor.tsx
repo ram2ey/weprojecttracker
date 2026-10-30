@@ -346,8 +346,7 @@ export function RecordEditor({
             <div className="form-section-heading">
               <span>01</span>
               <div>
-                <h2>The essentials</h2>
-                <p>A clear title, purpose, and source of information.</p>
+                <h2>Details</h2>
               </div>
             </div>
             <div className="form-stack">
@@ -471,10 +470,7 @@ export function RecordEditor({
                   <span>02</span>
                   <div>
                     <h2>Place & progress</h2>
-                    <p>
-                      Record the location, current stage, and the evidence
-                      behind the percentage.
-                    </p>
+                    <p>Add the location and evidence for reported progress.</p>
                   </div>
                 </div>
                 <div className="form-columns">
@@ -657,10 +653,7 @@ export function RecordEditor({
                   <span>03</span>
                   <div>
                     <h2>Milestones</h2>
-                    <p>
-                      Track specific achievements separately from the reported
-                      percentage.
-                    </p>
+                    <p>Track achievements separately from reported progress.</p>
                   </div>
                 </div>
                 {payload.milestones.map((milestone, index) => (
@@ -1306,8 +1299,7 @@ export function RecordEditor({
         </p>
       )}
       <section className="record-history">
-        <span className="eyebrow">PRESERVED HISTORY</span>
-        <h2>Every revision has a record.</h2>
+        <h2>Revision history</h2>
         {record.revisions.map((r) => (
           <Link
             key={r.id}

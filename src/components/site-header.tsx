@@ -34,19 +34,6 @@ export function SiteHeader() {
   }
   return (
     <>
-      <div
-        className="civic-ribbon"
-        role="region"
-        aria-label="Constituency information"
-      >
-        <div className="container ribbon-inner">
-          <span>
-            <span className="tiny-dot" /> A window into our constituency&apos;s
-            development
-          </span>
-          <span>Wassa East · Western Region, Ghana</span>
-        </div>
-      </div>
       <header className="site-header">
         <div className="container header-inner">
           <Link href="/" className="brand">

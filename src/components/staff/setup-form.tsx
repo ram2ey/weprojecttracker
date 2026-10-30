@@ -44,12 +44,11 @@ export function SetupForm() {
       <span className="auth-icon">
         <KeyRound />
       </span>
-      <span className="eyebrow">YOUR SECURE WORKSPACE</span>
-      <h1>{done ? "You’re ready to sign in." : "Set your password."}</h1>
+      <h1>{done ? "Password saved" : "Set password"}</h1>
       <p className="auth-description">
         {done
-          ? "Your password has been saved. Sign in, then complete the authenticator security check."
-          : "Use a unique password with at least 12 characters. This operator-issued link works once and expires automatically."}
+          ? "Sign in to set up or verify your authenticator."
+          : "Use at least 12 characters. This link expires and works once."}
       </p>
       {done ? (
         <Button asChild>
