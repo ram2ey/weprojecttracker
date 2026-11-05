@@ -1,24 +1,5 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
 import "./globals.css";
-const creato = localFont({
-  src: [
-    {
-      path: "./fonts/CreatoDisplay-Regular.otf",
-      weight: "400",
-      style: "normal",
-    },
-    {
-      path: "./fonts/CreatoDisplay-Medium.otf",
-      weight: "500",
-      style: "normal",
-    },
-    { path: "./fonts/CreatoDisplay-Bold.otf", weight: "700", style: "normal" },
-  ],
-  variable: "--font-creato",
-  display: "swap",
-  fallback: ["Arial", "sans-serif"],
-});
 export function generateMetadata(): Metadata {
   return {
     metadataBase: new URL(
@@ -44,7 +25,12 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={creato.variable} data-scroll-behavior="smooth">
+    <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth">
+      <head>
+        {/* Same-origin blocking script applies appearance before first paint. */}
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        <script src="/appearance.js" />
+      </head>
       <body>
         <a href="#main-content" className="skip-link">
           Skip to content

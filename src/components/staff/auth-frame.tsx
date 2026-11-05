@@ -1,3 +1,4 @@
+import { AppearanceControl } from "../ui/appearance";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { SiteBrand } from "../site-brand";
@@ -6,6 +7,7 @@ export function AuthFrame({ children }: { children: React.ReactNode }) {
     <div className="auth-shell">
       <main id="main-content" className="auth-main" tabIndex={-1}>
         <SiteBrand className="auth-brand" />
+        <AppearanceControl />
         <Link href="/" className="text-link auth-back">
           <ArrowLeft size={16} /> Back to website
         </Link>

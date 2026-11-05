@@ -1,3 +1,4 @@
+import { ResponsivePanel } from "@/components/ui/responsive-panel";
 import {
   Search,
   SlidersHorizontal,
@@ -88,108 +89,119 @@ export default async function ProjectsPage({
   return (
     <div className="container section directory">
       <div className="page-heading">
+        <span className="eyebrow">EXPLORE WASSA EAST</span>
         <h1>Projects</h1>
+        <p>
+          Find the work happening in your community. Follow its progress, from
+          the first milestone to completion.
+        </p>
       </div>
-      <form
-        className="discovery-filters"
-        action="/projects"
-        aria-label="Filter projects"
-      >
-        <input type="hidden" name="view" value={view} />
-        <div className="discovery-search">
-          <label htmlFor="q">Search projects</label>
-          <div className="search-field">
-            <Search size={19} />
-            <input
-              id="q"
-              name="q"
-              placeholder="Project, community or tag"
-              maxLength={200}
-              defaultValue={typeof raw.q === "string" ? raw.q : ""}
-            />
+      <ResponsivePanel title="Filter projects">
+        <form
+          className="discovery-filters"
+          action="/projects"
+          aria-label="Filter projects"
+        >
+          <input type="hidden" name="view" value={view} />
+          <div className="discovery-search">
+            <label htmlFor="q">Search projects</label>
+            <div className="search-field">
+              <Search size={19} />
+              <input
+                id="q"
+                name="q"
+                placeholder="Project, community or tag"
+                maxLength={200}
+                defaultValue={typeof raw.q === "string" ? raw.q : ""}
+              />
+            </div>
           </div>
-        </div>
-        {(
-          [
-            {
-              name: "category",
-              label: "Category",
-              options: summary.categories,
-              empty: "All categories",
-            },
-            {
-              name: "subcategory",
-              label: "Subcategory",
-              options: summary.subcategories,
-              empty: "All subcategories",
-            },
-            {
-              name: "community",
-              label: "Community",
-              options: summary.communities,
-              empty: "All communities",
-            },
-            {
-              name: "status",
-              label: "Project status",
-              options: projectStatuses,
-              empty: "All statuses",
-            },
-          ] as const
-        ).map(({ name, label, options, empty }) => (
-          <label key={name}>
-            {label}
+          {(
+            [
+              {
+                name: "category",
+                label: "Category",
+                options: summary.categories,
+                empty: "All categories",
+              },
+              {
+                name: "subcategory",
+                label: "Subcategory",
+                options: summary.subcategories,
+                empty: "All subcategories",
+              },
+              {
+                name: "community",
+                label: "Community",
+                options: summary.communities,
+                empty: "All communities",
+              },
+              {
+                name: "status",
+                label: "Project status",
+                options: projectStatuses,
+                empty: "All statuses",
+              },
+            ] as const
+          ).map(({ name, label, options, empty }) => (
+            <label key={name}>
+              {label}
+              <select
+                name={name}
+                aria-label={label}
+                defaultValue={typeof raw[name] === "string" ? raw[name] : ""}
+              >
+                <option value="">{empty}</option>
+                {options.map((v) => (
+                  <option key={v}>{v}</option>
+                ))}
+              </select>
+            </label>
+          ))}
+          <label>
+            Updated from
+            <input
+              type="date"
+              name="from"
+              defaultValue={typeof raw.from === "string" ? raw.from : ""}
+            />
+          </label>
+          <label>
+            Updated through
+            <input
+              type="date"
+              name="to"
+              defaultValue={typeof raw.to === "string" ? raw.to : ""}
+            />
+          </label>
+          <label>
+            Sort by
             <select
-              name={name}
-              aria-label={label}
-              defaultValue={typeof raw[name] === "string" ? raw[name] : ""}
+              name="sort"
+              aria-label="Sort by"
+              defaultValue={filters.sort}
             >
-              <option value="">{empty}</option>
-              {options.map((v) => (
-                <option key={v}>{v}</option>
-              ))}
+              <option value="newest">Latest approved update</option>
+              <option value="oldest">Oldest approved update</option>
+              <option value="title">Project title A–Z</option>
+              <option value="progress">Highest reported progress</option>
             </select>
           </label>
-        ))}
-        <label>
-          Updated from
-          <input
-            type="date"
-            name="from"
-            defaultValue={typeof raw.from === "string" ? raw.from : ""}
-          />
-        </label>
-        <label>
-          Updated through
-          <input
-            type="date"
-            name="to"
-            defaultValue={typeof raw.to === "string" ? raw.to : ""}
-          />
-        </label>
-        <label>
-          Sort by
-          <select name="sort" aria-label="Sort by" defaultValue={filters.sort}>
-            <option value="newest">Latest approved update</option>
-            <option value="oldest">Oldest approved update</option>
-            <option value="title">Project title A–Z</option>
-            <option value="progress">Highest reported progress</option>
-          </select>
-        </label>
-        <div className="filter-actions">
-          <Button type="submit">
-            <SlidersHorizontal size={16} />
-            Apply filters
-          </Button>
-          <Link className="text-link" href="/projects">
-            Clear filters <ArrowUpRight size={15} />
-          </Link>
-        </div>
-        <p className="filter-help">
-          Dates refer to approved public updates. Drafts and submissions are
-          excluded.
-        </p>
-      </form>
+          <div className="filter-actions">
+            <Button type="submit">
+              <SlidersHorizontal size={16} />
+              Apply filters
+            </Button>
+            <Link className="text-link" href="/projects">
+              Clear filters <ArrowUpRight size={15} />
+            </Link>
+          </div>
+          <p className="filter-help">
+            Dates refer to approved public updates. Drafts and submissions are
+            excluded.
+          </p>
+        </form>
+      </ResponsivePanel>
       {!result.success && (
         <p className="form-error" role="alert">
           Please check your filters.{" "}

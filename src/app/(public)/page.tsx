@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { statusTone } from "@/lib/projects";
 import { publicDataset } from "@/lib/content/showcase";
+import { listPublicContent } from "@/lib/content/public";
 import { ProjectCard } from "@/components/project-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,18 +33,53 @@ const categoryIcons: Record<string, typeof Shapes> = {
   General: Shapes,
 };
 export default async function HomePage() {
-  const { projects, categories, stats, categoryCounts } = await publicDataset();
+  const { projects, categories, stats, categoryCounts, sample } =
+    await publicDataset();
+  const recent = sample ? null : await listPublicContent({ limit: 3 });
+  const updates = recent
+    ? recent.items.map((record) => ({
+        id: record.id,
+        title: record.payload.title,
+        href: `/${record.kind === "project" ? "projects" : "information"}/${record.slug}`,
+        category:
+          record.kind === "project" ? record.payload.categoryName : record.kind,
+        updated: new Date(record.publishedAt).toLocaleDateString("en-GB", {
+          timeZone: "UTC",
+        }),
+      }))
+    : projects
+        .slice(0, 3)
+        .map((project) => ({ ...project, href: `/projects/${project.slug}` }));
   const featured = projects[0];
   return (
     <>
       <section className="hero container">
         <div className="hero-copy">
+          <span className="eyebrow">WASSA EAST · PROJECT TRACKER</span>
           <h1>
             Our communities.
             <br />
             <span className="hero-accent">Our progress.</span>
           </h1>
-          <p className="hero-description">Track projects across Wassa East.</p>
+          <p className="hero-description">
+            A clearer view of the work shaping Wassa East. Explore projects,
+            follow progress, and see the evidence.
+          </p>
+          <form action="/projects" className="hero-search" role="search">
+            <Search size={20} aria-hidden="true" />
+            <label className="sr-only" htmlFor="home-search">
+              Search projects
+            </label>
+            <input
+              id="home-search"
+              name="q"
+              maxLength={200}
+              placeholder="Find a project or community"
+            />
+            <Button type="submit" size="icon" aria-label="Search projects">
+              <ArrowRight size={20} />
+            </Button>
+          </form>
           <div className="hero-actions">
             <Button asChild>
               <Link href="/projects">
@@ -110,32 +146,6 @@ export default async function HomePage() {
               </div>
             </div>
           ))}
-        </div>
-      </section>
-      <section className="container section">
-        <div className="section-header">
-          <div>
-            <h2>Categories</h2>
-          </div>
-        </div>
-        <div className="category-grid">
-          {categories.map((category) => {
-            const Icon = categoryIcons[category] ?? Shapes;
-            return (
-              <Link
-                href={`/projects?category=${encodeURIComponent(category)}`}
-                className="category-card"
-                key={category}
-              >
-                <Icon strokeWidth={1.5} size={26} />
-                <span>{category}</span>
-                <small>
-                  {categoryCounts[category] ?? 0} projects{" "}
-                  <ArrowUpRight size={16} />
-                </small>
-              </Link>
-            );
-          })}
         </div>
       </section>
       <section className="section section-tinted">
@@ -211,6 +221,32 @@ export default async function HomePage() {
           )}
         </div>
       </section>
+      <section className="container section">
+        <div className="section-header">
+          <div>
+            <h2>Categories</h2>
+          </div>
+        </div>
+        <div className="category-grid">
+          {categories.map((category) => {
+            const Icon = categoryIcons[category] ?? Shapes;
+            return (
+              <Link
+                href={`/projects?category=${encodeURIComponent(category)}`}
+                className="category-card"
+                key={category}
+              >
+                <Icon strokeWidth={1.5} size={26} />
+                <span>{category}</span>
+                <small>
+                  {categoryCounts[category] ?? 0} projects{" "}
+                  <ArrowUpRight size={16} />
+                </small>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
       {projects.length > 1 && (
         <section className="container section">
           <div className="section-header">
@@ -228,6 +264,29 @@ export default async function HomePage() {
           </div>
         </section>
       )}
+      <section className="container section recent-updates">
+        <div className="section-header">
+          <h2>Recent updates</h2>
+          <Link href="/updates" className="text-link">
+            All updates <ArrowRight size={17} />
+          </Link>
+        </div>
+        <div className="updates-list">
+          {updates.map((update) => (
+            <Link key={update.id} href={update.href} className="update-row">
+              <span className="update-date">{update.updated}</span>
+              <div>
+                <span className="eyebrow">{update.category}</span>
+                <h3>{update.title}</h3>
+              </div>
+              <ArrowUpRight size={20} />
+            </Link>
+          ))}
+          {!updates.length && (
+            <p className="empty-state">Approved updates will appear here.</p>
+          )}
+        </div>
+      </section>
       <section className="container discover-banner">
         <div>
           <h2>Project map</h2>

@@ -161,7 +161,8 @@ const serwist = new Serwist({
     {
       matcher: ({ url }) =>
         url.origin === sw.location.origin &&
-        url.pathname.startsWith("/_next/static/"),
+        (url.pathname.startsWith("/_next/static/") ||
+          url.pathname === "/appearance.js"),
       handler: new CacheFirst({
         cacheName: PREFIX + "assets",
         plugins: [

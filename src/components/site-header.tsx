@@ -3,16 +3,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ArrowUpRight,
-  Menu,
-  X,
   House,
   FolderOpen,
   Radio,
   MoreHorizontal,
 } from "lucide-react";
-import { useState } from "react";
+import { AppearanceControl } from "./ui/appearance";
+import { ResponsivePanel } from "./ui/responsive-panel";
 import { cn } from "@/lib/utils";
 import { SiteBrand } from "./site-brand";
+import { motion, useReducedMotion } from "motion/react";
 const links = [
   { href: "/", label: "Home", icon: House },
   { href: "/projects", label: "Projects", icon: FolderOpen },
@@ -22,7 +22,7 @@ const links = [
 ];
 export function SiteHeader() {
   const path = usePathname();
-  const [open, setOpen] = useState(false);
+  const reduce = useReducedMotion();
   function active(href: string) {
     return href === "/"
       ? path === "/"
@@ -45,6 +45,14 @@ export function SiteHeader() {
                 className={cn("nav-link", active(link.href) && "active")}
                 aria-current={path === link.href ? "page" : undefined}
               >
+                {active(link.href) && (
+                  <motion.span
+                    className="navigation-selection"
+                    layoutId={reduce ? undefined : "desktop-navigation"}
+                    transition={{ type: "spring", bounce: 0, duration: 0.35 }}
+                    aria-hidden="true"
+                  />
+                )}
                 {link.label}
               </Link>
             ))}
@@ -52,31 +60,24 @@ export function SiteHeader() {
           <Link href="/staff/login" className="staff-link">
             Staff access <ArrowUpRight size={15} />
           </Link>
-          <button
-            className="menu-button"
-            onClick={() => setOpen(!open)}
-            aria-expanded={open}
-            aria-label={open ? "Close navigation" : "Open navigation"}
-          >
-            {open ? <X /> : <Menu />}
-          </button>
+          <AppearanceControl />
+          <ResponsivePanel title="Navigation" kind="navigation">
+            <nav className="mobile-menu" aria-label="Mobile menu">
+              {links.map((link) => (
+                <Link
+                  href={link.href}
+                  key={link.href}
+                  aria-current={active(link.href) ? "page" : undefined}
+                >
+                  {link.label}
+                </Link>
+              ))}
+              <Link href="/announcements">Announcements</Link>
+              <Link href="/reports">Reports</Link>
+              <Link href="/staff/login">Staff access</Link>
+            </nav>
+          </ResponsivePanel>
         </div>
-        {open && (
-          <nav className="mobile-menu" aria-label="Mobile menu">
-            {links.map((link) => (
-              <Link
-                href={link.href}
-                key={link.href}
-                onClick={() => setOpen(false)}
-              >
-                {link.label}
-              </Link>
-            ))}
-            <Link href="/staff/login" onClick={() => setOpen(false)}>
-              Staff access
-            </Link>
-          </nav>
-        )}
       </header>
       <nav className="bottom-nav" aria-label="Mobile primary navigation">
         {links.map(({ href, label, icon: Icon }) => (
@@ -86,6 +87,14 @@ export function SiteHeader() {
             className={active(href) ? "active" : ""}
             aria-current={path === href ? "page" : undefined}
           >
+            {active(href) && (
+              <motion.span
+                className="navigation-selection"
+                layoutId={reduce ? undefined : "mobile-navigation"}
+                transition={{ type: "spring", bounce: 0, duration: 0.35 }}
+                aria-hidden="true"
+              />
+            )}
             <Icon size={20} />
             <span>{label}</span>
           </Link>

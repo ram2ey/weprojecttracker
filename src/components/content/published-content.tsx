@@ -88,10 +88,12 @@ export async function PublishedContentView({
         </div>
         {project && <Badge tone={statusTone(p.status)}>{p.status}</Badge>}
       </div>
-      <ShareLink title={p.title} url={url} />
-      {project && (
-        <FollowButton recordId={record.id} revisionId={record.revisionId} />
-      )}
+      <div className="record-actions">
+        <ShareLink title={p.title} url={url} />
+        {project && (
+          <FollowButton recordId={record.id} revisionId={record.revisionId} />
+        )}
+      </div>
       <nav className="detail-jump-links" aria-label="On this record">
         <a href="#overview">Overview</a>
         <a href="#evidence">Evidence</a>

@@ -1,4 +1,6 @@
 "use client";
+import { AppearanceControl } from "../ui/appearance";
+import { ResponsivePanel } from "../ui/responsive-panel";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
@@ -100,45 +102,52 @@ export function Console({
   }
   return (
     <div className="console-shell">
-      <aside
-        className="console-sidebar"
-        aria-label="Staff workspace navigation"
+      <ResponsivePanel
+        title="Workspace"
+        kind="staff"
+        mobileBrand={<SiteBrand staff />}
       >
-        <SiteBrand staff />
-        <span className="sidebar-label">WORKSPACE</span>
-        <nav aria-label="Staff navigation">
-          {nav.map(({ key, label, icon: Icon }) => (
-            <Link
-              className={view === key ? "active" : ""}
-              key={key}
-              href={`${base}?view=${key}`}
-            >
-              <Icon size={18} />
-              {label}
-              {preview && key === "review" && (
-                <span className="nav-count">3</span>
-              )}
+        <aside
+          className="console-sidebar"
+          aria-label="Staff workspace navigation"
+        >
+          <SiteBrand staff />
+          <span className="sidebar-label">WORKSPACE</span>
+          <nav aria-label="Staff navigation">
+            {nav.map(({ key, label, icon: Icon }) => (
+              <Link
+                aria-current={view === key ? "page" : undefined}
+                className={view === key ? "active" : ""}
+                key={key}
+                href={`${base}?view=${key}`}
+              >
+                <Icon size={18} />
+                {label}
+                {preview && key === "review" && (
+                  <span className="nav-count">3</span>
+                )}
+              </Link>
+            ))}
+          </nav>
+          <div className="sidebar-note">
+            <ShieldIcon />
+            <strong>Independent approval</strong>
+            <p>Another staff member must approve publication.</p>
+          </div>
+          <div className="sidebar-bottom">
+            <Link href="/">
+              View public website <ArrowUpRight size={15} />
             </Link>
-          ))}
-        </nav>
-        <div className="sidebar-note">
-          <ShieldIcon />
-          <strong>Independent approval</strong>
-          <p>Another staff member must approve publication.</p>
-        </div>
-        <div className="sidebar-bottom">
-          <Link href="/">
-            View public website <ArrowUpRight size={15} />
-          </Link>
-          <div className="staff-profile">
-            <span className="avatar">{name.slice(0, 2).toUpperCase()}</span>
-            <div>
-              <strong>{name}</strong>
-              <small>{role.replace("_", " ")}</small>
+            <div className="staff-profile">
+              <span className="avatar">{name.slice(0, 2).toUpperCase()}</span>
+              <div>
+                <strong>{name}</strong>
+                <small>{role.replace("_", " ")}</small>
+              </div>
             </div>
           </div>
-        </div>
-      </aside>
+        </aside>
+      </ResponsivePanel>
       <div className="console-body">
         <header className="console-topbar">
           <span>
@@ -148,6 +157,7 @@ export function Console({
               : (nav.find((n) => n.key === view)?.label ?? "Overview")}
           </span>
           <div>
+            <AppearanceControl />
             {preview ? (
               <Link href="/" className="preview-chip">
                 DESIGN PREVIEW <ArrowUpRight size={14} />

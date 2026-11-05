@@ -172,20 +172,14 @@ async function audit(page: Page, path: string) {
     return {
       body,
       heading,
-      loaded: [...document.fonts].some(
-        (font) =>
-          font.family.toLowerCase().includes("creato") &&
-          font.status === "loaded",
-      ),
     };
   });
   expect(typography.body.toLowerCase(), `Body font on ${path}`).toContain(
-    "creato",
+    "segoe ui",
   );
   expect(typography.heading.toLowerCase(), `Heading font on ${path}`).toContain(
-    "creato",
+    "segoe ui",
   );
-  expect(typography.loaded, `Self-hosted font loaded on ${path}`).toBe(true);
   const brand = page
     .getByAltText("Wassa East Constituency", { exact: true })
     .first();
@@ -195,8 +189,8 @@ async function audit(page: Page, path: string) {
   ).toBeGreaterThan(0);
   expect(
     await page.evaluate(() => getComputedStyle(document.body).backgroundColor),
-    `White page background on ${path}`,
-  ).toBe("rgb(255, 255, 255)");
+    `Neutral page background on ${path}`,
+  ).toBe("rgb(245, 246, 247)");
   if (path.startsWith("/staff/"))
     await expect(page.locator(".auth-story")).toHaveCount(0);
   const result = await new AxeBuilder({ page })
@@ -410,6 +404,11 @@ test("keyboard navigation reaches the main content and controls retain visible f
   ).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(page.locator("#main-content")).toBeFocused();
+  const filters = page.getByRole("button", {
+    name: "Filter projects",
+    exact: true,
+  });
+  if (await filters.isVisible()) await filters.click();
   await page.getByLabel("Search projects", { exact: true }).focus();
   expect(
     await page
