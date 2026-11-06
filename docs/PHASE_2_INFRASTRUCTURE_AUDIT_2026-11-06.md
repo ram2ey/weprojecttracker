@@ -51,3 +51,7 @@ Linux verification completed successfully after the backup deferral: [GitHub Act
 Ignored local screenshots: `.local/phase2-coolify-backups.png`, `.local/phase2-coolify-volumes.png`, `.local/phase2-database-inventory.png`, `.local/phase2-web-runtime.png`, `.local/phase2-no-s3-storage.png`. Secrets were not recorded in this report or screenshot evidence.
 
 Official references: [Coolify database backups](https://coolify.io/docs/databases/backups), [storage-mount backups and consistency/restore limits](https://coolify.io/docs/core/persistent-storage/storage-mounts/backups), [service persistent storage and volume prefixes](https://coolify.io/docs/services/configuration/persistent-storage).
+
+## Implementation follow-up
+
+The observations above remain the read-only live baseline. Subsequent engineering adds CI acceptance/migration/container rehearsal, exact-release delivery gates, monitoring preparation and main protection. See [Phase 2 delivery status](PHASE_2_DELIVERY_STATUS.md) and the [operational runbook](PHASE_2_RELEASE_RUNBOOK.md). Production DNS/Compose/images remain unchanged; backup/restore remain deferred.

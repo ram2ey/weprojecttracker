@@ -4,6 +4,9 @@ export function testDatabaseUrl(env = process.env) {
     throw new Error("CI requires explicit TEST_DATABASE_URL.");
   const url = new URL(ci ? env.TEST_DATABASE_URL : env.DATABASE_URL);
   if (
+    !["postgres:", "postgresql:"].includes(url.protocol) ||
+    url.search ||
+    url.hash ||
     !["127.0.0.1", "localhost"].includes(url.hostname) ||
     url.port !== "55432" ||
     (ci && url.pathname !== "/wassa_test")

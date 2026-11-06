@@ -75,7 +75,7 @@ Read-only live inventory completed 6 November 2026: [infrastructure audit](PHASE
 
 **User decision — 6 November 2026:** defer backup setup and restore testing for now. Keep these items open; continue independent Linux/container verification and CI/deployment preparation without publishing or deploying. Recovery remains unproven and must be described accurately in a later release decision.
 
-**Implementation update — 6 November 2026:** local checks now pass for the legacy migration rehearsal, exact-release readiness/migration gates and public smoke checks; 69 browser checks pass. CI acceptance, container rollout rehearsal and uptime workflow are prepared. GitHub Actions notifications are selected, with the office IT administrator as incident owner. See [the operational runbook](PHASE_2_RELEASE_RUNBOOK.md). Backup/restore remain deferred; final domain/TLS, live rollout and monitor activation remain open. CI evidence and branch protection are being verified separately.
+**Implementation update — 6 November 2026:** local checks now pass for the legacy migration rehearsal, exact-release readiness/migration gates and public smoke checks; 69 browser checks pass. CI acceptance, container rollout rehearsal and uptime workflow are prepared. GitHub Actions notifications are selected, with the office IT administrator as incident owner. See [the operational runbook](PHASE_2_RELEASE_RUNBOOK.md). Backup/restore remain deferred; final domain/TLS, live rollout and monitor activation remain open. Main now requires the five CI checks, a PR and resolved conversations, including for administrators. Current CI evidence and remaining gates are in [Phase 2 delivery status](PHASE_2_DELIVERY_STATUS.md).
 
 ### Infrastructure and recovery
 
@@ -92,14 +92,15 @@ Read-only live inventory completed 6 November 2026: [infrastructure audit](PHASE
 ### GitHub/Coolify pipeline
 
 - [x] Verify Linux web/tools image builds on GitHub runners without publishing/deploying: [run 42237662807](https://github.com/ram2ey/weprojecttracker/actions/runs/42237662807), 6 November 2026. CI checks and both image jobs passed; deploy skipped. Live runtime/migration acceptance remains open.
-- [ ] Add the browser acceptance suite to GitHub Actions using a disposable PostgreSQL instance and test-only credentials. Adapt the local-only harness assumptions explicitly for CI.
-- [ ] Run checks before publishing/deploying images. Keep paired web/tools release references and serialize releases.
-- [ ] For this Coolify service, wait for actual rollout completion, migration success and healthy replacement containers.
-- [ ] Verify an expected release identifier before accepting `/api/ready`; a healthy old container must not satisfy a new release's health gate.
-- [ ] Add post-deploy checks for browsing, project detail/media, login entry, redirects and retired routes.
-- [ ] Configure appropriate required checks and repository protections; retain push-to-main automatic deployment after checks.
+- [x] Add the browser acceptance suite to GitHub Actions using a disposable PostgreSQL instance and test-only credentials. Adapt the local-only harness assumptions explicitly for CI.
+- [x] Run checks before publishing/deploying images. Keep paired web/tools release references and serialize releases.
+- [x] Implement actual-rollout, migration-success and healthy-replacement gates; verified in synthetic Linux containers. Live Coolify rollout acceptance remains Phase 4.
+- [x] Verify an expected release identifier before accepting `/api/ready`; old-container and missing-marker regression checks pass.
+- [x] Add post-deploy checks for browsing, project detail/media when records exist, login entry, redirects and retired routes; live final-host acceptance remains open.
+- [x] Configure appropriate required checks and repository protections; retain push-to-main automatic deployment after checks.
 - [x] Record deployment-token rotation. The current token expires **6 December 2026**. Narrow access where supported and preserve controlled repository access.
-- [ ] Select a minimal monitoring setup and error-triage owner. Keep uptime checks independent of the app host; configure any notifications only after selecting an authorized recipient/channel. Scrub private text and credentials from diagnostics.
+- [x] Select independent GitHub Actions monitoring/notifications, with the office IT administrator as triage owner. Outage/recovery regression passes; diagnostics exclude credentials/private content.
+- [ ] Activate the scheduled monitor after the final-host release and verify notification delivery/preferences; current `MONITOR_ENABLED=false`.
 
 **Deliverables:** tested backup/restore record, migration rehearsal, production configuration, release/recovery runbook, CI acceptance and deployment-health evidence.
 

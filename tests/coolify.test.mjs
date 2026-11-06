@@ -140,6 +140,11 @@ test("legacy worker, missing migration dependency and renamed media volume block
   for (const raw of [
     compose.replace("service_completed_successfully", "service_started"),
     compose.replace("media:/data/media", "replacement:/data/media"),
+    compose.replace("  media:", "  media: {name: replacement}"),
+    compose.replace(
+      "      NODE_ENV: production",
+      "      RELEASE_ID: override\n      NODE_ENV: production",
+    ),
   ]) {
     const mock = harness([{ body: { docker_compose_raw: raw } }]);
     await assert.rejects(deploy(env, mock.options), /Saved Compose/);
@@ -234,6 +239,11 @@ test("CI database guard cannot fall back to local or remote credentials", () => 
       TEST_DATABASE_URL: "postgres://u:p@production.example:55432/wassa_test",
     },
     { CI: "true", TEST_DATABASE_URL: "postgres://u:p@127.0.0.1:55432/wassa" },
+    {
+      CI: "true",
+      TEST_DATABASE_URL:
+        "postgres://u:p@127.0.0.1:55432/wassa_test?host=production.example",
+    },
   ])
     assert.throws(() => testDatabaseUrl(input));
   assert.equal(

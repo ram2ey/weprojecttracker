@@ -152,8 +152,8 @@ jobs:
           target: ${{ matrix.target }}
           build-args: RELEASE_ID=sha-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           platforms: linux/amd64
-          push: ${{ github.event_name == 'push' || inputs.publish }}
-          load: ${{ github.event_name != 'push' && !inputs.publish }}
+          push: ${{ github.event_name == 'push' || inputs.publish == true }}
+          load: ${{ github.event_name != 'push' && inputs.publish != true }}
           tags: ${{ steps.image.outputs.name }}:sha-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}

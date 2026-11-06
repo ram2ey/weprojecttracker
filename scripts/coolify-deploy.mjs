@@ -4,19 +4,22 @@ import { parse } from "yaml";
 import { publicOrigin, smokePublicApp } from "./public-smoke.mjs";
 
 export function validateServiceCompose(raw) {
-  let services;
+  let config;
   try {
-    services = parse(raw)?.services;
+    config = parse(raw);
   } catch {
     throw new Error(
       "Saved Compose could not be parsed. Check it privately in Coolify.",
     );
   }
+  const services = config?.services;
   if (
     !services?.web ||
     !services?.migrate ||
     !services?.database ||
-    services.worker
+    Object.keys(services).some(
+      (name) => !["web", "migrate", "database"].includes(name),
+    )
   )
     throw new Error(
       "Saved Compose must contain web/migrate/database and no retired worker.",
@@ -27,6 +30,21 @@ export function validateServiceCompose(raw) {
     services.web.depends_on?.migrate?.condition !==
       "service_completed_successfully" ||
     services.database.ports?.length ||
+    !config.volumes ||
+    typeof config.volumes !== "object" ||
+    Array.isArray(config.volumes) ||
+    !("media" in config.volumes) ||
+    !("postgres" in config.volumes) ||
+    ["media", "postgres"].some(
+      (name) => Object.keys(config.volumes[name] || {}).length !== 0,
+    ) ||
+    [services.web, services.migrate].some(
+      (service) =>
+        !service.environment ||
+        typeof service.environment !== "object" ||
+        Array.isArray(service.environment) ||
+        "RELEASE_ID" in service.environment,
+    ) ||
     !services.web.volumes?.includes("media:/data/media") ||
     !services.database.volumes?.includes("postgres:/var/lib/postgresql/data")
   )
