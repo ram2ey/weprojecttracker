@@ -1,317 +1,205 @@
 import Link from "next/link";
-import Image from "next/image";
+import type { Metadata } from "next";
+import { listPublicContent, publicCommunities } from "@/lib/content/public";
 import {
-  ArrowRight,
-  ArrowUpRight,
-  Search,
-  School,
-  HeartPulse,
-  Users,
-  Droplets,
-  Shapes,
-  MapPin,
-  Check,
-  MoveUpRight,
-} from "lucide-react";
-import { statusTone } from "@/lib/projects";
-import { publicDataset } from "@/lib/content/showcase";
-import { listPublicContent } from "@/lib/content/public";
+  publicFiltersSchema,
+  parsePageFilters,
+  filterQuery,
+} from "@/lib/content/filters";
+import { fixedCategories } from "@/lib/content/validation";
+import { projectStatuses } from "@/lib/content/types";
 import { ProjectCard } from "@/components/project-card";
+import { FilterPanel } from "@/components/content/filter-panel";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { pageMetadata } from "@/lib/site";
-export const metadata = pageMetadata(
-  "Our communities. Our progress.",
-  "Follow approved projects, milestones and evidence across Wassa East Constituency.",
-  "/",
-);
-const categoryIcons: Record<string, typeof Shapes> = {
-  Education: School,
-  Health: HeartPulse,
-  "Community Development": Users,
-  "Social Amenities": Droplets,
-  General: Shapes,
-};
-export default async function HomePage() {
-  const { projects, categories, stats, categoryCounts, sample } =
-    await publicDataset();
-  const recent = sample ? null : await listPublicContent({ limit: 3 });
-  const updates = recent
-    ? recent.items.map((record) => ({
-        id: record.id,
-        title: record.payload.title,
-        href: `/${record.kind === "project" ? "projects" : "information"}/${record.slug}`,
-        category:
-          record.kind === "project" ? record.payload.categoryName : record.kind,
-        updated: new Date(record.publishedAt).toLocaleDateString("en-GB", {
-          timeZone: "UTC",
-        }),
-      }))
-    : projects
-        .slice(0, 3)
-        .map((project) => ({ ...project, href: `/projects/${project.slug}` }));
-  const featured = projects[0];
+type Params = Promise<Record<string, string | string[] | undefined>>;
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Params;
+}): Promise<Metadata> {
+  const raw = await searchParams;
+  return {
+    ...pageMetadata(
+      "Project register",
+      "Explore approved projects and photographs across Wassa East.",
+      "/",
+    ),
+    ...(Object.values(raw).some(Boolean)
+      ? { robots: { index: false, follow: true } }
+      : {}),
+  };
+}
+export default async function Register({
+  searchParams,
+}: {
+  searchParams: Params;
+}) {
+  const raw = await searchParams,
+    result = parsePageFilters(raw),
+    filters = result.success ? result.data : publicFiltersSchema.parse({}),
+    [listing, communities] = await Promise.all([
+      result.success
+        ? listPublicContent(filters)
+        : Promise.resolve({ items: [], total: 0, limit: 24, page: 1 }),
+      publicCommunities(),
+    ]);
+  const pages = Math.max(1, Math.ceil(listing.total / 24));
+  const chips = (
+    [
+      ["q", "Search"],
+      ["category", "Category"],
+      ["community", "Community"],
+      ["status", "Status"],
+    ] as const
+  ).filter(([k]) => filters[k]);
   return (
-    <>
-      <section className="hero container">
-        <div className="hero-copy">
-          <span className="eyebrow">WASSA EAST · PROJECT TRACKER</span>
-          <h1>
-            Our communities.
-            <br />
-            <span className="hero-accent">Our progress.</span>
-          </h1>
-          <p className="hero-description">
-            A clearer view of the work shaping Wassa East. Explore projects,
-            follow progress, and see the evidence.
-          </p>
-          <form action="/projects" className="hero-search" role="search">
-            <Search size={20} aria-hidden="true" />
-            <label className="sr-only" htmlFor="home-search">
-              Search projects
-            </label>
-            <input
-              id="home-search"
-              name="q"
-              maxLength={200}
-              placeholder="Find a project or community"
-            />
-            <Button type="submit" size="icon" aria-label="Search projects">
-              <ArrowRight size={20} />
-            </Button>
-          </form>
-          <div className="hero-actions">
-            <Button asChild>
-              <Link href="/projects">
-                View projects <ArrowUpRight size={18} />
-              </Link>
-            </Button>
-            <Link className="text-link" href="/about">
-              About <ArrowRight size={16} />
-            </Link>
-          </div>
-        </div>
-        <div className="hero-visual">
-          <Image
-            priority
-            src={featured?.coverUrl ?? "/illustrations/school.svg"}
-            unoptimized={!!featured?.coverUrl}
-            alt={
-              featured?.coverUrl
-                ? featured.title
-                : "Architectural illustration; not documentary evidence"
-            }
-            width={760}
-            height={600}
-            className="hero-image"
+    <div className="container section directory">
+      <div className="page-heading">
+        <span className="eyebrow">WASSA EAST CONSTITUENCY</span>
+        <h1>Project register</h1>
+        <p>
+          Explore the work in your community and its latest approved
+          information.
+        </p>
+      </div>
+      <form
+        key={filterQuery(filters)}
+        action="/"
+        className="register-filters"
+        aria-label="Filter projects"
+      >
+        <label>
+          Search projects
+          <input
+            name="q"
+            maxLength={200}
+            defaultValue={filters.q}
+            placeholder="Project title, code or community"
           />
-          <div className="hero-caption">
-            <span>
-              <MapPin size={15} /> Wassa East Constituency
-            </span>
-            <span>
-              {featured?.coverUrl
-                ? "Approved project photograph"
-                : "Architectural illustration"}
-            </span>
-          </div>
-        </div>
-      </section>
-      <section className="stats-section">
-        <div className="container stats-grid">
-          {[
-            {
-              label: "Projects tracked",
-              count: stats.total,
-              icon: Shapes,
-            },
-            {
-              label: "Ongoing projects",
-              count: stats.ongoing,
-              icon: MoveUpRight,
-            },
-            {
-              label: "Completed projects",
-              count: stats.completed,
-              icon: Check,
-            },
-          ].map(({ label, count, icon: Icon }) => (
-            <div className="stat" key={label}>
-              <div className="stat-label">
+        </label>
+        <FilterPanel count={chips.length}>
+          <div className="filter-grid">
+            {[
+              {
+                name: "category",
+                label: "Category",
+                options: fixedCategories.map((c) => c.name),
+              },
+              { name: "community", label: "Community", options: communities },
+              {
+                name: "status",
+                label: "Status",
+                options: [...projectStatuses],
+              },
+            ].map(({ name, label, options }) => (
+              <label key={name}>
                 {label}
-                <Icon size={16} />
-              </div>
-              <div className="stat-number">
-                {String(count).padStart(2, "0")}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-      <section className="section section-tinted">
-        <div className="container">
-          <div className="section-header">
-            <div>
-              <h2>Featured project</h2>
-            </div>
-            <Link href="/projects" className="text-link">
-              View all projects <ArrowRight size={17} />
-            </Link>
-          </div>
-          {featured ? (
-            <div className="featured-project">
-              <Link
-                href={`/projects/${featured.slug}`}
-                className="featured-image"
-              >
-                <Image
-                  src={
-                    featured.coverUrl ?? `/illustrations/${featured.image}.svg`
+                <select
+                  aria-label={label}
+                  name={name}
+                  defaultValue={
+                    filters[name as "category" | "community" | "status"] ?? ""
                   }
-                  unoptimized={!!featured.coverUrl}
-                  alt={
-                    featured.coverUrl
-                      ? featured.title
-                      : "Illustration only; not documentary evidence"
-                  }
-                  width={960}
-                  height={560}
-                />
-                <span className="image-category">
-                  {featured.coverUrl ? "LATEST PROJECT" : "ILLUSTRATION ONLY"}
-                </span>
-              </Link>
-              <div className="featured-copy">
-                <div className="card-meta">
-                  <span>{featured.category.toUpperCase()}</span>
-                  <Badge tone={statusTone(featured.status)}>
-                    {featured.status}
-                  </Badge>
-                </div>
-                <h3>{featured.title}</h3>
-                <p>{featured.description}</p>
-                <span className="location">
-                  <MapPin size={15} />
-                  {featured.community}, Wassa East
-                </span>
-                <div className="progress-label">
-                  <span>Progress so far</span>
-                  <strong>{featured.progress}%</strong>
-                </div>
-                <div
-                  className="progress-track"
-                  role="progressbar"
-                  aria-label="Featured project progress"
-                  aria-valuenow={featured.progress}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
                 >
-                  <div style={{ width: `${featured.progress}%` }} />
-                </div>
-                <Link href={`/projects/${featured.slug}`} className="text-link">
-                  See project details <ArrowUpRight size={18} />
-                </Link>
-              </div>
-            </div>
-          ) : (
-            <div className="empty-state">
-              <School size={36} />
-              <h3>No published projects yet.</h3>
-            </div>
-          )}
-        </div>
-      </section>
-      <section className="container section">
-        <div className="section-header">
-          <div>
-            <h2>Categories</h2>
-          </div>
-        </div>
-        <div className="category-grid">
-          {categories.map((category) => {
-            const Icon = categoryIcons[category] ?? Shapes;
-            return (
-              <Link
-                href={`/projects?category=${encodeURIComponent(category)}`}
-                className="category-card"
-                key={category}
-              >
-                <Icon strokeWidth={1.5} size={26} />
-                <span>{category}</span>
-                <small>
-                  {categoryCounts[category] ?? 0} projects{" "}
-                  <ArrowUpRight size={16} />
-                </small>
-              </Link>
-            );
-          })}
-        </div>
-      </section>
-      {projects.length > 1 && (
-        <section className="container section">
-          <div className="section-header">
-            <div>
-              <h2>Latest projects</h2>
-            </div>
-            <Link href="/projects" className="text-link">
-              View all projects <ArrowRight size={17} />
-            </Link>
-          </div>
-          <div className="project-grid">
-            {projects.slice(1, 4).map((project) => (
-              <ProjectCard key={project.id} project={project} />
+                  <option value="">
+                    {name === "category"
+                      ? "All categories"
+                      : name === "community"
+                        ? "All communities"
+                        : "All statuses"}
+                  </option>
+                  {options.map((v) => (
+                    <option key={v}>{v}</option>
+                  ))}
+                </select>
+              </label>
             ))}
           </div>
-        </section>
-      )}
-      <section className="container section recent-updates">
-        <div className="section-header">
-          <h2>Recent updates</h2>
-          <Link href="/updates" className="text-link">
-            All updates <ArrowRight size={17} />
+        </FilterPanel>
+        <Button type="submit">Search projects</Button>
+      </form>
+      {!result.success && (
+        <p role="alert" className="form-error">
+          Please check your filters.{" "}
+          <Link href="/" className="text-link">
+            Clear filters
           </Link>
-        </div>
-        <div className="updates-list">
-          {updates.map((update) => (
-            <Link key={update.id} href={update.href} className="update-row">
-              <span className="update-date">{update.updated}</span>
-              <div>
-                <span className="eyebrow">{update.category}</span>
-                <h3>{update.title}</h3>
-              </div>
-              <ArrowUpRight size={20} />
+        </p>
+      )}
+      {!!chips.length && (
+        <nav className="active-filters" aria-label="Active filters">
+          {chips.map(([k, label]) => (
+            <Link
+              key={k}
+              href={
+                "/?" + filterQuery(filters, { [k]: undefined, page: undefined })
+              }
+              aria-label={
+                "Remove " + label.toLowerCase() + " filter: " + filters[k]
+              }
+            >
+              {label}: {filters[k]} ×
             </Link>
           ))}
-          {!updates.length && (
-            <p className="empty-state">Approved updates will appear here.</p>
-          )}
+          <Link href="/">Clear all</Link>
+        </nav>
+      )}
+      <p role="status" className="results-count">
+        {listing.total} {listing.total === 1 ? "project" : "projects"}
+      </p>
+      <div className="project-grid">
+        {listing.items.map((r) => (
+          <ProjectCard key={r.id} project={r} />
+        ))}
+      </div>
+      {!listing.items.length && result.success && (
+        <div className="empty-state">
+          <h2>
+            {listing.total
+              ? "This page has no projects."
+              : "No published projects found."}
+          </h2>
+          <p>
+            {listing.total
+              ? "Return to the first page of results."
+              : "Try another search or check back for approved projects."}
+          </p>
+          <Link
+            className="button button-outline"
+            href={
+              listing.total ? "/?" + filterQuery(filters, { page: "1" }) : "/"
+            }
+          >
+            {listing.total ? "First page" : "Clear filters"}
+          </Link>
         </div>
-      </section>
-      <section className="container discover-banner">
-        <div>
-          <h2>Project map</h2>
-          <Button variant="light" asChild>
-            <Link href="/projects?view=map">
-              Explore project map <Search size={17} />
+      )}
+      {listing.total > 0 && (
+        <nav className="pagination" aria-label="Project pages">
+          {filters.page > 1 && (
+            <Link
+              href={
+                "/?" + filterQuery(filters, { page: String(filters.page - 1) })
+              }
+            >
+              Previous
             </Link>
-          </Button>
-        </div>
-        <div className="map-art" aria-hidden="true">
-          <div className="map-road road-one" />
-          <div className="map-road road-two" />
-          <div className="map-road road-three" />
-          <div className="map-pin pin-one">
-            <MapPin />
-          </div>
-          <div className="map-pin pin-two">
-            <School />
-          </div>
-          <div className="map-pin pin-three">
-            <HeartPulse />
-          </div>
-          <span className="map-community">WASSA EAST</span>
-        </div>
-      </section>
-    </>
+          )}
+          <span>
+            Page {filters.page} of {pages}
+          </span>
+          {filters.page < pages && (
+            <Link
+              href={
+                "/?" + filterQuery(filters, { page: String(filters.page + 1) })
+              }
+            >
+              Next
+            </Link>
+          )}
+        </nav>
+      )}
+    </div>
   );
 }

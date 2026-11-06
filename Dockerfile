@@ -31,4 +31,4 @@ COPY scripts ./scripts
 COPY drizzle ./drizzle
 COPY tsconfig.json ./
 USER app
-CMD ["npm", "run", "worker"]
+CMD ["npm", "run", "db:migrate"]

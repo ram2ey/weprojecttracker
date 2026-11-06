@@ -43,19 +43,12 @@ services:
       BETTER_AUTH_URL: ${APP_URL:?}
       NEXT_PUBLIC_APP_URL: ${APP_URL}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?}
-      MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:?}
       PGHOST: database
       PGPORT: "5432"
       PGDATABASE: wassa
       PGUSER: wassa
       PGPASSWORD: ${POSTGRES_PASSWORD}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
-      GEOAPIFY_API_KEY: ${GEOAPIFY_API_KEY:-}
       ENABLE_DESIGN_PREVIEW: "false"
-      ENABLE_PUBLIC_RENDER_CACHE: ${ENABLE_PUBLIC_RENDER_CACHE:-true}
-      ENABLE_BROWSER_PUSH: "false"
-      TRUST_PROXY_HEADERS: ${TRUST_PROXY_HEADERS:-false}
       MEDIA_ROOT: /data/media
     command: [npm, run, db:migrate]
     mem_limit: 512m
@@ -93,23 +86,6 @@ services:
       retries: 3
     mem_limit: 1536m
     cpus: 1
-  worker:
-    image: ${TOOLS_IMAGE:?}
-    restart: unless-stopped
-    init: true
-    logging: *bounded-logging
-    security_opt: ["no-new-privileges:true"]
-    cap_drop: [ALL]
-    depends_on:
-      database:
-        condition: service_healthy
-      migrate:
-        condition: service_completed_successfully
-    environment: *runtime
-    volumes:
-      - media:/data/media
-    mem_limit: 512m
-    cpus: 0.5
 volumes:
   postgres:
   media:

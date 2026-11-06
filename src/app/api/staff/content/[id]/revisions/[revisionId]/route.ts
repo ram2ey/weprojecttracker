@@ -27,16 +27,18 @@ export async function POST(request: Request, context: Context) {
     z.uuid().parse(revisionId);
     const input = z
       .discriminatedUnion("action", [
+        z
+          .object({
+            action: z.literal("submit"),
+            lockVersion: z.number().int().min(0),
+          })
+          .strict(),
         z.object({
-          action: z.literal("submit"),
-          lockVersion: z.number().int().min(0),
-        }),
-        z.object({
-          action: z.enum(["approve", "return", "reject"]),
+          action: z.enum(["approve", "return"]),
           reason: z.string().trim().min(10).max(2000),
           evidenceReviewed: z.boolean().default(false),
           lockVersion: z.number().int().min(0),
-        }),
+        }).strict(),
       ])
       .parse(await jsonBody(request));
     if (input.action === "submit")

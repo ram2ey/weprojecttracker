@@ -41,7 +41,7 @@ export function pageMetadata(
   };
 }
 export function contentMetadata(record: PublicContent): Metadata {
-  const path = `/${record.kind === "project" ? "projects" : "information"}/${record.slug}`,
+  const path = `/projects/${record.slug}`,
     description = record.payload.description.slice(0, 180),
     image = `/api/og?slug=${encodeURIComponent(record.slug)}`;
   return {

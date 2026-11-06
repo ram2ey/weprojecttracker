@@ -1,0 +1,1 @@
+ALTER TABLE "staff" ADD COLUMN "access_version" integer DEFAULT 0 NOT NULL;

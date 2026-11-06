@@ -1,56 +1,31 @@
-import { Eye, Users, ShieldCheck } from "lucide-react";
 import { pageMetadata } from "@/lib/site";
 export const metadata = pageMetadata(
-  "About the platform",
-  "How project information, progress and evidence are reviewed and published for Wassa East.",
+  "About",
+  "How Wassa East project information is reviewed and published.",
   "/about",
 );
-export default function AboutPage() {
+export default function About() {
   return (
-    <div className="container section">
-      <div className="page-heading">
-        <h1>About</h1>
-        <p>Project information for Wassa East. No account needed.</p>
-      </div>
-      <div className="values-grid">
-        {[
-          {
-            icon: Eye,
-            title: "Project records",
-            text: "View locations, progress, milestones and evidence.",
-          },
-          {
-            icon: ShieldCheck,
-            title: "Independent review",
-            text: "A different staff member approves each record before publication.",
-          },
-          {
-            icon: Users,
-            title: "Public access",
-            text: "Everyone can browse published records.",
-          },
-        ].map(({ icon: Icon, title, text }) => (
-          <article key={title}>
-            <Icon size={28} strokeWidth={1.5} />
-            <h2>{title}</h2>
-            <p>{text}</p>
-          </article>
-        ))}
-      </div>
-      <section className="contact-panel">
-        <h2>Understanding the records</h2>
+    <div className="container section narrow">
+      <h1>About the register</h1>
+      <section className="detail-section">
+        <h2>Project information for Wassa East</h2>
         <p>
-          Progress is reported by the constituency team. Completed projects
-          require a completion date, summary, evidence and independent approval.
+          Browse projects, their current status and published photographs. No
+          public account is needed.
+        </p>
+      </section>
+      <section className="detail-section">
+        <h2>Independently reviewed</h2>
+        <p>
+          Staff prepare project records. A separate approver reviews each
+          publication and update. The previous approved version remains public
+          while changes are reviewed.
         </p>
         <p>
-          Directory dates refer to approved updates. The last approved version
-          stays public during review. Earlier versions appear in publication
-          history.
-        </p>
-        <p>
-          Projects without coordinates remain in the directory. Illustrations
-          are labelled and are not project evidence.
+          Completed projects require a completion date, summary and photograph.
+          Each record identifies its information source and latest approved
+          update.
         </p>
       </section>
     </div>

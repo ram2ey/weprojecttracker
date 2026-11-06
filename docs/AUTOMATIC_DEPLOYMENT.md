@@ -17,3 +17,9 @@ The workflow uses Coolify's [bulk environment update API](https://coolify.io/doc
 ## Connected resource
 
 The configured GitHub repository variables target https://app.coolify.io, service pnj4g33ejfgwgpgqkqbeol3v (wassa-east-project-tracker). The Cloudflare connector is a separate resource. Only COOLIFY_TOKEN is a repository secret. The prepared token defaults to a 30-day expiry; replace that secret when rotating or renewing the token. This automation-only release preserves the current saved Compose definition; apply app/Compose changes together in a later application release.
+
+## Verified connection — 6 November 2026
+
+Push-triggered [release run 42191949662](https://github.com/ram2ey/weprojecttracker/actions/runs/42191949662) passed checks, both Linux image builds/publishes and the Coolify deployment step for commit `3981989`. The app's configuration-changes indicator cleared; web and database reported healthy. The existing Cloudflare homepage and `/api/ready` returned HTTP 200, with readiness `true`. The token was saved directly to GitHub Actions and expires after 30 days (6 December 2026). Renew the token and update `COOLIFY_TOKEN` before expiry.
+
+Only deployment automation was published. The reduced app and its migration remain local pending their own release.

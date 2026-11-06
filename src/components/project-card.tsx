@@ -1,60 +1,48 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowUpRight, MapPin } from "lucide-react";
 import { Badge } from "./ui/badge";
-import { statusTone, type PublicProject } from "@/lib/projects";
-export function ProjectCard({ project }: { project: PublicProject }) {
+import type { PublicContent } from "@/lib/content/types";
+import { statusTone } from "@/lib/projects";
+export function ProjectCard({ project: r }: { project: PublicContent }) {
+  const p = r.payload,
+    photo = p.attachments[0];
   return (
     <article className="project-card">
-      <Link href={`/projects/${project.slug}`} className="project-image-link">
-        <Image
-          src={project.coverUrl ?? `/illustrations/${project.image}.svg`}
-          unoptimized={!!project.coverUrl}
-          alt={
-            project.coverUrl
-              ? project.title
-              : `Illustration for ${project.title}; not documentary evidence`
-          }
-          width={640}
-          height={400}
-          className="project-image"
-        />
-        <span className="image-category">{project.category}</span>
-        {!project.coverUrl && (
-          <span className="illustration-label">Illustration only</span>
+      <Link href={"/projects/" + r.slug} className="project-image-link">
+        {photo ? (
+          <Image
+            src={"/api/public/thumbnails/" + photo.id}
+            alt={photo.caption || p.title}
+            width={640}
+            height={400}
+            unoptimized
+            className="project-image"
+          />
+        ) : (
+          <span className="photo-placeholder">No photograph published yet</span>
         )}
-        <span className="image-arrow">
-          <ArrowUpRight size={20} />
-        </span>
+        <span className="image-category">{p.categoryName}</span>
       </Link>
       <div className="project-card-body">
         <div className="card-meta">
-          <span>
-            <MapPin size={13} /> {project.community}
-          </span>
-          <Badge tone={statusTone(project.status)}>{project.status}</Badge>
+          <span>{p.communityName}</span>
+          <Badge tone={statusTone(p.status)}>{p.status}</Badge>
         </div>
-        <h3>
-          <Link href={`/projects/${project.slug}`}>{project.title}</Link>
-        </h3>
-        <p>{project.description}</p>
-        <div className="progress-label">
-          <span>Project progress</span>
-          <strong>{project.progress}%</strong>
-        </div>
-        <div
-          className="progress-track"
-          role="progressbar"
-          aria-label={`${project.title} progress`}
-          aria-valuenow={project.progress}
-          aria-valuemin={0}
-          aria-valuemax={100}
-        >
-          <div style={{ width: `${project.progress}%` }} />
-        </div>
+        <h2>
+          <Link href={"/projects/" + r.slug}>{p.title}</Link>
+        </h2>
+        <p>
+          {p.description.slice(0, 180)}
+          {p.description.length > 180 ? "…" : ""}
+        </p>
         <div className="card-bottom">
-          <span>Updated {project.updated.replace("2026", "").trim()}</span>
-          <span>{project.id}</span>
+          <time dateTime={r.publishedAt}>
+            Updated{" "}
+            {new Date(r.publishedAt).toLocaleDateString("en-GB", {
+              timeZone: "UTC",
+            })}
+          </time>
+          <span>{r.code}</span>
         </div>
       </div>
     </article>

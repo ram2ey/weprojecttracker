@@ -120,6 +120,27 @@ export const emptyFinancials: Financials = {
   currency: "GHS",
   internalNotes: "",
 };
+export type LaunchPayload = Pick<
+  ContentPayload,
+  | "title"
+  | "description"
+  | "categoryId"
+  | "categoryName"
+  | "communityId"
+  | "communityName"
+  | "status"
+  | "source"
+  | "actualCompletionDate"
+  | "completionSummary"
+> & { attachments: { id: string; caption: string }[] };
+export type AdminFile = {
+  id: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  internalOnly: boolean;
+  withdrawn: boolean;
+};
 export type AdminRevision = {
   id: string;
   number: number;
@@ -129,30 +150,17 @@ export type AdminRevision = {
   contributors: string[];
   submittedBy: string | null;
   submittedAt: string | null;
-  decidedBy: string | null;
   decidedAt: string | null;
   decisionReason: string | null;
   createdAt: string;
   updatedAt: string;
-  payload: ContentPayload;
-  financials: Financials;
+  payload: LaunchPayload;
   baseVersion: number;
 };
-export type AdminFile = {
-  id: string;
-  originalName: string;
-  mimeType: string;
-  size: number;
-  internalOnly: boolean;
-  withdrawn: boolean;
-};
 export type AdminRecord = {
-  commentsEnabled: boolean;
-  reminderDays: number;
-  engagementVersion: number;
   id: string;
   code: string;
-  kind: ContentKind;
+  kind: "project";
   slug: string;
   publishedRevisionId: string | null;
   version: number;
@@ -164,14 +172,13 @@ export type AdminRecord = {
 export type AdminRecordSummary = {
   id: string;
   code: string;
-  kind: ContentKind;
+  kind: "project";
   slug: string;
   title: string;
   community: string;
   status: string;
   state: WorkflowState;
   revisionId: string;
-  progress: number;
   submittedAt: string | null;
   published: boolean;
   withdrawn: boolean;
@@ -180,10 +187,9 @@ export type AdminRecordSummary = {
 export type PublicContent = {
   id: string;
   code: string;
-  kind: ContentKind;
+  kind: "project";
   slug: string;
   revisionId: string;
   publishedAt: string;
-  payload: ContentPayload;
-  history: { number: number; publishedAt: string; payload: ContentPayload }[];
+  payload: LaunchPayload;
 };

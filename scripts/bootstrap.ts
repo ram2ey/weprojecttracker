@@ -1,53 +1,33 @@
 import { config } from "dotenv";
-config({ path: ".env.local" });
-import { randomBytes } from "node:crypto";
-import { getDb, getPool } from "../src/db";
-import { user, staff, staffLink, auditLog } from "../src/db/schema";
-import { eq } from "drizzle-orm";
-import { hashToken } from "../src/lib/security/crypto";
-import { appUrl, validateRuntime } from "../src/lib/env";
+config({ path: ".env.local", quiet: true });
+import { createStaff } from "../src/lib/security/accounts";
+import { getPool } from "../src/db";
+import { validateRuntime } from "../src/lib/env";
 async function main() {
   validateRuntime();
-  const email = process.argv[2]?.trim().toLowerCase();
-  const name = process.argv[3] ?? "Platform operator";
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+  const username = process.argv[2],
+    name = process.argv[3] ?? "Platform operator";
+  if (!username)
     throw new Error(
-      'Usage: npm run staff:bootstrap -- operator@example.com "Operator name"',
+      'Usage: npm run staff:bootstrap -- operator "Operator name"',
     );
-  const db = getDb();
-  const existing = await db
-    .select()
-    .from(staff)
-    .where(eq(staff.role, "super_admin"));
-  if (existing.length)
-    throw new Error(
-      "An operator already exists. Use the dashboard for additional staff or the documented recovery procedure.",
-    );
-  const token = randomBytes(32).toString("base64url");
-  const id = crypto.randomUUID();
-  await db.transaction(async (tx) => {
-    await tx.insert(user).values({ id, name, email, emailVerified: true });
-    await tx.insert(staff).values({ userId: id, role: "super_admin" });
-    await tx.insert(staffLink).values({
-      id: crypto.randomUUID(),
-      userId: id,
-      kind: "setup",
-      tokenHash: hashToken(token),
-      expiresAt: new Date(Date.now() + 3600000),
-    });
-    await tx.insert(auditLog).values({
-      id: crypto.randomUUID(),
-      actorId: id,
-      action: "staff.operator_bootstrapped",
-      subjectId: id,
-    });
+  const result = await createStaff(null, {
+    username,
+    name,
+    role: "super_admin",
   });
   console.log(
-    `Operator created. Open this one-use link within one hour. Treat it as a secret:\n${appUrl()}/staff/setup#${token}`,
+    "Operator username: " +
+      result.username +
+      "\nTemporary password (shown once): " +
+      result.temporaryPassword +
+      "\nExpires: " +
+      result.temporaryPasswordExpiresAt.toISOString() +
+      "\nSign in at /staff/login and choose a new password.",
   );
   await getPool().end();
 }
-main().catch((error) => {
-  console.error(error.message);
+main().catch((e) => {
+  console.error(e.message);
   process.exit(1);
 });

@@ -1,10 +1,11 @@
 import { betterAuth, APIError } from "better-auth";
+import { username } from "better-auth/plugins";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import * as schema from "@/db/schema";
 import { appUrl, validateRuntime } from "./env";
-
+import { temporaryPasswordExpired } from "./security/temporary-password";
 function createAuth() {
   validateRuntime();
   const db = getDb();
@@ -14,25 +15,18 @@ function createAuth() {
     secret: process.env.BETTER_AUTH_SECRET,
     database: drizzleAdapter(db, { provider: "pg", schema }),
     trustedOrigins: [appUrl()],
+    plugins: [
+      username({
+        displayUsername: false,
+        immutableUsername: true,
+        usernameValidator: (v) => /^[a-zA-Z0-9_]+$/.test(v),
+      }),
+    ],
     emailAndPassword: {
       enabled: true,
       disableSignUp: true,
       minPasswordLength: 12,
       maxPasswordLength: 128,
-      revokeSessionsOnPasswordReset: true,
-    },
-    socialProviders:
-      process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
-        ? {
-            google: {
-              clientId: process.env.GOOGLE_CLIENT_ID,
-              clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-              disableImplicitSignUp: true,
-            },
-          }
-        : {},
-    account: {
-      accountLinking: { enabled: true, trustedProviders: ["google"] },
     },
     session: {
       expiresIn: 60 * 60 * 8,
@@ -51,7 +45,7 @@ function createAuth() {
         create: {
           before: async () => {
             throw new APIError("FORBIDDEN", {
-              message: "Staff accounts must be created by the operator.",
+              message: "An operator must create staff accounts.",
             });
           },
         },
@@ -64,7 +58,12 @@ function createAuth() {
             });
             if (!person?.active)
               throw new APIError("FORBIDDEN", {
-                message: "This staff account is not authorised.",
+                message: "Account unavailable.",
+              });
+            if (temporaryPasswordExpired(person))
+              throw new APIError("FORBIDDEN", {
+                message:
+                  "Temporary password expired. Ask an operator to reset it.",
               });
             return { data: record };
           },
