@@ -99,9 +99,10 @@ export async function deploy(
       is_literal: true,
     })),
   });
-  const result = await request(
-    `/deploy?uuid=${encodeURIComponent(config.uuid)}&force=false`,
-  );
+  const result = await request("/deploy", "POST", {
+    uuid: config.uuid,
+    force: false,
+  });
   const deployment = result.deployments?.[0];
   if (
     !deployment ||

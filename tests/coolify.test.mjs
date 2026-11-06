@@ -49,7 +49,12 @@ test("release updates only both image references before deploying and waits for 
     Object.entries(images),
   );
   assert.equal(mock.calls[0].redirect, "error");
-  assert.match(mock.calls[1].url, /\/deploy\?uuid=target123&force=false$/);
+  assert.match(mock.calls[1].url, /\/deploy$/);
+  assert.equal(mock.calls[1].method, "POST");
+  assert.deepEqual(JSON.parse(mock.calls[1].body), {
+    uuid: "target123",
+    force: false,
+  });
   assert.equal(mock.calls.length, 4);
 });
 
