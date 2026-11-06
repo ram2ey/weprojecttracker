@@ -34,11 +34,11 @@ These old images require the old Compose/runtime and are not an automatic rollba
 
 ## Domain and TLS cutover
 
-The approved origin is `https://wassaeastprojecttracker.com`; `www` redirects to the apex. DNS is managed at Nakroteck. The last audit found parking A records and no Coolify custom domain. Live changes were not applied in this work: browser approval review could not open Coolify because of its usage limit.
+The approved origin is `https://wassaeastprojecttracker.com`; `www` redirects to the apex. DNS is managed at Nakroteck. The initial audit found parking A records and no Coolify custom domain. Browser access later recovered; domain routing and replacement website A records are being configured on the verified existing server `46.62.214.164`. See [the delivery status](PHASE_2_DELIVERY_STATUS.md) for the current cutover state. Mail records and shared proxy settings are preserved.
 
 1. Read the target server's actual public address from Coolify and check its proxy health and ports 80/443. Do not infer an address from the demo tunnel. Preserve mail MX/TXT/DKIM records, nameservers and domain ownership records.
 2. In the same service, configure web for `https://wassaeastprojecttracker.com:3000` and `https://www.wassaeastprojecttracker.com:3000` through the Coolify proxy. The external origin has no port. Verify Coolify's generated routing and the actual apex redirect choice; do not blindly save pre-existing unsaved forms.
-3. Replace only the parking website records with the verified server A record at `@` and a `www` CNAME to the apex. Remove conflicting website A/AAAA records only after reviewing the actual zone. Do not change mail records or add an unverified IPv6 address.
+3. Replace only the parking website records with the verified server A record at `@` and a `www` A record to the same server. Add and verify replacements before removing obsolete records. The HTTP proxy supplies the www→apex redirect; a DNS alias alone would not redirect a browser. Do not change mail records or add an unverified IPv6 address.
 4. During the coordinated Phase 4 release, use `APP_URL=https://wassaeastprojecttracker.com` and the reviewed matching Compose/image pair. Check certificates for both names, HTTP→HTTPS, www→apex with path/query preservation, canonical/social/sitemap origins and absence of mixed content.
 5. Verify sign-in/password change/logout over the proxy, secure session cookies, origin rejection and trusted client-IP/rate-limit behavior. Preserve the Cloudflare connector until these checks pass.
 
