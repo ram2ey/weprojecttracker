@@ -42,3 +42,5 @@ Browse `/projects` with keyword, category, subcategory, community, status, appro
 Add an origin-restricted Geoapify browser key as `GEOAPIFY_API_KEY` and restart the application to enable live tiles. Without a key, the map shows a clear fallback and the directory remains functional. No key or paid map account is bundled. See deployment notes before enabling it.
 
 For an additional credential-free compilation check, run `node scripts/build-production.mjs`, then `node scripts/check-production.mjs` against the isolated local database. Runtime secrets are still required to start the server.
+
+Push-to-Coolify releases are configured in [docs/AUTOMATIC_DEPLOYMENT.md](docs/AUTOMATIC_DEPLOYMENT.md).

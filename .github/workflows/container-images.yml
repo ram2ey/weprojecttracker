@@ -1,8 +1,9 @@
-name: Prepare Coolify images
+name: Release to Coolify
 
-# Manually run after these files are added to the repository's default branch.
 # Builds use GitHub runners, never the shared Coolify production server.
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       publish:
@@ -10,6 +11,15 @@ on:
         type: boolean
         default: false
         required: true
+      deploy:
+        description: Deploy published images to Coolify (main only)
+        type: boolean
+        default: false
+
+# Never interrupt a release while its two image references are being updated.
+concurrency:
+  group: coolify-production
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -31,6 +41,15 @@ jobs:
       - run: npx next typegen
       - run: npm run typecheck
       - run: npm test
+      - run: node --test tests/coolify.test.mjs
+      - name: Check deployment configuration
+        if: ${{ github.event_name == 'push' || (inputs.publish && inputs.deploy) }}
+        env:
+          COOLIFY_URL: ${{ vars.COOLIFY_URL }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+          COOLIFY_RESOURCE_UUID: ${{ vars.COOLIFY_RESOURCE_UUID }}
+          COOLIFY_RESOURCE_TYPE: ${{ vars.COOLIFY_RESOURCE_TYPE }}
+        run: node scripts/coolify-deploy.mjs --check
 
   images:
     needs: checks
@@ -55,7 +74,7 @@ jobs:
         run: echo "name=ghcr.io/${REPOSITORY,,}-${TARGET}" >> "$GITHUB_OUTPUT"
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
       - name: Log in to GitHub Container Registry
-        if: ${{ inputs.publish }}
+        if: ${{ github.event_name == 'push' || inputs.publish }}
         uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
         with:
           registry: ghcr.io
@@ -68,24 +87,45 @@ jobs:
           context: .
           target: ${{ matrix.target }}
           platforms: linux/amd64
-          push: ${{ inputs.publish }}
-          load: ${{ !inputs.publish }}
-          tags: ${{ steps.image.outputs.name }}:sha-${{ github.sha }}
+          push: ${{ github.event_name == 'push' || inputs.publish }}
+          load: ${{ github.event_name != 'push' && !inputs.publish }}
+          tags: ${{ steps.image.outputs.name }}:sha-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
       - name: Check non-root media access
-        if: ${{ !inputs.publish }}
+        if: ${{ github.event_name != 'push' && !inputs.publish }}
         env:
-          IMAGE: ${{ steps.image.outputs.name }}:sha-${{ github.sha }}
+          IMAGE: ${{ steps.image.outputs.name }}:sha-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
         run: >-
           docker run --rm --entrypoint node "$IMAGE" -e
           "const fs=require('node:fs');if(process.getuid()!==1001)process.exit(1);fs.writeFileSync('/data/media/.permission-check','ok');fs.unlinkSync('/data/media/.permission-check');console.log('Non-root media write passed')"
       - name: Record published digest for Coolify
-        if: ${{ inputs.publish }}
+        if: ${{ github.event_name == 'push' || inputs.publish }}
         env:
           IMAGE: ${{ steps.image.outputs.name }}
           DIGEST: ${{ steps.build.outputs.digest }}
           TARGET: ${{ matrix.target }}
         run: |
           printf '%s\n' "${TARGET} image: ${IMAGE}@${DIGEST}" >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    needs: images
+    if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || (inputs.publish && inputs.deploy)) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: "22"
+      - name: Update release images and redeploy
+        env:
+          COOLIFY_URL: ${{ vars.COOLIFY_URL }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+          COOLIFY_RESOURCE_UUID: ${{ vars.COOLIFY_RESOURCE_UUID }}
+          COOLIFY_RESOURCE_TYPE: ${{ vars.COOLIFY_RESOURCE_TYPE }}
+          IMAGE_TAG: sha-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+        run: node scripts/coolify-deploy.mjs
