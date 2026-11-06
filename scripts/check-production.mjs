@@ -32,7 +32,14 @@ const env = {
   NEXT_DIST_DIR: output,
   HOSTNAME: "127.0.0.1",
   PORT: "3200",
+  RELEASE_ID: `sha-${"e".repeat(40)}-1-1`,
 };
+const migration = spawn(
+  process.execPath,
+  ["node_modules/tsx/dist/cli.mjs", "scripts/migrate.ts"],
+  { env, stdio: "inherit" },
+);
+assert.equal(await new Promise((resolve) => migration.on("exit", resolve)), 0);
 async function ready(port) {
   for (let i = 0; i < 100; i++) {
     try {
@@ -48,6 +55,11 @@ const server = spawn(process.execPath, [join(standalone, "server.js")], {
 });
 try {
   await ready(3200);
+  const readiness = await (
+    await fetch("http://127.0.0.1:3200/api/ready")
+  ).json();
+  assert.equal(readiness.release, env.RELEASE_ID);
+  assert.equal(readiness.migrated, true);
   for (const path of [
     "/",
     "/about",
@@ -143,6 +155,19 @@ try {
   );
 } finally {
   server.kill();
+}
+const unmigrated = spawn(process.execPath, [join(standalone, "server.js")], {
+  env: { ...env, PORT: "3202", RELEASE_ID: `sha-${"f".repeat(40)}-1-1` },
+  stdio: ["ignore", "pipe", "pipe"],
+});
+try {
+  await ready(3202);
+  assert.equal((await fetch("http://127.0.0.1:3202/api/ready")).status, 503);
+  console.log(
+    "Readiness rejects a release without a matching migration-success marker.",
+  );
+} finally {
+  unmigrated.kill();
 }
 const unavailable = spawn(process.execPath, [join(standalone, "server.js")], {
   env: {

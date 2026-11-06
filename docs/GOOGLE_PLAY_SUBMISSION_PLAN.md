@@ -71,26 +71,34 @@ Start account verification early; it can delay submission independently of devel
 
 ## Phase 2 — Make production recoverable and deployment verifiable
 
+Read-only live inventory completed 6 November 2026: [infrastructure audit](PHASE_2_INFRASTRUCTURE_AUDIT_2026-11-06.md). No Coolify backups, executions, scheduled tasks or S3 destinations are configured; user knows of no external backups. Backblaze B2 selected for the [proposed recovery plan](PHASE_2_BACKUP_AND_RECOVERY_PLAN.md). Setup/restore/release gates remain open; no live configuration or deployment changed during the audit.
+
+**User decision — 6 November 2026:** defer backup setup and restore testing for now. Keep these items open; continue independent Linux/container verification and CI/deployment preparation without publishing or deploying. Recovery remains unproven and must be described accurately in a later release decision.
+
+**Implementation update — 6 November 2026:** local checks now pass for the legacy migration rehearsal, exact-release readiness/migration gates and public smoke checks; 69 browser checks pass. CI acceptance, container rollout rehearsal and uptime workflow are prepared. GitHub Actions notifications are selected, with the office IT administrator as incident owner. See [the operational runbook](PHASE_2_RELEASE_RUNBOOK.md). Backup/restore remain deferred; final domain/TLS, live rollout and monitor activation remain open. CI evidence and branch protection are being verified separately.
+
 ### Infrastructure and recovery
 
 - [ ] Configure the final domain, TLS and reverse proxy. Keep PostgreSQL private; retain current media/database volumes and non-root containers.
-- [ ] Prepare the matching reduced-app Compose definition. For the current Docker Compose Empty resource, a Git push does not replace its saved Compose definition automatically.
+- [x] Prepare the matching reduced-app Compose definition. For the current Docker Compose Empty resource, a Git push does not replace its saved Compose definition automatically.
 - [ ] Preserve the Cloudflare connector until the new public address is verified; retire or redirect the demo path deliberately rather than stopping it during setup.
-- [ ] Inventory existing server-side backup arrangements before adding anything. Implement missing database/media backups with an off-host destination, encryption, retention and restricted access.
+- [x] Inventory existing server-side backup arrangements before adding anything.
+- [ ] **Deferred by user:** implement database/media backups with an off-host destination, encryption, retention and restricted access.
 - [ ] Agree recovery-point and recovery-time targets and a backup owner. Monitor unsuccessful backups.
 - [ ] Restore a backup into an isolated environment. Verify published records, private revisions, image files, account access and migration state. Keep securely recorded legacy encryption keys where historical data requires them.
-- [ ] Rehearse migration 0004 on a production-shaped copy. Check unique username backfill, password-hash preservation, session invalidation, legacy data/files and operator recovery.
-- [ ] Write a release/recovery runbook. Retain previous image references. Separate code rollback from database recovery; do not automatically reverse a migration or overwrite live data.
+- [x] Rehearse 0004–0006 on a production-shaped synthetic legacy database: unique username backfill, unchanged password hashes/history/files, invalidated sessions, retry and operator recovery pass. A restored real-data rehearsal remains part of deferred backup/restore work.
+- [x] Write a release/recovery runbook. Retain previous image references. Separate code rollback from database recovery; do not automatically reverse a migration or overwrite live data.
 
 ### GitHub/Coolify pipeline
 
+- [x] Verify Linux web/tools image builds on GitHub runners without publishing/deploying: [run 42237662807](https://github.com/ram2ey/weprojecttracker/actions/runs/42237662807), 6 November 2026. CI checks and both image jobs passed; deploy skipped. Live runtime/migration acceptance remains open.
 - [ ] Add the browser acceptance suite to GitHub Actions using a disposable PostgreSQL instance and test-only credentials. Adapt the local-only harness assumptions explicitly for CI.
 - [ ] Run checks before publishing/deploying images. Keep paired web/tools release references and serialize releases.
 - [ ] For this Coolify service, wait for actual rollout completion, migration success and healthy replacement containers.
 - [ ] Verify an expected release identifier before accepting `/api/ready`; a healthy old container must not satisfy a new release's health gate.
 - [ ] Add post-deploy checks for browsing, project detail/media, login entry, redirects and retired routes.
 - [ ] Configure appropriate required checks and repository protections; retain push-to-main automatic deployment after checks.
-- [ ] Record deployment-token rotation. The current token expires **6 December 2026**. Narrow access where supported and preserve controlled repository access.
+- [x] Record deployment-token rotation. The current token expires **6 December 2026**. Narrow access where supported and preserve controlled repository access.
 - [ ] Select a minimal monitoring setup and error-triage owner. Keep uptime checks independent of the app host; configure any notifications only after selecting an authorized recipient/channel. Scrub private text and credentials from diagnostics.
 
 **Deliverables:** tested backup/restore record, migration rehearsal, production configuration, release/recovery runbook, CI acceptance and deployment-health evidence.

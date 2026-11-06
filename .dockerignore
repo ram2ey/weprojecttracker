@@ -2,6 +2,7 @@ node_modules
 .next
 .next-test
 .next-ci
+.next-*
 .local
 .git
 .env*

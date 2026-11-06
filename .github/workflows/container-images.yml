@@ -2,6 +2,8 @@ name: Release to Coolify
 
 # Builds use GitHub runners, never the shared Coolify production server.
 on:
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
   workflow_dispatch:
@@ -18,7 +20,7 @@ on:
 
 # Never interrupt a release while its two image references are being updated.
 concurrency:
-  group: coolify-production
+  group: ${{ github.ref == 'refs/heads/main' && 'coolify-production' || format('validation-{0}', github.ref) }}
   cancel-in-progress: false
 
 permissions:
@@ -41,7 +43,6 @@ jobs:
       - run: npx next typegen
       - run: npm run typecheck
       - run: npm test
-      - run: node --test tests/coolify.test.mjs
       - name: Check deployment configuration
         if: ${{ github.event_name == 'push' || (inputs.publish && inputs.deploy) }}
         env:
@@ -49,10 +50,73 @@ jobs:
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
           COOLIFY_RESOURCE_UUID: ${{ vars.COOLIFY_RESOURCE_UUID }}
           COOLIFY_RESOURCE_TYPE: ${{ vars.COOLIFY_RESOURCE_TYPE }}
+          PUBLIC_APP_URL: ${{ vars.PUBLIC_APP_URL }}
         run: node scripts/coolify-deploy.mjs --check
 
-  images:
+  acceptance:
     needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16-bookworm
+        env:
+          POSTGRES_USER: acceptance
+          POSTGRES_PASSWORD: disposable-ci-password
+          POSTGRES_DB: wassa_test
+        ports: [55432:5432]
+        options: >-
+          --health-cmd "pg_isready -U acceptance -d wassa_test"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      CI: "true"
+      TEST_DATABASE_URL: postgresql://acceptance:disposable-ci-password@127.0.0.1:55432/wassa_test
+      BETTER_AUTH_SECRET: disposable-ci-auth-secret-not-used-outside-tests-2026
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:migrations
+      - run: npm run test:acceptance
+      - name: Retain failed acceptance evidence (synthetic data only)
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: acceptance-failure
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+  container-rollout:
+    needs: acceptance
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CI: "true"
+      RELEASE_ID: sha-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: "22"
+      - run: npm ci --no-audit --no-fund
+      - run: mkdir -p .local
+      - run: docker build --target web --build-arg RELEASE_ID="$RELEASE_ID" -t wassa-ci-web:check .
+      - run: docker build --target tools --build-arg RELEASE_ID="$RELEASE_ID" -t wassa-ci-tools:check .
+      - run: node scripts/check-container-release.mjs
+
+  images:
+    needs: [checks, acceptance, container-rollout]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -86,6 +150,7 @@ jobs:
         with:
           context: .
           target: ${{ matrix.target }}
+          build-args: RELEASE_ID=sha-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           platforms: linux/amd64
           push: ${{ github.event_name == 'push' || inputs.publish }}
           load: ${{ github.event_name != 'push' && !inputs.publish }}
@@ -121,11 +186,13 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: "22"
+      - run: npm ci --omit=dev --no-audit --no-fund
       - name: Update release images and redeploy
         env:
           COOLIFY_URL: ${{ vars.COOLIFY_URL }}
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
           COOLIFY_RESOURCE_UUID: ${{ vars.COOLIFY_RESOURCE_UUID }}
           COOLIFY_RESOURCE_TYPE: ${{ vars.COOLIFY_RESOURCE_TYPE }}
+          PUBLIC_APP_URL: ${{ vars.PUBLIC_APP_URL }}
           IMAGE_TAG: sha-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
         run: node scripts/coolify-deploy.mjs

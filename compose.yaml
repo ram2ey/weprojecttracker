@@ -27,6 +27,8 @@ services:
     build:
       context: .
       target: web
+      args:
+        RELEASE_ID: ${RELEASE_ID:?Set a release identifier for controlled local production builds}
     restart: unless-stopped
     init: true
     logging: *bounded-logging
@@ -57,6 +59,8 @@ services:
     build:
       context: .
       target: tools
+      args:
+        RELEASE_ID: ${RELEASE_ID:?Set a release identifier for controlled local production builds}
     profiles: [tools]
     logging: *bounded-logging
     security_opt: ["no-new-privileges:true"]

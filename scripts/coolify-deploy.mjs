@@ -1,7 +1,51 @@
 import { appendFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
+import { parse } from "yaml";
+import { publicOrigin, smokePublicApp } from "./public-smoke.mjs";
+
+export function validateServiceCompose(raw) {
+  let services;
+  try {
+    services = parse(raw)?.services;
+  } catch {
+    throw new Error(
+      "Saved Compose could not be parsed. Check it privately in Coolify.",
+    );
+  }
+  if (
+    !services?.web ||
+    !services?.migrate ||
+    !services?.database ||
+    services.worker
+  )
+    throw new Error(
+      "Saved Compose must contain web/migrate/database and no retired worker.",
+    );
+  if (
+    services.web.image !== "${WEB_IMAGE:?}" ||
+    services.migrate.image !== "${TOOLS_IMAGE:?}" ||
+    services.web.depends_on?.migrate?.condition !==
+      "service_completed_successfully" ||
+    services.database.ports?.length ||
+    !services.web.volumes?.includes("media:/data/media") ||
+    !services.database.volumes?.includes("postgres:/var/lib/postgresql/data")
+  )
+    throw new Error(
+      "Saved Compose image references, migration dependency or retained volumes are incorrect.",
+    );
+}
+
+export function serviceHealthy(service) {
+  const healthy = (value) =>
+    /^running(?::|\s*\()healthy\)?$/i.test(value || "");
+  return (
+    healthy(service.applications?.find((app) => app.name === "web")?.status) &&
+    healthy(service.databases?.find((db) => db.name === "database")?.status)
+  );
+}
 
 export function deploymentConfig(env) {
+  publicOrigin(env.PUBLIC_APP_URL);
   for (const key of ["COOLIFY_URL", "COOLIFY_TOKEN", "COOLIFY_RESOURCE_UUID"]) {
     if (!env[key]?.trim())
       throw new Error(`Missing GitHub Actions setting: ${key}`);
@@ -48,6 +92,7 @@ export async function deploy(
   } = {},
 ) {
   const config = deploymentConfig(env);
+  const origin = publicOrigin(env.PUBLIC_APP_URL);
   if (!/^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+$/.test(env.GITHUB_REPOSITORY ?? "")) {
     throw new Error("Invalid GITHUB_REPOSITORY.");
   }
@@ -90,6 +135,10 @@ export async function deploy(
     }
   }
   const resourcePath = `/${config.type}s/${encodeURIComponent(config.uuid)}`;
+  if (config.type === "service") {
+    const saved = await request(resourcePath);
+    validateServiceCompose(saved.docker_compose_raw);
+  }
   // Update both references before requesting a deployment; leave all other envs intact.
   await request(`${resourcePath}/envs/bulk`, "PATCH", {
     data: Object.entries(images).map(([key, value]) => ({
@@ -144,10 +193,30 @@ export async function deploy(
       );
     log("Coolify deployment finished.");
   } else {
-    log(
-      "Service redeploy requested. Confirm container health in Coolify; API acceptance is not a health check.",
-    );
+    let finished = false;
+    for (let attempt = 0; attempt < 60; attempt++) {
+      await sleep(10000);
+      const service = await request(resourcePath);
+      if (!serviceHealthy(service)) continue;
+      try {
+        await smokePublicApp(origin, {
+          release: env.IMAGE_TAG,
+          full: false,
+          fetchImpl: fetchImpl,
+        });
+        finished = true;
+        break;
+      } catch {
+        /* An old or starting container must not satisfy this release. */
+      }
+    }
+    if (!finished)
+      throw new Error(
+        "Timed out waiting for healthy replacement containers and the expected migrated release.",
+      );
   }
+  await smokePublicApp(origin, { release: env.IMAGE_TAG, fetchImpl });
+  log("Expected release, migrations and public smoke checks passed.");
   return images;
 }
 

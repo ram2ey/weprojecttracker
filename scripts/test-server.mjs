@@ -4,14 +4,13 @@ import { cpSync } from "node:fs";
 import { resolve, join } from "node:path";
 import pg from "pg";
 import { buildDirectory } from "./build-output.mjs";
+import { testDatabaseUrl } from "./test-database.mjs";
 const output = buildDirectory(process.env.TEST_DIST_DIR, ".next-test");
-config({ path: ".env.local", quiet: true });
-const url = new URL(process.env.DATABASE_URL);
-if (url.hostname !== "127.0.0.1" || url.port !== "55432")
-  throw new Error(
-    "Browser tests require the isolated local PostgreSQL cluster.",
-  );
-const pool = new pg.Pool({ connectionString: url.toString() });
+if (process.env.CI !== "true") config({ path: ".env.local", quiet: true });
+const url = testDatabaseUrl();
+const maintenance = new URL(url);
+maintenance.pathname = "/postgres";
+const pool = new pg.Pool({ connectionString: maintenance.toString() });
 const result = await pool.query(
   "SELECT 1 FROM pg_database WHERE datname = 'wassa_test'",
 );
@@ -27,6 +26,7 @@ const env = {
   NEXT_DIST_DIR: output,
   NEXT_TELEMETRY_DISABLED: "1",
   ENABLE_DESIGN_PREVIEW: "false",
+  RELEASE_ID: `sha-${"0".repeat(40)}-1-1`,
   ENABLE_BROWSER_PUSH: "false",
   VAPID_SUBJECT: "",
   VAPID_PUBLIC_KEY: "",

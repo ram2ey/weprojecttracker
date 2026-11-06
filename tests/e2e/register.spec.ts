@@ -11,11 +11,9 @@ import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { hashPassword } from "better-auth/crypto";
 import { emptyPayload, emptyFinancials } from "../../src/lib/content/types";
-config({ path: ".env.local", quiet: true });
-const database = new URL(process.env.DATABASE_URL!);
-if (database.hostname !== "127.0.0.1" || database.port !== "55432")
-  throw Error("Isolated local test database required");
-database.pathname = "/wassa_test";
+import { testDatabaseUrl } from "../../scripts/test-database.mjs";
+if (process.env.CI !== "true") config({ path: ".env.local", quiet: true });
+const database = testDatabaseUrl();
 const pool = new Pool({ connectionString: database.toString() }),
   origin = "http://localhost:3100",
   headers = { Origin: origin },
