@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CookieSettingsButton } from "./cookie-consent";
 export function SiteFooter() {
   return (
     <footer className="site-footer">
@@ -9,6 +10,7 @@ export function SiteFooter() {
           <Link href="/about">About</Link>
           <Link href="/contact">Contact Us</Link>
           <Link href="/privacy">Privacy &amp; Cookies</Link>
+          <CookieSettingsButton />
         </nav>
       </div>
     </footer>

@@ -10,10 +10,23 @@ import {
   serial,
   uniqueIndex,
   pgEnum,
+  date,
+  primaryKey,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import type { ContentPayload, Financials } from "../lib/content/types";
+
+// Aggregate counts only: no visitor, session, IP, referrer or query-string data.
+export const analyticsDaily = pgTable(
+  "analytics_daily",
+  {
+    day: date("day", { mode: "string" }).notNull(),
+    path: text("path").notNull(),
+    views: integer("views").notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.day, t.path] })],
+);
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
