@@ -47,7 +47,15 @@ export async function smokePublicApp(
       "Expected release and successful migrations are not ready.",
     );
   for (const path of full
-    ? ["/", "/about", "/staff/login", "/sitemap.xml", "/robots.txt"]
+    ? [
+        "/",
+        "/about",
+        "/contact",
+        "/privacy",
+        "/staff/login",
+        "/sitemap.xml",
+        "/robots.txt",
+      ]
     : ["/"])
     await get(path);
   if (!full) return ready;

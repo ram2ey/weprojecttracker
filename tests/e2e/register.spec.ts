@@ -279,6 +279,8 @@ test("public and authenticated pages remain accessible and fit phone and desktop
   for (const route of [
     "/",
     "/about",
+    "/contact",
+    "/privacy",
     "/projects/" + firstSlug,
     "/staff/login",
   ]) {
@@ -331,6 +333,131 @@ test("public and authenticated pages remain accessible and fit phone and desktop
     fullPage: true,
   });
 });
+test("public navigation stays available on phones and supports dismissal, focus and resizing", async ({
+  page,
+}) => {
+  await page.goto("/?q=" + encodeURIComponent(prefix));
+  await expect(
+    page.getByRole("heading", { name: "Project Tracker", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.locator(
+      ".site-header a[href='/staff/login'], .site-footer a[href='/staff/login']",
+    ),
+  ).toHaveCount(0);
+  const header = page.locator(".site-header");
+  const nav = page.getByRole("navigation", { name: "Main navigation" });
+  const toggle = page.getByRole("button", { name: /^(Open|Close) menu$/ });
+  const width = page.viewportSize()!.width;
+  if (width <= 800) {
+    await expect(nav).toBeHidden();
+    expect((await toggle.boundingBox())!.height).toBeGreaterThanOrEqual(48);
+    await page.evaluate(() => scrollTo(0, 650));
+    await expect.poll(async () => (await header.boundingBox())!.y).toBe(0);
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await page.keyboard.press("Tab");
+    await expect(
+      nav.getByRole("link", { name: "Projects", exact: true }),
+    ).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(toggle).toBeFocused();
+    await expect(nav).toBeHidden();
+    await toggle.click();
+    await page.getByLabel("Search projects", { exact: true }).click();
+    await expect(nav).toBeHidden();
+    await toggle.click();
+    for (let i = 0; i < 4; i++) await page.keyboard.press("Tab");
+    await expect(nav).toBeHidden();
+    await expect(
+      page.getByLabel("Search projects", { exact: true }),
+    ).toBeFocused();
+    const headerBottom = (await header.boundingBox())!;
+    expect(
+      (await page.getByLabel("Search projects", { exact: true }).boundingBox())!
+        .y,
+    ).toBeGreaterThanOrEqual(headerBottom.y + headerBottom.height);
+    await toggle.click();
+    await nav.getByRole("link", { name: "Contact Us", exact: true }).click();
+    await expect(page).toHaveURL(origin + "/contact");
+    await expect(nav).toBeHidden();
+    await toggle.click();
+    await header
+      .getByRole("link", { name: "Wassa East Constituency Project tracker" })
+      .click();
+    await expect(page).toHaveURL(origin + "/");
+    await expect(nav).toBeHidden();
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = "200%";
+    });
+    await toggle.click();
+    await expect(
+      nav.getByRole("link", { name: "Contact Us", exact: true }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth + 1,
+      ),
+    ).toBe(true);
+    await page.keyboard.press("Escape");
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = "";
+    });
+    await toggle.click();
+    await page.setViewportSize({ width: 1100, height: 900 });
+    await expect(toggle).toBeHidden();
+    await expect(nav).toBeVisible();
+    await page.setViewportSize({ width: 800, height: 900 });
+    await expect(toggle).toBeVisible();
+    // Preserve a focused desktop navigation link when crossing the breakpoint.
+    await expect(nav).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(nav).toBeHidden();
+  } else {
+    await expect(toggle).toBeHidden();
+    await expect(nav).toBeVisible();
+    await expect(nav.getByRole("link")).toHaveCount(3);
+  }
+});
+
+test("contact and privacy expose approved contact links without a live form or public staff links", async ({
+  page,
+  request,
+}) => {
+  await page.goto("/contact");
+  await expect(
+    page.getByRole("heading", { name: "Contact Us", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "+233 54 298 5346", exact: true }),
+  ).toHaveAttribute("href", "tel:+233542985346");
+  const whatsapp = page.getByRole("link", { name: /Contact us on WhatsApp/ });
+  await expect(whatsapp).toHaveAttribute("href", "https://wa.me/233542985346");
+  await expect(whatsapp).toHaveAttribute("rel", "noopener noreferrer");
+  await expect(page.locator("form, iframe, a[href^='mailto:']")).toHaveCount(0);
+  await expect(page.locator("a[href='/staff/login']")).toHaveCount(0);
+  await page
+    .getByRole("navigation", { name: "Footer", exact: true })
+    .getByRole("link", { name: "Privacy & Cookies", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Privacy & Cookies", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(/There are currently no optional tracking cookies/),
+  ).toBeVisible();
+  await expect(page.getByText(/90 days after closure/)).toBeVisible();
+  await expect(page.locator("form, iframe")).toHaveCount(0);
+  const sitemap = await request.get("/sitemap.xml");
+  expect(await sitemap.text()).toContain("/contact</loc>");
+  expect(await sitemap.text()).toContain("/privacy</loc>");
+  await page.goto("/staff/login");
+  await expect(
+    page.getByRole("heading", { name: "Staff sign-in", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Username", { exact: true })).toBeVisible();
+});
+
 test("editor and independent approver can publish through the real screens", async ({
   page,
   context,

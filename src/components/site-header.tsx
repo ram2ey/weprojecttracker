@@ -1,14 +1,110 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
+import { Menu, X } from "lucide-react";
 import { SiteBrand } from "./site-brand";
 export function SiteHeader() {
+  const [open, setOpen] = useState(false);
+  const header = useRef<HTMLElement>(null);
+  const toggle = useRef<HTMLButtonElement>(null);
+  const navigation = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const element = header.current;
+    if (!element) return;
+    const observer = new ResizeObserver(() => {
+      document.documentElement.style.setProperty(
+        "--public-header-height",
+        `${element.getBoundingClientRect().height}px`,
+      );
+    });
+    observer.observe(element);
+    const breakpoint = matchMedia("(max-width: 800px)");
+    function resize() {
+      if (
+        breakpoint.matches &&
+        navigation.current?.contains(document.activeElement)
+      ) {
+        setOpen(true);
+      } else {
+        setOpen(false);
+        if (!breakpoint.matches && document.activeElement === toggle.current) {
+          navigation.current?.querySelector("a")?.focus();
+        }
+      }
+    }
+    breakpoint.addEventListener("change", resize);
+    return () => {
+      observer.disconnect();
+      breakpoint.removeEventListener("change", resize);
+      document.documentElement.style.removeProperty("--public-header-height");
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    function outside(event: Event) {
+      if (
+        event.target instanceof Node &&
+        !header.current?.contains(event.target)
+      ) {
+        setOpen(false);
+      }
+    }
+    function escape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+        toggle.current?.focus();
+      }
+    }
+    function historyNavigation() {
+      setOpen(false);
+    }
+    document.addEventListener("pointerdown", outside);
+    document.addEventListener("focusin", outside);
+    document.addEventListener("keydown", escape);
+    window.addEventListener("popstate", historyNavigation);
+    return () => {
+      document.removeEventListener("pointerdown", outside);
+      document.removeEventListener("focusin", outside);
+      document.removeEventListener("keydown", escape);
+      window.removeEventListener("popstate", historyNavigation);
+    };
+  }, [open]);
+
   return (
-    <header className="site-header">
+    <header
+      className="site-header"
+      ref={header}
+      onClickCapture={(event) => {
+        if (event.target instanceof Element && event.target.closest("a")) {
+          setOpen(false);
+        }
+      }}
+    >
       <div className="container header-inner">
         <SiteBrand />
-        <nav aria-label="Main navigation">
+        <button
+          className="public-menu-toggle"
+          ref={toggle}
+          type="button"
+          aria-label={open ? "Close menu" : "Open menu"}
+          aria-controls="public-navigation"
+          aria-expanded={open}
+          onClick={() => setOpen(!open)}
+        >
+          {open ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
+        </button>
+        <nav
+          id="public-navigation"
+          aria-label="Main navigation"
+          ref={navigation}
+          data-open={open}
+        >
           <Link href="/">Projects</Link>
           <Link href="/about">About</Link>
-          <Link href="/staff/login">Staff sign-in</Link>
+          <Link href="/contact">Contact Us</Link>
         </nav>
       </div>
     </header>
