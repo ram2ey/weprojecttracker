@@ -68,7 +68,7 @@ export default async function Register({
         <div className="container register-hero-content">
           <div className="page-heading">
             <span className="eyebrow">WASSA EAST CONSTITUENCY</span>
-            <h1 id="register-title">Project register</h1>
+            <h1 id="register-title">Project Tracker</h1>
             <p>
               Explore the work in your community and its latest approved
               information.

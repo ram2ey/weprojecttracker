@@ -63,6 +63,8 @@ try {
   for (const path of [
     "/",
     "/about",
+    "/contact",
+    "/privacy",
     "/sitemap.xml",
     "/robots.txt",
     "/api/health",
@@ -145,7 +147,7 @@ try {
     );
     await page.getByRole("link", { name: "Return home", exact: true }).click();
     await page
-      .getByRole("heading", { name: "Project register", exact: true })
+      .getByRole("heading", { name: "Project Tracker", exact: true })
       .waitFor();
   } finally {
     await browser.close();
