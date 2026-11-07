@@ -18,6 +18,7 @@ import type { ContentPayload, Financials } from "../lib/content/types";
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
+  username: text("username").unique(),
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
@@ -81,6 +82,9 @@ export const staff = pgTable("staff", {
     enum: ["super_admin", "officer", "approver"],
   }).notNull(),
   active: boolean("active").notNull().default(true),
+  mustChangePassword: boolean("must_change_password").notNull().default(true),
+  temporaryPasswordExpiresAt: timestamp("temporary_password_expires_at"),
+  accessVersion: integer("access_version").notNull().default(0),
   mfaSecret: text("mfa_secret"),
   mfaEnabled: boolean("mfa_enabled").notNull().default(false),
   mfaLastStep: integer("mfa_last_step").notNull().default(-1),

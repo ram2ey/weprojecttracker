@@ -57,37 +57,13 @@ export function checkDeployment(env: Record<string, string | undefined>) {
         `${key} must be an independently generated production secret of at least 32 characters.`,
       );
   }
-  if (!/^[a-f0-9]{64}$/i.test(env.MFA_ENCRYPTION_KEY ?? ""))
-    errors.push(
-      "MFA_ENCRYPTION_KEY must be a new 64-character hexadecimal production key.",
-    );
-  const secrets = [
-    env.POSTGRES_PASSWORD,
-    env.BETTER_AUTH_SECRET,
-    env.MFA_ENCRYPTION_KEY,
-  ].filter(Boolean);
-  if (new Set(secrets).size !== secrets.length)
-    errors.push("Database, authentication and MFA secrets must be different.");
-  if (Boolean(env.GOOGLE_CLIENT_ID) !== Boolean(env.GOOGLE_CLIENT_SECRET))
-    errors.push(
-      "GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be configured together.",
-    );
-  else if (!env.GOOGLE_CLIENT_ID)
-    warnings.push(
-      "Google sign-in is unconfigured; real Google OAuth acceptance remains pending.",
-    );
+  if (env.POSTGRES_PASSWORD && env.POSTGRES_PASSWORD === env.BETTER_AUTH_SECRET)
+    errors.push("Database and authentication secrets must be different.");
   if (env.APP_ENV && env.APP_ENV !== "production")
     errors.push("APP_ENV cannot override the production environment.");
   for (const key of ["ENABLE_DESIGN_PREVIEW", "ENABLE_BROWSER_PUSH"])
     if (env[key] && env[key] !== "false")
       errors.push(`${key} must stay disabled in this deployment.`);
-  for (const key of ["ENABLE_PUBLIC_RENDER_CACHE", "TRUST_PROXY_HEADERS"])
-    if (env[key] && !["true", "false"].includes(env[key]!))
-      errors.push(`${key} must be true or false.`);
-  if (env.TRUST_PROXY_HEADERS === "true")
-    warnings.push(
-      "Verify the proxy overwrites incoming forwarded IP headers before trusting them.",
-    );
   return { errors, warnings };
 }
 

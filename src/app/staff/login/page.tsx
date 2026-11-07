@@ -9,12 +9,7 @@ export const metadata = {
 export default function LoginPage() {
   return (
     <AuthFrame>
-      <LoginForm
-        configured={authConfigured()}
-        googleEnabled={Boolean(
-          process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET,
-        )}
-      />
+      <LoginForm configured={authConfigured()} />
     </AuthFrame>
   );
 }

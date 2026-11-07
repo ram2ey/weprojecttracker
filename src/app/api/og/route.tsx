@@ -56,13 +56,9 @@ export async function GET(request: Request) {
         }}
       >
         <span>
-          {record?.kind === "project"
-            ? `${record.payload.communityName} · ${record.payload.status} · ${record.payload.progress}%`
-            : record?.kind === "report"
-              ? "Approved public report"
-              : record?.kind === "announcement"
-                ? "Constituency announcement"
-                : "Open information. Shared progress."}
+          {record
+            ? record.payload.communityName + " · " + record.payload.status
+            : "Approved projects across Wassa East"}
         </span>
         <span>{record?.code ?? "Western Region, Ghana"}</span>
       </div>

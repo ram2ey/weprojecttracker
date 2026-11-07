@@ -1,6 +1,9 @@
 # Run on a separate Docker builder. Never supply application secrets to builds.
 # docker buildx bake -f docker-bake.hcl builds both Linux targets locally.
-# Set WEB_IMAGE / TOOLS_IMAGE to release tags before using --push.
+# Set WEB_IMAGE / TOOLS_IMAGE and RELEASE_ID before using --push.
+variable "RELEASE_ID" {
+  default = "local"
+}
 variable "WEB_IMAGE" {
   default = "wassa-web:local"
 }
@@ -17,6 +20,9 @@ target "common" {
   context = "."
   dockerfile = "Dockerfile"
   platforms = [TARGET_PLATFORM]
+  args = {
+    RELEASE_ID = RELEASE_ID
+  }
 }
 target "web" {
   inherits = ["common"]

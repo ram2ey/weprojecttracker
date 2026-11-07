@@ -1,8 +1,8 @@
 import sharp from "sharp";
-import { PDFDict, PDFDocument, PDFName } from "pdf-lib";
+
 import { mkdir, writeFile, unlink } from "node:fs/promises";
 import { resolve, sep, dirname } from "node:path";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import {
   mediaFile,
@@ -30,64 +30,6 @@ export async function processEvidence(
 ) {
   if (!bytes.length) throw new ContentError(400, "The file is empty.");
   const extension = originalName.split(".").pop()?.toLowerCase();
-  const pdf = bytes.subarray(0, 5).toString("ascii") === "%PDF-";
-  if (pdf) {
-    if (
-      extension !== "pdf" ||
-      bytes.length > 20 * 1024 * 1024 ||
-      !["application/pdf", "application/octet-stream", ""].includes(claimedType)
-    )
-      throw new ContentError(
-        400,
-        "PDF documents must be valid .pdf files no larger than 20 MB.",
-      );
-    try {
-      const document = await PDFDocument.load(bytes, {
-        updateMetadata: false,
-        throwOnInvalidObject: true,
-      });
-      if (
-        document.isEncrypted ||
-        document.getPageCount() > 500 ||
-        document.getPageCount() < 1
-      )
-        throw new Error("unsupported PDF");
-      const blocked = new Set([
-        "JS",
-        "JavaScript",
-        "OpenAction",
-        "AA",
-        "EmbeddedFiles",
-        "RichMedia",
-        "XFA",
-      ]);
-      for (const [, object] of document.context.enumerateIndirectObjects()) {
-        if (object instanceof PDFDict) {
-          for (const key of object.keys())
-            if (blocked.has(key.decodeText())) throw new Error("active PDF");
-          const action = object.get(PDFName.of("S"));
-          if (
-            action instanceof PDFName &&
-            ["JavaScript", "Launch", "SubmitForm", "ImportData"].includes(
-              action.decodeText(),
-            )
-          )
-            throw new Error("active PDF");
-        }
-      }
-    } catch {
-      throw new ContentError(
-        400,
-        "This PDF is invalid, encrypted, too large, or contains active scripts or embedded files. Upload a standard static PDF.",
-      );
-    }
-    return {
-      full: bytes,
-      thumbnail: null,
-      mimeType: "application/pdf",
-      extension: "pdf",
-    };
-  }
   const format = bytes
     .subarray(0, 8)
     .equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
@@ -108,7 +50,7 @@ export async function processEvidence(
   )
     throw new ContentError(
       400,
-      "Upload a JPEG, PNG, or WebP image no larger than 10 MB, or a standard PDF up to 20 MB.",
+      "Upload a JPEG, PNG, or WebP image no larger than 10 MB, only.",
     );
   try {
     const image = sharp(bytes, {
@@ -161,11 +103,14 @@ export async function storeEvidence(
       403,
       "Only officers and operators can upload evidence.",
     );
+  if (internalOnly)
+    throw new ContentError(400, "Only project photographs are supported.");
   const db = getDb();
   const record = await db.query.contentRecord.findFirst({
     where: eq(contentRecord.id, recordId),
   });
-  if (!record) throw new ContentError(404, "Record not found.");
+  if (!record || record.kind !== "project")
+    throw new ContentError(404, "Record not found.");
   const activeDraft = await db.query.contentRevision.findFirst({
     where: and(
       eq(contentRevision.recordId, recordId),
@@ -271,17 +216,17 @@ export async function storeEvidence(
   };
 }
 export async function isPublicEvidence(id: string) {
-  const db = getDb();
-  const file = await db.query.mediaFile.findFirst({
-    where: and(
-      eq(mediaFile.id, id),
-      isNull(mediaFile.withdrawnAt),
-      eq(mediaFile.internalOnly, false),
-    ),
-  });
-  if (!file) return false;
+  const db = getDb(),
+    file = await db.query.mediaFile.findFirst({
+      where: and(
+        eq(mediaFile.id, id),
+        isNull(mediaFile.withdrawnAt),
+        eq(mediaFile.internalOnly, false),
+      ),
+    });
+  if (!file || !file.mimeType.startsWith("image/")) return false;
   const [record] = await db
-    .select({ publishedNumber: contentRevision.number })
+    .select({ payload: contentRevision.payload })
     .from(contentRecord)
     .innerJoin(
       contentRevision,
@@ -290,28 +235,15 @@ export async function isPublicEvidence(id: string) {
     .where(
       and(
         eq(contentRecord.id, file.recordId),
+        eq(contentRecord.kind, "project"),
         eq(contentRevision.recordId, file.recordId),
         eq(contentRevision.state, "approved"),
-        sql`NOT EXISTS (SELECT 1 FROM report_source rs JOIN content_record sr ON sr.id=rs.source_record_id WHERE rs.report_record_id=${contentRecord.id} AND (sr.withdrawn_at IS NOT NULL OR sr.published_revision_id IS NULL))`,
         isNull(contentRecord.withdrawnAt),
       ),
     );
-  if (!record) return false;
-  const revisions = await db
-    .select({ payload: contentRevision.payload })
-    .from(contentRevision)
-    .where(
-      and(
-        eq(contentRevision.recordId, file.recordId),
-        eq(contentRevision.state, "approved"),
-        sql`${contentRevision.number} <= ${record.publishedNumber}`,
-      ),
-    );
-  return revisions.some((r) =>
-    r.payload.attachments.some(
-      (a) =>
-        a.id === id && a.visibility === "public" && a.purpose !== "financial",
-    ),
+  return !!record?.payload.attachments.some(
+    (a) =>
+      a.id === id && a.visibility === "public" && a.purpose !== "financial",
   );
 }
 export async function withdrawEvidence(
@@ -327,11 +259,13 @@ export async function withdrawEvidence(
       .from(mediaFile)
       .where(eq(mediaFile.id, id));
     if (!file) throw new ContentError(404, "Attachment not found.");
-    await tx
+    const [record] = await tx
       .select()
       .from(contentRecord)
       .where(eq(contentRecord.id, file.recordId))
       .for("update");
+    if (record?.kind !== "project")
+      throw new ContentError(404, "Project photograph not found.");
     await tx
       .update(mediaFile)
       .set({
@@ -341,6 +275,19 @@ export async function withdrawEvidence(
       })
       .where(eq(mediaFile.id, id));
     // Invalidate every draft/pending base so a withdrawal cannot be silently undone.
+    await tx
+      .update(contentRevision)
+      .set({
+        state: "returned",
+        decisionReason: "A photograph was withdrawn. Create a fresh draft.",
+        lockVersion: sql`${contentRevision.lockVersion}+1`,
+      })
+      .where(
+        and(
+          eq(contentRevision.recordId, file.recordId),
+          inArray(contentRevision.state, ["draft", "pending"]),
+        ),
+      );
     await tx
       .update(contentRecord)
       .set({ version: sql`${contentRecord.version} + 1` })

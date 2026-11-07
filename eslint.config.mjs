@@ -9,6 +9,7 @@ export default defineConfig([
     ".next/**",
     ".next-test/**",
     ".next-ci/**",
+    ".next-*/**",
     ".local/**",
     "next-env.d.ts",
     "test-results/**",

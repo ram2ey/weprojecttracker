@@ -8,11 +8,12 @@ export default defineConfig({
   workers: 1,
   fullyParallel: false,
   timeout: 45000,
-  reporter: "list",
+  reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
   use: {
     baseURL: "http://localhost:3100",
     viewport: { width: 1440, height: 1000 },
     headless: true,
+    trace: "retain-on-failure",
     launchOptions: existsSync(chrome) ? { executablePath: chrome } : {},
   },
   webServer: {

@@ -1,45 +1,43 @@
 import { z } from "zod";
-import { contentKinds, projectStatuses } from "./types";
-const optionalText = (max: number) =>
-  z.preprocess(
-    (v) => (v === "" ? undefined : v),
-    z.string().trim().max(max).optional(),
-  );
-const optionalDate = z.preprocess(
+import { projectStatuses } from "./types";
+const optional = z.preprocess(
   (v) => (v === "" ? undefined : v),
-  z.iso.date().optional(),
+  z.string().trim().max(120).optional(),
 );
 export const publicFiltersSchema = z
   .object({
-    kind: z.preprocess(
+    q: z.preprocess(
       (v) => (v === "" ? undefined : v),
-      z.enum(contentKinds).optional(),
+      z.string().trim().max(200).optional(),
     ),
-    q: optionalText(200),
-    category: optionalText(120),
-    subcategory: optionalText(120),
-    community: optionalText(120),
+    category: optional,
+    community: optional,
     status: z.preprocess(
       (v) => (v === "" ? undefined : v),
       z.enum(projectStatuses).optional(),
     ),
-    from: optionalDate,
-    to: optionalDate,
-    sort: z.enum(["newest", "oldest", "title", "progress"]).default("newest"),
     page: z.coerce.number().int().min(1).max(100000).default(1),
   })
-  .refine((v) => !v.from || !v.to || v.from <= v.to, {
-    message: "The start of the update period must be before its end.",
-    path: ["from"],
-  });
+  .strict();
 export type PublicFilters = z.infer<typeof publicFiltersSchema>;
+// Page URLs may include campaign or social tracking parameters. Keep the API
+// schema strict, while validating only the register controls on public pages.
+export function parsePageFilters(query: Record<string, unknown>) {
+  const { q, category, community, status, page } = query;
+  return publicFiltersSchema.safeParse({
+    q,
+    category,
+    community,
+    status,
+    page,
+  });
+}
 export function filterQuery(
-  filters: Partial<PublicFilters> & { view?: string },
+  filters: Partial<PublicFilters>,
   patch: Record<string, string | undefined> = {},
 ) {
-  const params = new URLSearchParams();
-  for (const [key, value] of Object.entries({ ...filters, ...patch }))
-    if (value !== undefined && value !== "" && key !== "kind")
-      params.set(key, String(value));
-  return params.toString();
+  const p = new URLSearchParams();
+  for (const [k, v] of Object.entries({ ...filters, ...patch }))
+    if (v !== undefined && v !== "") p.set(k, String(v));
+  return p.toString();
 }

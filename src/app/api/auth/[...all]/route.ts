@@ -1,9 +1,8 @@
 import { getAuth } from "@/lib/auth";
 import { authConfigured } from "@/lib/env";
+import { signInStaff } from "@/lib/security/sign-in";
 const allowed = new Set([
-  "sign-in/email",
-  "sign-in/social",
-  "callback/google",
+  "sign-in/username",
   "sign-out",
   "get-session",
   "error",
@@ -18,7 +17,11 @@ async function handle(request: Request) {
       { message: "Staff access is awaiting server configuration." },
       { status: 503 },
     );
-  return getAuth().handler(request);
+  if (path === "sign-in/username" && request.method === "POST")
+    return signInStaff(request);
+  const response = await getAuth().handler(request);
+  response.headers.set("Cache-Control", "private, no-store");
+  return response;
 }
 export const GET = handle;
 export const POST = handle;

@@ -1,33 +1,11 @@
-# Wassa East design system
+# Wassa East design system — minimal register
 
-## Direction
+The reduced app retains the existing constituency logo, green #006B3F, red #CE1126, black #111111 and white #FFFFFF identity. These remain interface color choices rather than certified official color specifications. A red–white–green band anchors the public header. Neutral #f5f6f7 backgrounds, white cards, Creato Display typography and green actions continue the current design direction. Creato regular/medium/bold are loaded locally with `next/font/local`, `display: swap` and system fallbacks; its OFL license stays beside the font files. No external font service is contacted.
 
-A quiet, native-feeling civic application. Public project discovery and staff publishing share the same visual language: clear system typography, soft neutral backgrounds, solid content surfaces, restrained green accents, and glass only where navigation floats above content. The existing name, logo and approved evidence remain intact.
+Light mode is the only appearance. Theme selectors, dark rules, appearance storage, glass and decorative motion are removed. The register replaces the promotional homepage, so search and projects lead the page. Category/community/status filters share a compact panel; search and removable active choices stay visible on phones. Project cards use current approved photographs or an explicit no-photograph state, never sample evidence.
 
-## Tokens and appearance
+Staff use a compact register and form with a visible save bar. Navigation contains Projects, Review queue, and operator-only Communities, Staff and Audit log. Private version selection and decision reasons remain; detailed comparison and duplicate Overview navigation are removed.
 
-`src/app/globals.css` is the source of truth. Semantic tokens cover background, card, text, secondary text, border, green actions, status colors, glass, sidebar material, radius and shadow. Light uses #f5f6f7 backgrounds, white cards and #176b49 actions; dark uses #141917 backgrounds, #202823 cards and #80d8ab actions with dark labels. Red communicates destructive or critical states, never routine primary actions.
+Primary navigation, shared buttons, inputs/selects, active-filter chips, pagination, standalone return/clear links and source links have at least 48px target height, visible focus, semantic labels and status labels alongside color. Forms collapse to one column on narrow screens. The phone header/heading spacing is reduced while retaining the logo, title and visible search. Long card titles, community names, captions and URLs wrap. Use shared button, badge, surface and spacing styles in src/app/globals.css. Photographs have alt text/captions and same-tab full-photo navigation with Back to return; public content has no percentages or historical versions. Unsaved work gets a navigation/reload warning and a copyable recovery view. These warnings cannot recover edits after browser/OS termination; staff must save private drafts.
 
-Typography uses the platform system stack. Body text is 1rem, compact metadata is at least .75rem except deliberate eyebrow/navigation labels, and display headings use negative tracking with tight leading. Surfaces use a 4/8px spacing rhythm, .75rem control radii and 1.25–1.75rem content radii. Icons remain Lucide; status text accompanies color.
-
-Appearance defaults to the operating system. The shared Light/Dark/System selector stores an explicit choice under `wassa-appearance`; a small same-origin script applies it before paint. HTML remains identical across public cache entries. Storage failures fall back to a session choice or system appearance; changes synchronize between tabs. The existing CSP is unchanged.
-
-## Layouts
-
-- Public: sticky glass header, prominent project search, compact totals, featured work, categories, project cards and recent approved updates. At widths up to 800px, safe-area-aware bottom navigation and a modal navigation sheet replace desktop links.
-- Directory: search and filters share a grouped surface; list/map controls retain query parameters. On mobile, one copy of the filter form lives inside a scrollable sheet with an explicit Apply action.
-- Details: title, status, follow/share controls, jump links, readable evidence/history and a sticky progress summary. On small screens the summary precedes the long body.
-- Staff: a sticky sidebar, glass toolbar, grouped forms and compact tables. A modal workspace drawer replaces the sidebar below 801px. Save actions remain visible while editing long forms.
-- Authentication, reports, discussions, moderation, inbox, preferences, errors and empty states use the same semantic tokens. Exported document layouts are unchanged.
-
-## Interaction and accessibility
-
-Motion is limited to client interaction components; pages and data remain server-rendered. Buttons respond on press. Sheets use interruptible Motion springs, zero bounce by default and a 0.35-second response. The drag handle captures the pointer, tracks release velocity and projects the endpoint; returning from a gesture permits slight overshoot. Native dialogs provide focus containment, Escape dismissal and background inertness. Focus returns to the trigger after dismissal. Gallery opening/closing follows the same spatial path.
-
-Reduced motion removes movement and overshoot; reduced transparency replaces glass with solid surfaces; increased contrast adds defined borders. Keyboard users retain explicit close and apply actions, visible focus, semantic labels, skip links and touch targets of at least 44px for primary controls. Content remains readable without color alone. No sound, haptics or decorative looping motion is used.
-
-## Verification
-
-Run `npm run typecheck`, `npm run lint`, `npm test`, and `npm run test:acceptance`. The acceptance command builds the production server and exercises the isolated test database, including public discovery, authenticated publishing, approvals, engagement and accessibility. `tests/e2e/appearance.spec.ts` adds appearance persistence, system preferences, mobile sheets, focus return, drag reversal and reduced-motion checks.
-
-Review public routes and all staff views at phone, tablet and desktop widths in both appearances. Check long forms, empty/error states, evidence captions, scroll boundaries, focus containment and contrast over glass. Sample records and illustrations retain explicit labels and remain disabled in production. No roles, publication rules, API contracts or database schema are changed by the redesign.
+Verify public and staff pages at 360px, 430px and 1440px, with keyboard navigation, automated accessibility checks, real publishing, empty states and long text. Earlier motion/theme specifications are superseded by this minimal scope.

@@ -1,17 +1,51 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { deploy, deploymentConfig } from "../scripts/coolify-deploy.mjs";
+import { readFileSync } from "node:fs";
+import {
+  deploy,
+  deploymentConfig,
+  validateServiceCompose,
+} from "../scripts/coolify-deploy.mjs";
+import { smokePublicApp } from "../scripts/public-smoke.mjs";
+import { testDatabaseUrl } from "../scripts/test-database.mjs";
 
 const env = {
   COOLIFY_URL: "https://coolify.example.com",
   COOLIFY_TOKEN: "private-test-token",
   COOLIFY_RESOURCE_UUID: "target123",
-  COOLIFY_RESOURCE_TYPE: "application",
+  COOLIFY_RESOURCE_TYPE: "service",
+  PUBLIC_APP_URL: "https://register.example.com",
   GITHUB_REPOSITORY: "Example/Register",
   IMAGE_TAG: `sha-${"a".repeat(40)}-123-1`,
 };
-
-function harness(responses) {
+const compose = readFileSync("compose.coolify.yaml", "utf8");
+const healthy = {
+  applications: [{ name: "web", status: "running:healthy" }],
+  databases: [{ name: "database", status: "running:healthy" }],
+};
+function publicResponse(url, release = env.IMAGE_TAG, migrated = true) {
+  const path = new URL(url).pathname;
+  if (path === "/api/ready")
+    return Response.json({ ready: true, release, migrated });
+  if (path === "/projects")
+    return new Response(null, {
+      status: 308,
+      headers: { location: "/?q=school" },
+    });
+  if (
+    [
+      "/reports",
+      "/announcements",
+      "/staff/setup",
+      "/api/public/projects/map",
+    ].includes(path)
+  )
+    return new Response(null, { status: 404 });
+  if (path === "/api/staff/content") return new Response(null, { status: 403 });
+  if (path === "/api/public/content") return Response.json({ items: [] });
+  return new Response("ok");
+}
+function harness(responses, publicFetch = publicResponse) {
   const calls = [];
   return {
     calls,
@@ -20,82 +54,116 @@ function harness(responses) {
       log: () => {},
       fetchImpl: async (url, options) => {
         calls.push({ url, ...options });
-        const next = responses.shift();
-        if (next instanceof Error) throw next;
+        if (url.startsWith(env.PUBLIC_APP_URL)) {
+          assert.equal(
+            options.headers?.Authorization,
+            undefined,
+            "Never send the Coolify credential to the public app",
+          );
+          return publicFetch(url);
+        }
+        const next = responses.length === 1 ? responses[0] : responses.shift();
         assert.ok(next, "Unexpected API request");
+        if (next instanceof Error) throw next;
         return Response.json(next.body, { status: next.status ?? 200 });
       },
     },
   };
 }
+const preflight = { body: { docker_compose_raw: compose } };
+const accepted = {
+  body: {
+    deployments: [
+      {
+        resource_uuid: "target123",
+        message:
+          "Service Wassa East started. It could take a while, be patient.",
+      },
+    ],
+  },
+};
 
-test("release updates only both image references before deploying and waits for completion", async () => {
-  const mock = harness([
-    { body: [] },
-    { body: { deployments: [{ deployment_uuid: "deploy123" }] } },
-    { body: { status: "in_progress" } },
-    { body: { status: "finished" } },
-  ]);
-  const images = await deploy(env, mock.options);
-  assert.match(images.WEB_IMAGE, /^ghcr.io\/example\/register-web:sha-/);
-  assert.equal(
-    images.TOOLS_IMAGE,
-    `ghcr.io/example/register-tools:${env.IMAGE_TAG}`,
+test("paired images deploy only after Compose preflight; completion requires replacement health, migration and public smoke", async () => {
+  let probes = 0;
+  const mock = harness(
+    [preflight, { body: [] }, accepted, { body: healthy }],
+    (url) => publicResponse(url, ++probes === 1 ? "old" : env.IMAGE_TAG),
   );
-  assert.equal(mock.calls[0].method, "PATCH");
-  assert.match(mock.calls[0].url, /\/applications\/target123\/envs\/bulk$/);
+  const images = await deploy(env, mock.options);
+  const mutations = mock.calls.filter(
+    (c) => c.method === "PATCH" || c.method === "POST",
+  );
+  assert.equal(mock.calls[0].method, "GET");
   assert.deepEqual(
-    JSON.parse(mock.calls[0].body).data.map(({ key, value }) => [key, value]),
+    JSON.parse(mutations[0].body).data.map(({ key, value }) => [key, value]),
     Object.entries(images),
   );
-  assert.equal(mock.calls[0].redirect, "error");
-  assert.match(mock.calls[1].url, /\/deploy$/);
-  assert.equal(mock.calls[1].method, "POST");
-  assert.deepEqual(JSON.parse(mock.calls[1].body), {
-    uuid: "target123",
-    force: false,
-  });
-  assert.equal(mock.calls.length, 4);
+  assert.match(images.TOOLS_IMAGE, /^ghcr.io\/example\/register-tools:sha-/);
+  assert.equal(mutations.length, 2);
+  assert.ok(mock.calls.filter((c) => c.url.endsWith("/api/ready")).length >= 3);
 });
-
-test("Docker Compose Empty service uses the service endpoint", async () => {
+test("old healthy containers or missing migration marker time out and fail the release", async () => {
+  for (const [release, migrated] of [
+    ["old", true],
+    [env.IMAGE_TAG, false],
+  ]) {
+    const mock = harness(
+      [preflight, { body: [] }, accepted, { body: healthy }],
+      (url) => publicResponse(url, release, migrated),
+    );
+    await assert.rejects(deploy(env, mock.options), /Timed out/);
+  }
+});
+test("unhealthy replacement cannot pass even when the public endpoint is ready", async () => {
   const mock = harness([
+    preflight,
     { body: [] },
+    accepted,
     {
       body: {
-        deployments: [
-          {
-            resource_uuid: "target123",
-            message:
-              "Service Wassa East started. It could take a while, be patient.",
-          },
-        ],
+        ...healthy,
+        applications: [{ name: "web", status: "running:unhealthy" }],
       },
     },
   ]);
-  await deploy({ ...env, COOLIFY_RESOURCE_TYPE: "service" }, mock.options);
-  assert.match(mock.calls[0].url, /\/services\/target123\/envs\/bulk$/);
-  assert.equal(mock.calls.length, 2);
+  await assert.rejects(deploy(env, mock.options), /Timed out/);
+  assert.equal(
+    mock.calls.some((c) => c.url.startsWith(env.PUBLIC_APP_URL)),
+    false,
+  );
 });
-
-test("configuration errors fail before making requests", async () => {
+test("legacy worker, missing migration dependency and renamed media volume block mutation", async () => {
   assert.throws(
-    () => deploymentConfig({ ...env, COOLIFY_TOKEN: "" }),
-    /COOLIFY_TOKEN/,
+    () => validateServiceCompose('secret: "never-log-this'),
+    (error) => !error.message.includes("never-log-this"),
   );
-  assert.throws(
-    () => deploymentConfig({ ...env, COOLIFY_URL: "http://example.com" }),
-    /HTTPS/,
-  );
+  for (const raw of [
+    compose.replace("service_completed_successfully", "service_started"),
+    compose.replace("media:/data/media", "replacement:/data/media"),
+    compose.replace("  media:", "  media: {name: replacement}"),
+    compose.replace(
+      "      NODE_ENV: production",
+      "      RELEASE_ID: override\n      NODE_ENV: production",
+    ),
+  ]) {
+    const mock = harness([{ body: { docker_compose_raw: raw } }]);
+    await assert.rejects(deploy(env, mock.options), /Saved Compose/);
+    assert.equal(mock.calls.length, 1);
+  }
   assert.throws(
     () =>
-      deploymentConfig({ ...env, COOLIFY_URL: "https://example.com/api/v1" }),
-    /without \/api/,
+      validateServiceCompose(compose.replace("  web:", "  worker: {}\n  web:")),
+    /retired worker/,
   );
-  assert.throws(
-    () => deploymentConfig({ ...env, COOLIFY_RESOURCE_TYPE: "" }),
-    /application or service/,
-  );
+});
+test("configuration rejects missing settings, unsafe origins and invalid release before requests", async () => {
+  for (const input of [
+    { COOLIFY_TOKEN: "" },
+    { COOLIFY_URL: "http://example.com" },
+    { PUBLIC_APP_URL: "https://user:pass@example.com" },
+    { COOLIFY_RESOURCE_TYPE: "" },
+  ])
+    assert.throws(() => deploymentConfig({ ...env, ...input }));
   const mock = harness([]);
   await assert.rejects(
     deploy({ ...env, IMAGE_TAG: "latest" }, mock.options),
@@ -103,50 +171,86 @@ test("configuration errors fail before making requests", async () => {
   );
   assert.equal(mock.calls.length, 0);
 });
-
-test("a service permission error returned inside HTTP 200 fails the release", async () => {
-  const mock = harness([
+test("permission errors in HTTP 200, env failures and connectivity errors fail without leaking credentials", async () => {
+  const denied = harness([
+    preflight,
     { body: [] },
-    {
-      body: {
-        deployments: [
-          {
-            resource_uuid: "target123",
-            message: "Unauthorized to deploy this service.",
-          },
-        ],
-      },
-    },
+    { body: { deployments: [{ message: "Unauthorized" }] } },
   ]);
-  await assert.rejects(
-    deploy({ ...env, COOLIFY_RESOURCE_TYPE: "service" }, mock.options),
-    /did not accept/,
-  );
+  await assert.rejects(deploy(env, denied.options), /did not accept/);
+  for (const response of [
+    { status: 401, body: { message: env.COOLIFY_TOKEN } },
+    new Error(env.COOLIFY_TOKEN),
+  ]) {
+    const mock = harness([response]);
+    await assert.rejects(
+      deploy(env, mock.options),
+      (error) => !error.message.includes(env.COOLIFY_TOKEN),
+    );
+    assert.equal(mock.calls.length, 1);
+  }
 });
-
-test("failed env update never triggers deployment or exposes the API response", async () => {
-  const mock = harness([{ status: 401, body: { message: env.COOLIFY_TOKEN } }]);
-  await assert.rejects(deploy(env, mock.options), (error) => {
-    assert.match(error.message, /HTTP 401/);
-    assert.ok(!error.message.includes(env.COOLIFY_TOKEN));
-    return true;
-  });
-  assert.equal(mock.calls.length, 1);
-});
-
-test("network failures are reported without leaking connection details", async () => {
-  const mock = harness([new Error(env.COOLIFY_TOKEN)]);
-  await assert.rejects(deploy(env, mock.options), /Check connectivity/);
-  assert.equal(mock.calls.length, 1);
-});
-
-test("unaccepted and failed deployments fail the release", async () => {
-  const unaccepted = harness([{ body: [] }, { body: { deployments: [] } }]);
-  await assert.rejects(deploy(env, unaccepted.options), /did not accept/);
+test("application deployment failure fails; success still requires public release verification", async () => {
+  const app = { ...env, COOLIFY_RESOURCE_TYPE: "application" };
   const failed = harness([
     { body: [] },
     { body: { deployments: [{ deployment_uuid: "deploy123" }] } },
     { body: { status: "failed" } },
   ]);
-  await assert.rejects(deploy(env, failed.options), /deployment failed/);
+  await assert.rejects(deploy(app, failed.options), /deployment failed/);
+  const success = harness([
+    { body: [] },
+    { body: { deployments: [{ deployment_uuid: "deploy123" }] } },
+    { body: { status: "finished" } },
+  ]);
+  await deploy(app, success.options);
+  assert.ok(success.calls.some((c) => c.url.endsWith("/api/ready")));
+});
+test("outage, bad redirect and financial leakage are caught by public checks", async () => {
+  for (const override of [
+    (url) =>
+      new URL(url).pathname === "/api/ready"
+        ? new Response(null, { status: 503 })
+        : publicResponse(url),
+    (url) =>
+      new URL(url).pathname === "/projects"
+        ? new Response(null, {
+            status: 308,
+            headers: { location: "https://other.example/" },
+          })
+        : publicResponse(url),
+    (url) =>
+      new URL(url).pathname === "/api/public/content"
+        ? Response.json({ items: [{ slug: "x", payload: { financials: {} } }] })
+        : publicResponse(url),
+  ])
+    await assert.rejects(
+      smokePublicApp(env.PUBLIC_APP_URL, {
+        release: env.IMAGE_TAG,
+        fetchImpl: override,
+      }),
+    );
+});
+test("CI database guard cannot fall back to local or remote credentials", () => {
+  for (const input of [
+    { CI: "true", DATABASE_URL: "postgres://u:p@127.0.0.1:55432/wassa" },
+    {
+      CI: "true",
+      TEST_DATABASE_URL: "postgres://u:p@production.example:55432/wassa_test",
+    },
+    { CI: "true", TEST_DATABASE_URL: "postgres://u:p@127.0.0.1:55432/wassa" },
+    {
+      CI: "true",
+      TEST_DATABASE_URL:
+        "postgres://u:p@127.0.0.1:55432/wassa_test?host=production.example",
+    },
+  ])
+    assert.throws(() => testDatabaseUrl(input));
+  assert.equal(
+    testDatabaseUrl({
+      CI: "true",
+      TEST_DATABASE_URL: "postgres://u:p@127.0.0.1:55432/wassa_test",
+    }).pathname,
+    "/wassa_test",
+  );
 });

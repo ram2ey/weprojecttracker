@@ -1,11 +1,11 @@
-import "./build-sw.mjs";
 import { spawn } from "node:child_process";
+import { buildDirectory } from "./build-output.mjs";
 // Deliberately empty values prevent Next's dotenv loader from importing local
 // credentials. Public pages are dynamic and must not query a database at build.
 const env = {
   ...process.env,
   NODE_ENV: "production",
-  NEXT_DIST_DIR: ".next-ci",
+  NEXT_DIST_DIR: buildDirectory(process.env.NEXT_DIST_DIR, ".next-build"),
   NEXT_TELEMETRY_DISABLED: "1",
 };
 for (const name of [

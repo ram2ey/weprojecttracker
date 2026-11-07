@@ -1,5 +1,25 @@
 import type { Metadata } from "next";
+import localFont from "next/font/local";
+import { connection } from "next/server";
 import "./globals.css";
+const creato = localFont({
+  src: [
+    {
+      path: "./fonts/CreatoDisplay-Regular.otf",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "./fonts/CreatoDisplay-Medium.otf",
+      weight: "500",
+      style: "normal",
+    },
+    { path: "./fonts/CreatoDisplay-Bold.otf", weight: "700", style: "normal" },
+  ],
+  variable: "--font-creato",
+  display: "swap",
+  fallback: ["Segoe UI", "Arial", "sans-serif"],
+});
 export function generateMetadata(): Metadata {
   return {
     metadataBase: new URL(
@@ -7,8 +27,7 @@ export function generateMetadata(): Metadata {
         process.env.NEXT_PUBLIC_APP_URL ||
         "http://localhost:3000",
     ),
-    manifest: "/manifest.webmanifest",
-    icons: { apple: "/icons/icon-180.png" },
+
     robots:
       process.env.APP_ENV !== "production"
         ? { index: false, follow: false }
@@ -21,16 +40,13 @@ export function generateMetadata(): Metadata {
       "Explore approved project information, progress and evidence from Wassa East Constituency.",
   };
 }
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // A new CSP nonce is required on every HTML response, including sign-in/errors.
+  await connection();
   return (
-    <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth">
-      <head>
-        {/* Same-origin blocking script applies appearance before first paint. */}
-        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
-        <script src="/appearance.js" />
-      </head>
+    <html lang="en" className={creato.variable}>
       <body>
         <a href="#main-content" className="skip-link">
           Skip to content

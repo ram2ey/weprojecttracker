@@ -7,17 +7,21 @@ import {
   mediaFile,
   taxonomy,
 } from "@/db/schema";
-import { canApprove, canSubmit, type Role } from "@/lib/security/policy";
+import { canSubmit, type Role } from "@/lib/security/policy";
 import {
   emptyPayload,
   emptyFinancials,
   type ContentKind,
   type ContentPayload,
-  type Financials,
+  type LaunchPayload,
   type AdminRecord,
   type AdminRecordSummary,
 } from "./types";
-import { publicationErrors } from "./validation";
+import {
+  fixedCategories,
+  launchPayload,
+  publicationErrors,
+} from "./validation";
 type Tx = Parameters<Parameters<ReturnType<typeof getDb>["transaction"]>[0]>[0];
 export type Actor = { id: string; role: Role };
 export class ContentError extends Error {
@@ -28,447 +32,346 @@ export class ContentError extends Error {
     super(message);
   }
 }
-export function recordCode(kind: ContentKind, number: number) {
-  return `WE-${{ project: "P", announcement: "A", report: "R" }[kind]}${String(number).padStart(5, "0")}`;
+export function recordCode(_kind: ContentKind, number: number) {
+  return "WE-P" + String(number).padStart(5, "0");
 }
-function mustSubmit(actor: Actor) {
-  if (!canSubmit(actor.role))
-    throw new ContentError(
-      403,
-      "Only project officers and operators can prepare submissions.",
-    );
+function editor(a: Actor) {
+  if (!canSubmit(a.role))
+    throw new ContentError(403, "Editor access required.");
 }
-function mustReview(actor: Actor) {
-  if (actor.role !== "approver" && actor.role !== "super_admin")
-    throw new ContentError(403, "Approver access is required.");
+function reviewer(a: Actor) {
+  if (!["approver", "super_admin"].includes(a.role))
+    throw new ContentError(403, "Approver access required.");
 }
 async function audit(
   tx: Tx,
-  actor: Actor,
+  a: Actor,
   action: string,
-  subjectId: string,
+  id: string,
   details: Record<string, string> = {},
 ) {
-  await tx.insert(auditLog).values({
-    id: crypto.randomUUID(),
-    actorId: actor.id,
-    action,
-    subjectId,
-    details,
-  });
+  await tx
+    .insert(auditLog)
+    .values({
+      id: crypto.randomUUID(),
+      actorId: a.id,
+      action,
+      subjectId: id,
+      details,
+    });
 }
 async function lockedRecord(tx: Tx, id: string) {
-  const [record] = await tx
+  const [r] = await tx
     .select()
     .from(contentRecord)
-    .where(eq(contentRecord.id, id))
+    .where(and(eq(contentRecord.id, id), eq(contentRecord.kind, "project")))
     .for("update");
-  if (!record) throw new ContentError(404, "Record not found.");
-  return record;
+  if (!r) throw new ContentError(404, "Project not found.");
+  return r;
 }
-async function revisionFor(tx: Tx, recordId: string, revisionId: string) {
-  const [revision] = await tx
+async function revisionFor(tx: Tx, id: string, rid: string) {
+  const [r] = await tx
     .select()
     .from(contentRevision)
-    .where(
-      and(
-        eq(contentRevision.id, revisionId),
-        eq(contentRevision.recordId, recordId),
-      ),
-    );
-  if (!revision) throw new ContentError(404, "Revision not found.");
-  return revision;
+    .where(and(eq(contentRevision.id, rid), eq(contentRevision.recordId, id)));
+  if (!r) throw new ContentError(404, "Revision not found.");
+  return r;
 }
-async function taxonomySnapshot(
+async function validate(
   tx: Tx,
-  payload: ContentPayload,
-  kind: ContentKind,
+  id: string,
+  p: ContentPayload,
   required: boolean,
 ) {
-  const next = {
-    ...payload,
-    categoryName: "",
-    subcategoryName: "",
-    communityName: "",
-  };
-  if (kind !== "project") return next;
-  const ids = [
-    payload.categoryId,
-    payload.subcategoryId,
-    payload.communityId,
-  ].filter(Boolean);
-  const terms = ids.length
-    ? await tx.select().from(taxonomy).where(inArray(taxonomy.id, ids))
-    : [];
-  for (const [id, expected, field] of [
-    [payload.categoryId, "category", "categoryName"],
-    [payload.subcategoryId, "subcategory", "subcategoryName"],
-    [payload.communityId, "community", "communityName"],
-  ] as const) {
-    if (!id) {
-      if (required && expected !== "subcategory")
-        throw new ContentError(
-          400,
-          "Select an approved category and community.",
-        );
-      continue;
-    }
-    const term = terms.find(
-      (t) => t.id === id && t.kind === expected && t.active,
-    );
-    if (!term)
-      throw new ContentError(
-        400,
-        "A selected category, subcategory, or community is inactive or invalid.",
-      );
-    if (expected === "subcategory" && term.parentId !== payload.categoryId)
-      throw new ContentError(
-        400,
-        "The subcategory does not belong to the selected category.",
-      );
-    next[field] = term.name;
-  }
-  return next;
-}
-async function validateEvidence(
-  tx: Tx,
-  recordId: string,
-  payload: ContentPayload,
-  kind: ContentKind,
-) {
+  const category = fixedCategories.find((c) => c.id === p.categoryId);
+  const community = p.communityId
+    ? await tx.query.taxonomy.findFirst({
+        where: and(
+          eq(taxonomy.id, p.communityId),
+          eq(taxonomy.kind, "community"),
+          eq(taxonomy.active, true),
+        ),
+      })
+    : null;
   if (
-    new Set(payload.attachments.map((a) => a.id)).size !==
-    payload.attachments.length
+    (p.categoryId && !category) ||
+    (p.communityId && !community) ||
+    (required && (!category || !community))
   )
-    throw new ContentError(400, "Each attachment may appear only once.");
-  const files = payload.attachments.length
+    throw new ContentError(
+      400,
+      "Choose a fixed category and an active community.",
+    );
+  if (new Set(p.attachments.map((a) => a.id)).size !== p.attachments.length)
+    throw new ContentError(400, "Each photograph may appear only once.");
+  const files = p.attachments.length
     ? await tx
         .select()
         .from(mediaFile)
         .where(
           inArray(
             mediaFile.id,
-            payload.attachments.map((a) => a.id),
+            p.attachments.map((a) => a.id),
           ),
         )
     : [];
-  for (const reference of payload.attachments) {
-    const file = files.find(
-      (f) => f.id === reference.id && f.recordId === recordId && !f.withdrawnAt,
-    );
-    if (!file)
+  for (const a of p.attachments) {
+    const f = files.find((f) => f.id === a.id);
+    if (
+      !f ||
+      f.recordId !== id ||
+      f.withdrawnAt ||
+      f.internalOnly ||
+      !f.mimeType.startsWith("image/")
+    )
       throw new ContentError(
         400,
-        "An attachment is unavailable or belongs to another record.",
+        "A photograph is unavailable or belongs to another project.",
       );
-    if (
-      (file.internalOnly || reference.purpose === "financial") &&
-      reference.visibility !== "internal"
-    )
-      throw new ContentError(400, "Financial evidence cannot be published.");
   }
-  if (
-    kind === "report" &&
-    !payload.attachments.some(
-      (a) =>
-        a.visibility === "public" &&
-        files.find((f) => f.id === a.id)?.mimeType === "application/pdf",
-    )
-  )
-    throw new ContentError(
-      400,
-      "A public report must include a public PDF document.",
-    );
+  const next = {
+    ...p,
+    categoryName: category?.name ?? "",
+    communityName: community?.name ?? "",
+  };
+  if (required) {
+    const errors = publicationErrors(launchPayload(next));
+    if (errors.length) throw new ContentError(400, errors.join(" "));
+  }
+  return next;
 }
 export async function createRecord(
   actor: Actor,
   kind: ContentKind,
   title: string,
 ) {
-  mustSubmit(actor);
+  editor(actor);
+  if (kind !== "project")
+    throw new ContentError(404, "Only projects are available.");
   return getDb().transaction(async (tx) => {
-    const id = crypto.randomUUID();
-    const revisionId = crypto.randomUUID();
-    const stem =
-      title
-        .toLowerCase()
-        .normalize("NFKD")
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "")
-        .slice(0, 70) || kind;
-    await tx.insert(contentRecord).values({
-      id,
-      kind,
-      slug: `${stem}-${id.slice(0, 8)}`,
-      createdBy: actor.id,
-    });
-    await tx.insert(contentRevision).values({
-      id: revisionId,
-      recordId: id,
-      number: 1,
-      baseVersion: 0,
-      authorId: actor.id,
-      contributors: [actor.id],
-      payload: { ...emptyPayload, title },
-      financials: emptyFinancials,
-    });
-    await audit(tx, actor, "content.created", id, { revisionId, kind });
+    const id = crypto.randomUUID(),
+      revisionId = crypto.randomUUID(),
+      stem =
+        title
+          .toLowerCase()
+          .normalize("NFKD")
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-|-$/g, "")
+          .slice(0, 70) || "project";
+    await tx
+      .insert(contentRecord)
+      .values({
+        id,
+        kind: "project",
+        slug: stem + "-" + id.slice(0, 8),
+        createdBy: actor.id,
+      });
+    await tx
+      .insert(contentRevision)
+      .values({
+        id: revisionId,
+        recordId: id,
+        number: 1,
+        baseVersion: 0,
+        authorId: actor.id,
+        contributors: [actor.id],
+        payload: { ...emptyPayload, title },
+        financials: emptyFinancials,
+      });
+    await audit(tx, actor, "content.created", id);
     return { recordId: id, revisionId };
   });
 }
 export async function createRevision(
   actor: Actor,
-  recordId: string,
+  id: string,
   sourceId?: string,
 ) {
-  mustSubmit(actor);
+  editor(actor);
   return getDb().transaction(async (tx) => {
-    const record = await lockedRecord(tx, recordId);
-    const revisions = await tx
-      .select()
-      .from(contentRevision)
-      .where(eq(contentRevision.recordId, recordId))
-      .orderBy(desc(contentRevision.number));
+    const record = await lockedRecord(tx, id),
+      revisions = await tx
+        .select()
+        .from(contentRevision)
+        .where(eq(contentRevision.recordId, id))
+        .orderBy(desc(contentRevision.number));
     if (revisions.some((r) => r.state === "draft" || r.state === "pending"))
-      throw new ContentError(
-        409,
-        "This record already has a draft or pending revision. Open that revision instead.",
-      );
+      throw new ContentError(409, "Open the existing draft or submission.");
     const source = sourceId
       ? revisions.find((r) => r.id === sourceId)
       : revisions[0];
-    if (!source) throw new ContentError(404, "Source revision not found.");
+    if (!source) throw new ContentError(404, "Revision not found.");
     const revisionId = crypto.randomUUID();
-    const available = source.payload.attachments.length
-      ? await tx
-          .select({ id: mediaFile.id })
-          .from(mediaFile)
-          .where(
-            and(
-              inArray(
-                mediaFile.id,
-                source.payload.attachments.map((a) => a.id),
-              ),
-              isNull(mediaFile.withdrawnAt),
-            ),
-          )
-      : [];
-    await tx.insert(contentRevision).values({
-      id: revisionId,
-      recordId,
-      number: revisions[0].number + 1,
-      baseVersion: record.version,
-      authorId: actor.id,
-      contributors: [actor.id],
-      payload: {
-        ...source.payload,
-        changeSummary: "",
-        attachments: source.payload.attachments.filter((a) =>
-          available.some((f) => f.id === a.id),
+    const available = await tx
+      .select({ id: mediaFile.id })
+      .from(mediaFile)
+      .where(
+        and(
+          eq(mediaFile.recordId, id),
+          isNull(mediaFile.withdrawnAt),
+          eq(mediaFile.internalOnly, false),
+          sql`${mediaFile.mimeType} LIKE 'image/%'`,
         ),
-      },
-      financials: source.financials,
-    });
-    await audit(tx, actor, "content.revision_created", recordId, {
-      revisionId,
-      sourceId: source.id,
-    });
-    return { recordId, revisionId };
+      );
+    const allowed = new Set(available.map((f) => f.id));
+    await tx
+      .insert(contentRevision)
+      .values({
+        id: revisionId,
+        recordId: id,
+        number: revisions[0].number + 1,
+        baseVersion: record.version,
+        authorId: actor.id,
+        contributors: [actor.id],
+        payload: {
+          ...source.payload,
+          attachments: source.payload.attachments.filter(
+            (a) =>
+              allowed.has(a.id) &&
+              a.visibility === "public" &&
+              a.purpose !== "financial",
+          ),
+        },
+        financials: source.financials,
+      });
+    await audit(tx, actor, "content.revision_created", id);
+    return { recordId: id, revisionId };
   });
 }
 export async function saveRevision(
   actor: Actor,
-  recordId: string,
-  revisionId: string,
+  id: string,
+  rid: string,
   input: {
-    payload: ContentPayload;
-    financials: Financials;
+    payload: Omit<LaunchPayload, "categoryName" | "communityName">;
     lockVersion: number;
   },
 ) {
-  mustSubmit(actor);
+  editor(actor);
   return getDb().transaction(async (tx) => {
-    const record = await lockedRecord(tx, recordId);
-    const revision = await revisionFor(tx, recordId, revisionId);
-    if (revision.state !== "draft")
+    await lockedRecord(tx, id);
+    const r = await revisionFor(tx, id, rid);
+    if (r.state !== "draft" || r.lockVersion !== input.lockVersion)
       throw new ContentError(
         409,
-        "Submitted revisions are immutable. Create a new draft to make corrections.",
+        "This draft changed. Preserve your changes before reloading.",
       );
-    if (revision.lockVersion !== input.lockVersion)
-      throw new ContentError(
-        409,
-        "Another officer changed this draft. Reload before saving; your current changes have not been applied.",
-      );
-    const payload = await taxonomySnapshot(
+    const p = await validate(
       tx,
-      input.payload,
-      record.kind,
+      id,
+      {
+        ...r.payload,
+        ...input.payload,
+        attachments: input.payload.attachments.map((a) => ({
+          ...a,
+          capturedOn: "",
+          purpose: "evidence",
+          visibility: "public",
+        })),
+      },
       false,
-    );
-    // Draft reports may be saved before their public PDF is attached.
-    await validateEvidence(
-      tx,
-      recordId,
-      payload,
-      record.kind === "report" ? "announcement" : record.kind,
     );
     await tx
       .update(contentRevision)
       .set({
-        payload,
-        financials: input.financials,
-        contributors: [...new Set([...revision.contributors, actor.id])],
-        lockVersion: revision.lockVersion + 1,
+        payload: p,
+        contributors: [...new Set([...r.contributors, actor.id])],
+        lockVersion: r.lockVersion + 1,
         updatedAt: new Date(),
       })
-      .where(eq(contentRevision.id, revisionId));
+      .where(eq(contentRevision.id, rid));
     await tx
       .update(contentRecord)
       .set({ updatedAt: new Date() })
-      .where(eq(contentRecord.id, recordId));
-    await audit(tx, actor, "content.draft_saved", recordId, {
-      revisionId,
-      lockVersion: String(revision.lockVersion + 1),
-    });
-    return { lockVersion: revision.lockVersion + 1 };
+      .where(eq(contentRecord.id, id));
+    await audit(tx, actor, "content.draft_saved", id);
+    return { lockVersion: r.lockVersion + 1 };
   });
 }
 export async function submitRevision(
   actor: Actor,
-  recordId: string,
-  revisionId: string,
+  id: string,
+  rid: string,
   lockVersion: number,
 ) {
-  mustSubmit(actor);
+  editor(actor);
   return getDb().transaction(async (tx) => {
-    const record = await lockedRecord(tx, recordId);
-    const revision = await revisionFor(tx, recordId, revisionId);
-    if (revision.state !== "draft" || revision.lockVersion !== lockVersion)
+    const record = await lockedRecord(tx, id),
+      r = await revisionFor(tx, id, rid);
+    if (
+      r.state !== "draft" ||
+      r.lockVersion !== lockVersion ||
+      r.baseVersion !== record.version
+    )
       throw new ContentError(
         409,
-        "This revision changed or has already been submitted. Reload it before continuing.",
+        "The draft or publication changed. Preserve your changes and reload.",
       );
-    if (revision.baseVersion !== record.version)
-      throw new ContentError(
-        409,
-        "Publication changed while this draft was being prepared. Create a fresh revision from the current record.",
-      );
-    await taxonomySnapshot(tx, revision.payload, record.kind, true);
-    const errors = publicationErrors(
-      record.kind,
-      revision.payload,
-      Boolean(record.publishedRevisionId),
-    );
-    if (errors.length) throw new ContentError(400, errors.join(" "));
-    await validateEvidence(tx, recordId, revision.payload, record.kind);
+    await validate(tx, id, r.payload, true);
     await tx
       .update(contentRevision)
       .set({
         state: "pending",
         submittedBy: actor.id,
         submittedAt: new Date(),
+        lockVersion: r.lockVersion + 1,
         updatedAt: new Date(),
-        lockVersion: revision.lockVersion + 1,
       })
-      .where(eq(contentRevision.id, revisionId));
-    await tx
-      .update(contentRecord)
-      .set({ updatedAt: new Date() })
-      .where(eq(contentRecord.id, recordId));
-    await audit(tx, actor, "content.submitted", recordId, { revisionId });
+      .where(eq(contentRevision.id, rid));
+    await audit(tx, actor, "content.submitted", id);
     return { state: "pending" };
   });
 }
 export async function decideRevision(
   actor: Actor,
-  recordId: string,
-  revisionId: string,
+  id: string,
+  rid: string,
   input: {
-    action: "approve" | "return" | "reject";
+    action: "approve" | "return";
     reason: string;
     evidenceReviewed: boolean;
     lockVersion: number;
   },
 ) {
-  mustReview(actor);
+  reviewer(actor);
   return getDb().transaction(async (tx) => {
-    // Lock report sources before the report itself, matching withdrawal's
-    // source-then-derived-report order. A concurrent source withdrawal/update
-    // must finish before the approval snapshot is checked.
-    const [kind] = await tx
-      .select({ kind: contentRecord.kind })
-      .from(contentRecord)
-      .where(eq(contentRecord.id, recordId));
-    if (kind?.kind === "report")
-      await tx.execute(
-        sql`SELECT source.id FROM content_record source JOIN report_source rs ON rs.source_record_id=source.id WHERE rs.report_record_id=${recordId} ORDER BY source.id FOR SHARE OF source`,
-      );
-    const record = await lockedRecord(tx, recordId);
-    const revision = await revisionFor(tx, recordId, revisionId);
+    const record = await lockedRecord(tx, id),
+      r = await revisionFor(tx, id, rid);
     if (
-      !canApprove(actor.role, actor.id, revision.authorId) ||
-      revision.contributors.includes(actor.id) ||
-      revision.submittedBy === actor.id
+      r.authorId === actor.id ||
+      r.contributors.includes(actor.id) ||
+      r.submittedBy === actor.id
     )
       throw new ContentError(
         403,
-        "A person who prepared or submitted this revision cannot review it.",
+        "A separate person must review this revision.",
       );
-    if (
-      revision.state !== "pending" ||
-      revision.lockVersion !== input.lockVersion
-    )
-      throw new ContentError(
-        409,
-        "This submission has already changed or been decided. Reload the review queue.",
-      );
-    const approved = input.action === "approve";
-    if (approved) {
-      if (record.kind === "report") {
-        const stale = await tx.execute(
-          sql`SELECT 1 FROM report_source rs JOIN content_record source ON source.id=rs.source_record_id WHERE rs.report_record_id=${recordId} AND (source.withdrawn_at IS NOT NULL OR source.published_revision_id IS DISTINCT FROM rs.source_revision_id) LIMIT 1`,
-        );
-        if (stale.rows.length)
-          throw new ContentError(
-            409,
-            "A source project changed or was withdrawn. Generate a fresh public-report draft.",
-          );
-      }
+    if (r.state !== "pending" || r.lockVersion !== input.lockVersion)
+      throw new ContentError(409, "This submission changed. Reload it.");
+    if (input.action === "approve") {
       if (!input.evidenceReviewed)
         throw new ContentError(
           400,
-          "Confirm that you checked attribution, completion details, and public evidence for internal financial information.",
+          "Confirm that you reviewed the information and photographs.",
         );
-      if (revision.baseVersion !== record.version)
+      if (record.version !== r.baseVersion)
         throw new ContentError(
           409,
-          "The published record was changed or withdrawn after submission. Return this revision and prepare a fresh draft.",
+          "Publication changed. Return this submission for a fresh draft.",
         );
-      await taxonomySnapshot(tx, revision.payload, record.kind, true);
-      const errors = publicationErrors(
-        record.kind,
-        revision.payload,
-        Boolean(record.publishedRevisionId),
-      );
-      if (errors.length) throw new ContentError(400, errors.join(" "));
-      await validateEvidence(tx, recordId, revision.payload, record.kind);
+      await validate(tx, id, r.payload, true);
       await tx
         .update(contentRecord)
         .set({
-          publishedRevisionId: revisionId,
+          publishedRevisionId: rid,
           version: record.version + 1,
           withdrawnAt: null,
           withdrawalReason: null,
           updatedAt: new Date(),
         })
-        .where(eq(contentRecord.id, recordId));
+        .where(eq(contentRecord.id, id));
     }
-    const state = approved
-      ? "approved"
-      : input.action === "return"
-        ? "returned"
-        : "rejected";
+    const state = input.action === "approve" ? "approved" : "returned";
     await tx
       .update(contentRevision)
       .set({
@@ -477,166 +380,160 @@ export async function decideRevision(
         decidedAt: new Date(),
         decisionReason: input.reason,
         updatedAt: new Date(),
-        lockVersion: revision.lockVersion + 1,
+        lockVersion: r.lockVersion + 1,
       })
-      .where(eq(contentRevision.id, revisionId));
-    await audit(tx, actor, `content.${state}`, recordId, {
-      revisionId,
-      reason: input.reason,
-    });
+      .where(eq(contentRevision.id, rid));
+    await audit(tx, actor, "content." + state, id, { reason: input.reason });
     return { state };
   });
 }
-export async function withdrawRecord(
-  actor: Actor,
-  recordId: string,
-  reason: string,
-) {
-  mustReview(actor);
+export async function withdrawRecord(actor: Actor, id: string, reason: string) {
+  reviewer(actor);
   return getDb().transaction(async (tx) => {
-    const record = await lockedRecord(tx, recordId);
-    if (!record.publishedRevisionId || record.withdrawnAt)
-      throw new ContentError(409, "This record is not currently published.");
+    const r = await lockedRecord(tx, id);
+    if (!r.publishedRevisionId || r.withdrawnAt)
+      throw new ContentError(409, "This project is not published.");
     await tx
       .update(contentRecord)
       .set({
         withdrawnAt: new Date(),
         withdrawalReason: reason,
-        version: record.version + 1,
+        version: r.version + 1,
         updatedAt: new Date(),
       })
-      .where(eq(contentRecord.id, recordId));
-    await audit(tx, actor, "content.withdrawn", recordId, { reason });
-    const derived = await tx.execute<{ id: string }>(
-      sql`UPDATE content_record SET withdrawn_at=NOW(),withdrawal_reason='A source project was withdrawn',version=version+1,updated_at=NOW() WHERE id IN (SELECT report_record_id FROM report_source WHERE source_record_id=${recordId}) AND published_revision_id IS NOT NULL AND withdrawn_at IS NULL RETURNING id`,
-    );
-    for (const row of derived.rows)
-      await audit(tx, actor, "content.source_withdrawn", row.id, {
-        sourceRecordId: recordId,
-        reason,
-      });
+      .where(eq(contentRecord.id, id));
+    await tx
+      .update(contentRevision)
+      .set({
+        state: "returned",
+        decisionReason: "Publication withdrawn. Create a fresh draft.",
+        lockVersion: sql`${contentRevision.lockVersion}+1`,
+      })
+      .where(
+        and(
+          eq(contentRevision.recordId, id),
+          inArray(contentRevision.state, ["draft", "pending"]),
+        ),
+      );
+    await audit(tx, actor, "content.withdrawn", id, { reason });
     return { withdrawn: true };
   });
 }
 export async function getAdminRecord(id: string): Promise<AdminRecord> {
-  const db = getDb();
-  const record = await db.query.contentRecord.findFirst({
-    where: eq(contentRecord.id, id),
-  });
-  if (!record) throw new ContentError(404, "Record not found.");
+  const db = getDb(),
+    record = await db.query.contentRecord.findFirst({
+      where: and(eq(contentRecord.id, id), eq(contentRecord.kind, "project")),
+    });
+  if (!record) throw new ContentError(404, "Project not found.");
   const [revisions, files] = await Promise.all([
     db
       .select()
       .from(contentRevision)
       .where(eq(contentRevision.recordId, id))
       .orderBy(desc(contentRevision.number)),
-    db
-      .select()
-      .from(mediaFile)
-      .where(eq(mediaFile.recordId, id))
-      .orderBy(desc(mediaFile.createdAt)),
+    db.select().from(mediaFile).where(eq(mediaFile.recordId, id)),
   ]);
+  const allowed = new Set(
+    files
+      .filter((f) => !f.internalOnly && f.mimeType.startsWith("image/"))
+      .map((f) => f.id),
+  );
   return {
     id,
-    code: recordCode(record.kind, record.number),
-    kind: record.kind,
+    code: recordCode("project", record.number),
+    kind: "project",
     slug: record.slug,
     version: record.version,
-    commentsEnabled: record.commentsEnabled,
-    reminderDays: record.reminderDays,
-    engagementVersion: record.engagementVersion,
     publishedRevisionId: record.publishedRevisionId,
     withdrawnAt: record.withdrawnAt?.toISOString() ?? null,
     withdrawalReason: record.withdrawalReason,
     revisions: revisions.map((r) => ({
-      ...r,
+      id: r.id,
+      number: r.number,
+      state: r.state,
+      lockVersion: r.lockVersion,
+      baseVersion: r.baseVersion,
+      authorId: r.authorId,
+      contributors: r.contributors,
+      submittedBy: r.submittedBy,
       submittedAt: r.submittedAt?.toISOString() ?? null,
       decidedAt: r.decidedAt?.toISOString() ?? null,
+      decisionReason: r.decisionReason,
       createdAt: r.createdAt.toISOString(),
       updatedAt: r.updatedAt.toISOString(),
+      payload: launchPayload(r.payload, allowed),
     })),
-    files: files.map((f) => ({
-      id: f.id,
-      originalName: f.originalName,
-      mimeType: f.mimeType,
-      size: f.size,
-      internalOnly: f.internalOnly,
-      withdrawn: Boolean(f.withdrawnAt),
-    })),
+    files: files
+      .filter((f) => allowed.has(f.id))
+      .map((f) => ({
+        id: f.id,
+        originalName: f.originalName,
+        mimeType: f.mimeType,
+        size: f.size,
+        internalOnly: f.internalOnly,
+        withdrawn: !!f.withdrawnAt,
+      })),
   };
 }
 export async function listAdminRecords(
-  filters: { kind?: ContentKind; pending?: boolean; page?: number } = {},
+  filters: { pending?: boolean; page?: number; q?: string } = {},
 ) {
-  const db = getDb();
-  const page = Math.max(1, filters.page ?? 1);
-  const condition = and(
-    filters.kind ? eq(contentRecord.kind, filters.kind) : undefined,
-    filters.pending ? eq(contentRevision.state, "pending") : undefined,
-    sql`${contentRevision.number} = (select max(r.number) from content_revision r where r.record_id = ${contentRecord.id})`,
-  );
-  const rows = await db
+  const page = filters.page ?? 1,
+    q = filters.q?.trim().toLowerCase();
+  const rows = await getDb()
     .select({ record: contentRecord, revision: contentRevision })
     .from(contentRecord)
     .innerJoin(contentRevision, eq(contentRevision.recordId, contentRecord.id))
-    .where(condition)
+    .where(
+      and(
+        eq(contentRecord.kind, "project"),
+        sql`${contentRevision.number}=(SELECT max(c.number) FROM content_revision c WHERE c.record_id=${contentRecord.id})`,
+        filters.pending ? eq(contentRevision.state, "pending") : undefined,
+        q
+          ? sql`position(${q} in lower(concat_ws(' ', 'WE-P'||lpad(${contentRecord.number}::text,5,'0'), ${contentRevision.payload}->>'title',${contentRevision.payload}->>'communityName')))>0`
+          : undefined,
+      ),
+    )
     .orderBy(
       filters.pending
         ? contentRevision.submittedAt
         : desc(contentRecord.updatedAt),
+      contentRecord.id,
     )
     .limit(25)
-    .offset((page - 1) * 25);
-  const items: AdminRecordSummary[] = rows.map(({ record, revision: r }) => ({
-    id: record.id,
-    code: recordCode(record.kind, record.number),
-    kind: record.kind,
-    slug: record.slug,
-    title: r.payload.title,
-    community: r.payload.communityName,
-    status: r.payload.status,
-    progress: r.payload.progress,
-    state: r.state,
-    revisionId: r.id,
-    submittedAt: r.submittedAt?.toISOString() ?? null,
-    published: Boolean(record.publishedRevisionId && !record.withdrawnAt),
-    withdrawn: Boolean(record.withdrawnAt),
-    updatedAt: r.updatedAt.toISOString(),
-  }));
-  return { items, page, hasMore: rows.length === 25 };
+    .offset((page - 1) * 24);
+  const items: AdminRecordSummary[] = rows
+    .slice(0, 24)
+    .map(({ record: r, revision: v }) => ({
+      id: r.id,
+      code: recordCode("project", r.number),
+      kind: "project",
+      slug: r.slug,
+      title: v.payload.title,
+      community: v.payload.communityName,
+      status: v.payload.status,
+      state: v.state,
+      revisionId: v.id,
+      submittedAt: v.submittedAt?.toISOString() ?? null,
+      published: !!r.publishedRevisionId && !r.withdrawnAt,
+      withdrawn: !!r.withdrawnAt,
+      updatedAt: v.updatedAt.toISOString(),
+    }));
+  return { items, page, hasMore: rows.length > 24 };
 }
 export async function listTaxonomy() {
-  return getDb().select().from(taxonomy).orderBy(taxonomy.kind, taxonomy.name);
-}
-export async function discardDraft(
-  actor: Actor,
-  recordId: string,
-  revisionId: string,
-  lockVersion: number,
-  reason: string,
-) {
-  mustSubmit(actor);
-  return getDb().transaction(async (tx) => {
-    await lockedRecord(tx, recordId);
-    const revision = await revisionFor(tx, recordId, revisionId);
-    if (revision.state !== "draft" || revision.lockVersion !== lockVersion)
-      throw new ContentError(
-        409,
-        "The draft changed or was submitted. Reload before discarding it.",
-      );
-    await tx
-      .update(contentRevision)
-      .set({
-        state: "rejected",
-        decisionReason: `Draft discarded before submission: ${reason}`,
-        updatedAt: new Date(),
-        lockVersion: revision.lockVersion + 1,
-      })
-      .where(eq(contentRevision.id, revisionId));
-    await audit(tx, actor, "content.draft_discarded", recordId, {
-      revisionId,
-      reason,
-    });
-    return { discarded: true };
-  });
+  const communities = await getDb()
+    .select()
+    .from(taxonomy)
+    .where(eq(taxonomy.kind, "community"))
+    .orderBy(taxonomy.name);
+  return [
+    ...fixedCategories.map((c) => ({
+      ...c,
+      kind: "category" as const,
+      parentId: null,
+      active: true,
+    })),
+    ...communities,
+  ];
 }

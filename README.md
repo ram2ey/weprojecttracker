@@ -1,46 +1,61 @@
-# Wassa East Projects
+# Wassa East project register
 
-Constituency project tracking and public information platform. See [PROJECT_PLAN.md](PROJECT_PLAN.md) for scope and progress, [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md) for the visual direction, and [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for setup and operations.
+A minimal public register for up to 200 constituency projects and roughly 2–5 staff. Visitors search and filter projects without signing in. Editors prepare drafts; a separate approver publishes or returns them. The public site shows only the latest approved record and its photographs.
 
-Phase 4 adds moderated guest engagement, private corrections/feedback, independently reviewed replies, device follows, staff inboxes, overdue reminders, internal exports, public report drafts, and opt-in offline reading. Browser push is implemented but live delivery remains disabled at the user's request. See [Phase 4 verification](docs/PHASE_4_VERIFICATION.md), [Phase 3 verification](docs/PHASE_3_VERIFICATION.md), [Phase 2 verification](docs/PHASE_2_VERIFICATION.md), and [Phase 1 acceptance](docs/PHASE_1_VERIFICATION.md). Local review precedes one production deployment, with no staging environment.
+## Local setup
 
-## Start locally
+Use Node.js 22.12 or newer and the isolated local PostgreSQL cluster:
 
-```text
+~~~text
 npm ci
 npm run db:local
 npm run db:migrate
+npm run staff:bootstrap -- operator "Platform operator"
 npm run dev
-```
+~~~
 
-On a new installation, create the first operator with `npm run staff:bootstrap -- your-email@example.com "Your name"`. No shared password or default admin account is installed. At the user's request, this local development database now has a **Platform operator** account (`operator@wassa-east.local`); its private one-use setup link was handed over in the chat. This does not create a production account.
+The bootstrap command creates the first operator only, displays a temporary password and its 24-hour deadline once, and requires a password change at first sign-in. Expired temporary credentials need an operator reset (or the maintenance command for an operator). Open http://localhost:3000 for the register and /staff/login for staff access. No default password is installed.
 
-Public preview: `http://localhost:3000`
+For an existing database, migration 0004 preserves accounts, password hashes, project history and unused legacy data, assigns usernames, revokes old sessions and requires a password change. Migration 0005 adds temporary-password expiry and gives accounts still awaiting a password change a 24-hour transition window from migration time. Existing permanent passwords remain unaffected. Run npm run staff:accounts to list assigned usernames. For an operator with no password, an expired temporary password or a lost password, run npm run staff:accounts -- USERNAME from the trusted maintenance environment to generate a one-time-display temporary password. The operator manages other staff through the Staff screen.
 
-Admin design review: `http://localhost:3000/preview/console`
+Migration 0006 adds a staff access-version counter to reject sign-ins already in progress when a password/access change occurs. Reset, password change and access revocation invalidate pending sign-ins as well as existing sessions. Apply all migrations before starting the matching code; no credential hashes or historical content are removed.
 
-Real staff access: `http://localhost:3000/staff/login`
+## Launch scope
 
-Device follows, offline preferences, and installation: `http://localhost:3000/following`. Follows and read status do not synchronise between browsers. The real staff workspace now includes Comments & feedback, Your inbox, and Reports & exports. Comments and official replies require independent review. Public report PDFs use a separate public-data projection and remain private drafts until approved.
+Public pages: register at /, individual /projects/[slug] pages, and /about. /projects redirects to / and preserves filters. Search matches title, displayed project code or community. Filters cover category, community and status; approved updates appear newest first.
 
-Run `npm run worker` alongside the web server for reminders and retention. `npm run push:keys` creates an ignored `.local/vapid.env` once, without enabling notifications. Never commit its private key. Offline reading requires explicit opt-in and saves only bounded public copies, with saved-time/staleness notices; all submissions and staff changes require a connection.
+Projects contain title, description, category, community, status, information source and photographs/captions. Completed projects additionally require a valid completion date, summary and photograph. The five categories are fixed; operators manage communities. All six project statuses remain available.
 
-```text
+Staff have username/password sign-in, private revision history, independent approvals, conflict checks, unsaved-edit warnings and access revocation. The latest approved version remains public while an edit awaits review. Withdrawals immediately block new public requests. Historical and withdrawn images remain available privately to staff.
+
+Save draft keeps unfinished work private; required publication fields are explained in the editor and checked before submission and on the server. Unsaved-edit warnings cover normal navigation, revision changes and reload, with copyable conflict recovery. Browser/OS termination can bypass these warnings: unsaved work is not stored durably or in browser storage. Save private drafts frequently.
+
+Creato Display is self-hosted with system fallbacks. Public source text links only valid HTTP(S) URLs; other text is escaped. Full photographs use same-tab navigation so browser/Android Back returns to the project. Android device acceptance is still required after packaging.
+
+HTML uses a fresh CSP nonce per request and dynamic rendering. Scripts, fonts, images, connections and forms are restricted to the app; frames/objects are blocked. Style attributes are allowed for Next Image/Radix compatibility. Development alone permits script evaluation and WebSocket connections. HTTPS/proxy/cookie behavior must be rechecked on the final host.
+
+Comments, following, notifications, maps, offline reading, announcements, reports/exports, Google login, MFA and dark mode are removed from the launch app. Their database tables and historical data are retained. No background worker is required. The temporary /sw.js retirement worker clears only this app's old offline caches and unregisters itself.
+
+## Verification
+
+~~~text
 npm run typecheck
 npm run lint
 npm test
-npm run build
-npm run test:e2e
-```
+npm run test:acceptance
+npm run test:migrations
+node scripts/build-production.mjs
+node scripts/check-production.mjs
+~~~
 
-The real workspace is `/admin`. Operators manage staff links and categories/communities; officers create projects, announcements, and reports; an independent approver publishes or returns them with a reason. No role can approve a revision they prepared or submitted. Financial fields and financial documents remain staff-only. Uploaded images are optimised with metadata removed; PDFs are validated and served as downloads.
+Acceptance tests build a standalone production server at port 3100 against the isolated wassa_test database. They cover 200-project browsing, phone/desktop accessibility, publishing, account restrictions, migration preservation and removed features. They never use the development operator.
 
-The public site reads only approved snapshots. The previous publication remains while a revision is pending. Record and attachment withdrawals block public access immediately, including map, sitemap, and preview-image responses. Local sample projects appear only when the content register is empty and design preview is enabled; production never serves sample records.
+Build directories are separate: development `.next`, acceptance `.next-test`, and production verification `.next-build`. Set `TEST_DIST_DIR=.next-<name>` for acceptance, or `NEXT_DIST_DIR=.next-<name>` for both production build and smoke commands. Use the same value for the matching build/check pair and a distinct directory for any running preview. Never rebuild a preview's active output. The existing preview on port 3002 uses `.next-ci` and is left intact.
 
-Browse `/projects` with keyword, category, subcategory, community, status, approved-update-date filters, and sorting. Switch to map view and explicitly load the map to explore published locations. The list always includes projects without coordinates. `/announcements` and `/reports` list approved publications. Contact is deferred at the user's request.
-
-Add an origin-restricted Geoapify browser key as `GEOAPIFY_API_KEY` and restart the application to enable live tiles. Without a key, the map shows a clear fallback and the directory remains functional. No key or paid map account is bundled. See deployment notes before enabling it.
-
-For an additional credential-free compilation check, run `node scripts/build-production.mjs`, then `node scripts/check-production.mjs` against the isolated local database. Runtime secrets are still required to start the server.
+See docs/DEPLOYMENT.md for environment and release steps, docs/MINIMAL_RELEASE.md for the implementation record, and docs/DESIGN_SYSTEM.md for visual conventions. Earlier phase documents and the dated audit describe the pre-reduction app and are historical references.
 
 Push-to-Coolify releases are configured in [docs/AUTOMATIC_DEPLOYMENT.md](docs/AUTOMATIC_DEPLOYMENT.md).
+
+The active roadmap is the [web delivery plan](docs/WEB_DELIVERY_PLAN.md): finish the website, obtain client acceptance and receive payment before Android work. The [Google Play roadmap](docs/GOOGLE_PLAY_SUBMISSION_PLAN.md) is deferred until after payment. Publisher decisions are in [docs/PHASE_0_DECISIONS.md](docs/PHASE_0_DECISIONS.md), and earlier web-readiness changes/evidence are in [docs/PHASE_1_WEB_READINESS.md](docs/PHASE_1_WEB_READINESS.md).
+
+Phase 2 adds disposable PostgreSQL/Chromium acceptance in GitHub Actions, a synthetic legacy migration rehearsal, Linux migration-failure/startup checks, exact-release deployment verification and basic external uptime checks. Operational steps and remaining live gates are in [the Phase 2 runbook](docs/PHASE_2_RELEASE_RUNBOOK.md). Backups and restore testing remain explicitly deferred.

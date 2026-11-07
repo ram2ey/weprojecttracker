@@ -1,16 +1,16 @@
-import "./build-sw.mjs";
 import { config } from "dotenv";
 import { spawn } from "node:child_process";
 import { cpSync } from "node:fs";
 import { resolve, join } from "node:path";
 import pg from "pg";
-config({ path: ".env.local", quiet: true });
-const url = new URL(process.env.DATABASE_URL);
-if (url.hostname !== "127.0.0.1" || url.port !== "55432")
-  throw new Error(
-    "Browser tests require the isolated local PostgreSQL cluster.",
-  );
-const pool = new pg.Pool({ connectionString: url.toString() });
+import { buildDirectory } from "./build-output.mjs";
+import { testDatabaseUrl } from "./test-database.mjs";
+const output = buildDirectory(process.env.TEST_DIST_DIR, ".next-test");
+if (process.env.CI !== "true") config({ path: ".env.local", quiet: true });
+const url = testDatabaseUrl();
+const maintenance = new URL(url);
+maintenance.pathname = "/postgres";
+const pool = new pg.Pool({ connectionString: maintenance.toString() });
 const result = await pool.query(
   "SELECT 1 FROM pg_database WHERE datname = 'wassa_test'",
 );
@@ -23,9 +23,10 @@ const env = {
   APP_ENV: "development",
   BETTER_AUTH_URL: "http://localhost:3100",
   NEXT_PUBLIC_APP_URL: "http://localhost:3100",
-  NEXT_DIST_DIR: ".next-test",
+  NEXT_DIST_DIR: output,
   NEXT_TELEMETRY_DISABLED: "1",
-  ENABLE_DESIGN_PREVIEW: "true",
+  ENABLE_DESIGN_PREVIEW: "false",
+  RELEASE_ID: `sha-${"0".repeat(40)}-1-1`,
   ENABLE_BROWSER_PUSH: "false",
   VAPID_SUBJECT: "",
   VAPID_PUBLIC_KEY: "",
@@ -51,9 +52,9 @@ const build = spawn(
 );
 const buildCode = await new Promise((resolve) => build.on("exit", resolve));
 if (buildCode !== 0) process.exit(buildCode || 1);
-const standalone = resolve(".next-test/standalone");
+const standalone = resolve(output, "standalone");
 cpSync("public", join(standalone, "public"), { recursive: true });
-cpSync(".next-test/static", join(standalone, ".next-test/static"), {
+cpSync(join(output, "static"), join(standalone, output, "static"), {
   recursive: true,
 });
 const server = spawn(process.execPath, [join(standalone, "server.js")], {

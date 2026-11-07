@@ -2,6 +2,7 @@ node_modules/
 .next/
 .next-test/
 .next-ci/
+.next-*/
 .local/
 .env*
 !.env.example
@@ -16,5 +17,4 @@ backups/
 .DS_Store
 /WASSA EAST CONSTITUENCY.pdf
 .next-test/
-/public/sw.js
 /public/icons/

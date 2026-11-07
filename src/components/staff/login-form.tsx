@@ -1,90 +1,52 @@
 "use client";
-import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { ArrowRight, LockKeyhole } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-export function LoginForm({
-  configured,
-  googleEnabled,
-}: {
-  configured: boolean;
-  googleEnabled: boolean;
-}) {
-  const router = useRouter();
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  async function signIn(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+export function LoginForm({ configured }: { configured: boolean }) {
+  const router = useRouter(),
+    [error, setError] = useState(""),
+    [busy, setBusy] = useState(false);
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
     setBusy(true);
     setError("");
-    const data = new FormData(event.currentTarget);
+    const f = new FormData(e.currentTarget);
     try {
-      const response = await fetch("/api/auth/sign-in/email", {
+      const r = await fetch("/api/auth/sign-in/username", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: data.get("email"),
-          password: data.get("password"),
-          callbackURL: "/staff/security",
+          username: String(f.get("username")).trim().toLowerCase(),
+          password: f.get("password"),
         }),
       });
-      if (!response.ok) {
-        setError(
-          response.status === 429
-            ? "Too many attempts. Please wait before trying again."
-            : "Unable to sign in. Check your details or contact the operator.",
+      if (!r.ok)
+        throw new Error(
+          r.status === 429
+            ? "Too many attempts. Please wait and try again."
+            : "Unable to sign in. Check your username and password.",
         );
-        return;
-      }
-      router.replace("/staff/security");
+      router.replace("/admin");
       router.refresh();
-    } catch {
-      setError("Unable to connect. Check your connection and try again.");
-    } finally {
-      setBusy(false);
-    }
-  }
-  async function google() {
-    setBusy(true);
-    setError("");
-    try {
-      const response = await fetch("/api/auth/sign-in/social", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          provider: "google",
-          callbackURL: "/staff/security",
-          errorCallbackURL: "/staff/login",
-        }),
-      });
-      const data = await response.json();
-      if (response.ok && data.url) window.location.assign(data.url);
-      else setError("Google sign-in is unavailable for this account.");
-    } catch {
-      setError("Unable to start Google sign-in.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Unable to connect.");
     } finally {
       setBusy(false);
     }
   }
   return (
     <>
-      <span className="auth-icon">
-        <LockKeyhole size={23} />
-      </span>
       <h1>Staff sign-in</h1>
+      <p>Sign in to maintain the project register.</p>
       {!configured && (
-        <p className="notice" role="status">
-          Staff sign-in is not configured yet.
-        </p>
+        <p role="status">Staff access is awaiting configuration.</p>
       )}
-      <form onSubmit={signIn} className="form-stack">
+      <form className="form-stack" onSubmit={submit}>
         <label>
-          Email address
+          Username
           <input
-            name="email"
-            type="email"
+            name="username"
             autoComplete="username"
-            placeholder="you@example.com"
             required
             disabled={!configured || busy}
           />
@@ -96,6 +58,7 @@ export function LoginForm({
             type="password"
             autoComplete="current-password"
             required
+            maxLength={128}
             disabled={!configured || busy}
           />
         </label>
@@ -106,27 +69,10 @@ export function LoginForm({
         )}
         <Button type="submit" disabled={!configured || busy}>
           {busy ? "Signing in…" : "Sign in"}
-          <ArrowRight size={17} />
         </Button>
       </form>
-      {googleEnabled && (
-        <>
-          <div className="form-divider">or</div>
-          <Button
-            variant="outline"
-            className="full-width"
-            disabled={busy || !configured}
-            onClick={google}
-          >
-            <span className="google-g" aria-hidden="true">
-              G
-            </span>{" "}
-            Continue with Google
-          </Button>
-        </>
-      )}
-      <p className="auth-help">
-        Need access or a password reset? Contact your operator.
+      <p className="subtle-note">
+        Contact your operator for access or a password reset.
       </p>
     </>
   );

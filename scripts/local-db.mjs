@@ -26,7 +26,7 @@ if (!existsSync(".env.local")) {
   const password = randomBytes(24).toString("hex");
   writeFileSync(
     ".env.local",
-    `APP_ENV=development\nNEXT_PUBLIC_APP_URL=http://localhost:3000\nBETTER_AUTH_URL=http://localhost:3000\nBETTER_AUTH_SECRET=${randomBytes(32).toString("hex")}\nMFA_ENCRYPTION_KEY=${randomBytes(32).toString("hex")}\nDATABASE_URL=postgresql://wassa:${password}@127.0.0.1:55432/wassa\nMEDIA_ROOT=./.local/media\nENABLE_DESIGN_PREVIEW=true\nGOOGLE_CLIENT_ID=\nGOOGLE_CLIENT_SECRET=\n`,
+    `APP_ENV=development\nNEXT_PUBLIC_APP_URL=http://localhost:3000\nBETTER_AUTH_URL=http://localhost:3000\nBETTER_AUTH_SECRET=${randomBytes(32).toString("hex")}\nDATABASE_URL=postgresql://wassa:${password}@127.0.0.1:55432/wassa\nMEDIA_ROOT=./.local/media\n`,
     { mode: 0o600, flag: "wx" },
   );
 }

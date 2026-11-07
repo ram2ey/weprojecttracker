@@ -12,6 +12,8 @@ COPY . .
 RUN npm run build
 
 FROM base AS web
+ARG RELEASE_ID=local
+ENV RELEASE_ID=$RELEASE_ID
 ENV NODE_ENV=production APP_ENV=production PORT=3000 HOSTNAME=0.0.0.0
 RUN groupadd --system --gid 1001 app && useradd --system --uid 1001 --gid app app
 COPY --from=build --chown=app:app /app/.next/standalone ./
@@ -24,6 +26,8 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s CMD node -e "fetch('h
 CMD ["node", "server.js"]
 
 FROM dependencies AS tools
+ARG RELEASE_ID=local
+ENV RELEASE_ID=$RELEASE_ID
 ENV NODE_ENV=production APP_ENV=production
 RUN groupadd --system --gid 1001 app && useradd --system --uid 1001 --gid app app && mkdir -p /data/media && chown app:app /data/media
 COPY src ./src
@@ -31,4 +35,4 @@ COPY scripts ./scripts
 COPY drizzle ./drizzle
 COPY tsconfig.json ./
 USER app
-CMD ["npm", "run", "worker"]
+CMD ["npm", "run", "db:migrate"]
