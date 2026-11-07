@@ -185,8 +185,9 @@ export function CookieConsent() {
           Allow optional page-view statistics
         </label>
         <p>
-          Only daily page totals are stored for up to 90 days. No visitor IDs,
-          IP addresses, search text or staff activity are stored in analytics.
+          Daily totals use a 90-day reporting window. Expired rows are removed
+          on the next collection or dashboard visit. No visitor IDs, IP
+          addresses, search text or staff activity are stored in analytics.
         </p>
         {blocked && (
           <p>
