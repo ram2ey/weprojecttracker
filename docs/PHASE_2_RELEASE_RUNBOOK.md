@@ -34,7 +34,7 @@ These old images require the old Compose/runtime and are not an automatic rollba
 
 ## Domain and TLS cutover
 
-The approved origin is `https://wassaeastprojecttracker.com`; `www` redirects to the apex. DNS is managed at Nakroteck. The initial audit found parking A records and no Coolify custom domain. Browser access later recovered; domain routing and replacement website A records are being configured on the verified existing server `46.62.214.164`. See [the delivery status](PHASE_2_DELIVERY_STATUS.md) for the current cutover state. Mail records and shared proxy settings are preserved.
+The approved origin is `https://wassaeastprojecttracker.com`; `www` redirects to the apex. DNS is managed at Nakroteck. Domain routing, website A records, the existing app's `APP_URL` and trusted certificates were verified on 7 November against server `46.62.214.164`. See [domain verification](PHASE_2_DOMAIN_VERIFICATION_2026-11-07.md). Mail records and shared proxy settings are preserved. The procedure below remains the reference for future changes and the reduced-app release.
 
 1. Read the target server's actual public address from Coolify and check its proxy health and ports 80/443. Do not infer an address from the demo tunnel. Preserve mail MX/TXT/DKIM records, nameservers and domain ownership records.
 2. In the same service, configure web for `https://wassaeastprojecttracker.com:3000` and `https://www.wassaeastprojecttracker.com:3000` through the Coolify proxy. The external origin has no port. Verify Coolify's generated routing and the actual apex redirect choice; do not blindly save pre-existing unsaved forms.

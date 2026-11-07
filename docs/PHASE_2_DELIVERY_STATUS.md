@@ -1,6 +1,6 @@
-# Phase 2 delivery status — 6 November 2026
+# Phase 2 delivery status — updated 7 November 2026
 
-The engineering work is implemented. Current Linux CI results are linked below. **Phase 2 is not fully closed:** backups/restore are deferred by the user, while permanent-domain/TLS and live rollout/monitor acceptance still need live access and the coordinated release. No main merge or production deployment was performed.
+Engineering and permanent-domain setup are implemented and verified. **Phase 2 is not fully closed:** backups/restore are deferred by the user; reduced-app rollout and monitoring acceptance require the coordinated release. The existing app was restarted only to apply domain/origin changes. No main merge, new image release or new migration was applied. See [domain verification](PHASE_2_DOMAIN_VERIFICATION_2026-11-07.md).
 
 ## Implemented
 
@@ -21,11 +21,11 @@ The production build succeeds without retired secrets. Production smoke verifies
 
 ## Live configuration and remaining acceptance
 
-- Existing GitHub deployment connection is retained. `PUBLIC_APP_URL` is prepared as `https://wassaeastprojecttracker.com`; `MONITOR_ENABLED=false` until cutover. No secret values changed.
+- Existing GitHub deployment connection is retained. `PUBLIC_APP_URL=https://wassaeastprojecttracker.com`; `MONITOR_ENABLED=false` until the reduced-app release. No secret values changed.
 - Backblaze B2 setup, recovery targets and backup/restore remain explicitly deferred. No recoverable external copy is known.
 - The old live app keeps its existing image pair, worker and demo tunnel. The reduced Compose/migration release, final-host secure cookies/proxy/rate limits, real service status response and production workflow acceptance remain open.
 - Browser access recovered after an initial approval-review usage limit. The existing server address is verified as `46.62.214.164`; its public HTTP listener answers. The shared Traefik proxy is running with pre-existing pending changes; those changes and its restart were left untouched.
-- The approved HTTPS apex route on web port 3000 and www→apex direction are saved in Coolify, awaiting this app's current-version restart. Nakroteck has the new apex A record and replacement www A record; mail/TXT records are unchanged. Superseded www parking-record confirmations require the user's browser handoff before cutover continues. DNS propagation and TLS acceptance are pending. No app-origin change or restart has occurred yet.
+- The HTTPS apex route on web port 3000 and www→apex redirect are active. Both names have trusted certificates. Nakroteck has only the new server A records for apex/www; mail/TXT records are unchanged. `APP_URL` uses the permanent origin and the current app version was restarted. Public pages/readiness, canonical/social/sitemap origins and path/query-preserving redirects pass. Old cached parking answers can persist until TTL expiry.
 - The current Coolify token expires **6 December 2026**. Rotate it directly into the existing repository secret before expiry. Never send tokens or temporary staff passwords through chat or public logs.
 
 ## GitHub verification
