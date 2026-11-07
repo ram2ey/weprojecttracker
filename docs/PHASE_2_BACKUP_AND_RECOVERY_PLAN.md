@@ -1,5 +1,7 @@
 # Phase 2 backup and recovery plan
 
+Web-delivery update — **7 November 2026**: the user separately authorized a one-time **server plus downloaded** pre-release copy. The database dump, empty media archive and recovery notes were created and downloaded with matching checksums; see [the safety-copy record](WEB_RELEASE_SAFETY_COPY_2026-11-07.md). This supersedes earlier statements that no recovery copy is known. A full restore is still untested, and ongoing paid backup setup remains deferred until deployment and client payment. No B2 purchase or scheduled backup was activated.
+
 Prepared **6 November 2026** from the [live read-only audit](PHASE_2_INFRASTRUCTURE_AUDIT_2026-11-06.md). **Deferred by the user on 6 November 2026.** Backblaze B2 remains the selected provider for later setup; account handoff, backup configuration and restore testing are postponed. No paid subscription or data transfer is authorized by recording this plan.
 
 Independent Linux/container, CI and deployment-preparation work can continue. No recovery copy has been demonstrated, and this deferral does not establish recoverability or itself request a production deployment. Revisit the recorded recovery gap when planning release.

@@ -56,6 +56,6 @@ See docs/DEPLOYMENT.md for environment and release steps, docs/MINIMAL_RELEASE.m
 
 Push-to-Coolify releases are configured in [docs/AUTOMATIC_DEPLOYMENT.md](docs/AUTOMATIC_DEPLOYMENT.md).
 
-The active Android preparation roadmap is [docs/GOOGLE_PLAY_SUBMISSION_PLAN.md](docs/GOOGLE_PLAY_SUBMISSION_PLAN.md). Publisher decisions are in [docs/PHASE_0_DECISIONS.md](docs/PHASE_0_DECISIONS.md), and local Phase 1 changes/evidence are in [docs/PHASE_1_WEB_READINESS.md](docs/PHASE_1_WEB_READINESS.md).
+The active roadmap is the [web delivery plan](docs/WEB_DELIVERY_PLAN.md): finish the website, obtain client acceptance and receive payment before Android work. The [Google Play roadmap](docs/GOOGLE_PLAY_SUBMISSION_PLAN.md) is deferred until after payment. Publisher decisions are in [docs/PHASE_0_DECISIONS.md](docs/PHASE_0_DECISIONS.md), and earlier web-readiness changes/evidence are in [docs/PHASE_1_WEB_READINESS.md](docs/PHASE_1_WEB_READINESS.md).
 
 Phase 2 adds disposable PostgreSQL/Chromium acceptance in GitHub Actions, a synthetic legacy migration rehearsal, Linux migration-failure/startup checks, exact-release deployment verification and basic external uptime checks. Operational steps and remaining live gates are in [the Phase 2 runbook](docs/PHASE_2_RELEASE_RUNBOOK.md). Backups and restore testing remain explicitly deferred.

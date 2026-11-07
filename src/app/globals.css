@@ -141,6 +141,44 @@ fieldset:disabled select {
 .subtle-note {
   font-size: 0.875rem;
 }
+.register-hero {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  min-height: max(480px, 36vw);
+  background: var(--brand-black);
+  color: var(--brand-white);
+}
+.register-hero-image {
+  object-fit: cover;
+  object-position: 50% 12%;
+  pointer-events: none;
+}
+.register-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: rgb(0 0 0 / 65%);
+  pointer-events: none;
+}
+.register-hero-content {
+  position: relative;
+  z-index: 2;
+  padding-block: 64px;
+}
+.register-hero .page-heading {
+  max-width: 480px;
+  margin-bottom: 0;
+}
+.register-hero .eyebrow,
+.register-hero p {
+  color: inherit;
+}
+.register-hero p {
+  margin-bottom: 0;
+}
 .preserve-lines {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -839,6 +877,13 @@ td:first-child {
   }
 }
 @media (max-width: 800px) {
+  .register-hero {
+    min-height: 380px;
+    align-items: flex-end;
+  }
+  .register-hero-content {
+    padding-block: 32px;
+  }
   .container {
     width: calc(100% - 40px);
   }
@@ -913,17 +958,11 @@ td:first-child {
   .directory.section {
     padding-top: 20px;
   }
-  .directory .page-heading {
-    margin-bottom: 16px;
-  }
-  .directory .page-heading .eyebrow {
+  .register-hero .eyebrow {
     margin-bottom: 8px;
   }
-  .directory .page-heading h1 {
+  .register-hero h1 {
     margin-bottom: 8px;
-  }
-  .directory .page-heading p {
-    margin-bottom: 0;
   }
   .site-header nav {
     justify-content: center;

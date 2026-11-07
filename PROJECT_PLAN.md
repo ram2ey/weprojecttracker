@@ -28,6 +28,8 @@ Agreed scope: 5 November 2026. This replaces the earlier five-phase launch scope
 
 Implementation is local only. Deployment, spreadsheet import, backup infrastructure and a new visual direction are outside this change. No live deployment is authorized by this checklist.
 
-## Google Play preparation
+## Active web delivery plan
 
-Follow `docs/GOOGLE_PLAY_SUBMISSION_PLAN.md`; confirmed identity/scope decisions are in `docs/PHASE_0_DECISIONS.md`. Phase 0 remains open for Play registration/verification and operating decisions; independent Phase 1 engineering is authorized. Phase 1 implementation and verification are recorded in `docs/PHASE_1_WEB_READINESS.md`. Android hardware validation follows packaging; local viewport tests do not close that later gate.
+Follow [docs/WEB_DELIVERY_PLAN.md](docs/WEB_DELIVERY_PLAN.md), agreed 7 November 2026: finish the app, prepare for handover, deploy and verify, then obtain client sign-off and payment. This plan defines a separate set of web-delivery phases. Deployment remains subject to a separate release decision.
+
+Android work is deferred until web handover and payment. Retain [docs/GOOGLE_PLAY_SUBMISSION_PLAN.md](docs/GOOGLE_PLAY_SUBMISSION_PLAN.md) for later use; confirmed identity/scope decisions are in `docs/PHASE_0_DECISIONS.md` and earlier web verification is in `docs/PHASE_1_WEB_READINESS.md`. Paid email and ongoing backups remain deferred; the web plan records a pre-migration safety-copy step and the existing recovery limitations.

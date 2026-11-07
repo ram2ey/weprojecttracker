@@ -2,6 +2,8 @@
 
 Prepared **6 November 2026**, from `PLAY_STORE_READINESS_AUDIT_2026-11-06.md`. The phases below define implementation work, responsibilities, dependencies and evidence required for submission readiness.
 
+**Priority update — 7 November 2026:** Android work is deferred until the web app is delivered, accepted and paid for. Follow the [active web delivery plan](WEB_DELIVERY_PLAN.md) first. This roadmap and its evidence are retained for later; its phase numbers are separate from the web-delivery phases. Payment is intended to fund the developer account, backups and paid email.
+
 **Recommended release shape:** the existing hosted Next.js register, delivered to Android through a Trusted Web Activity (TWA); public browsing requires no account; staff administration remains a web workflow. Confirm this in Phase 0. The current server-rendered application and database continue running on Coolify. [TWA overview](https://developer.android.com/develop/ui/views/layout/webapps/trusted-web-activities).
 
 Retain the minimal scope: up to 200 projects, roughly 2–5 individual staff, five categories, six statuses, independent approval and private history. Preserve existing data, stored historical files, Git history and uncommitted design work. New public accounts, comments, maps, following, notifications, financial reports, dark mode and offline project caches are not release prerequisites. A major visual redesign and spreadsheet import are outside this plan.

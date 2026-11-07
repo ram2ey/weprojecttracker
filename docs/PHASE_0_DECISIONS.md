@@ -38,6 +38,12 @@ Publisher wording and office approval are confirmed by the user. The Google regi
 
 ## Remaining setup decisions
 
+Latest funding clarification — **7 November 2026**: deploy the working website first, then client payment funds email, backups and Android developer fees. The user states none of those services currently works. Earlier Zoho setup observations do not establish usable mail service. Treat mail and backups as unavailable for the web launch; no paid activation is required before deployment. The proposed one-time release safety copy is awaiting explanation of storage and user authorization.
+
+Web operations confirmation — **7 November 2026**: the user will manage website staff accounts and password recovery; editors and the independent approver will be assigned later. No real publication should proceed before separate editorial roles are assigned. The support mailbox has not yet been tested in either direction. No test messages have been authorized or sent as part of this confirmation.
+
+Web-delivery update — **7 November 2026**: the user selected **Wassa East Constituency** as the public publisher/branding wording and confirmed permission to use the logo and images, including the reviewed hero photograph. This updates public website wording; it does not determine a future Play account's legal registration identity. The website will launch with an empty public register, with Project Personnel adding records and the Project Lead independently approving them afterward. Existing production data must be inspected and preserved; an empty-launch preference is not deletion authorization. Support-mailbox send/receive verification remains pending. Commercial sign-off/payment details are handover matters, not technical deployment prerequisites.
+
 - Verify propagation of the saved MX/SPF/DKIM records and test mailbox delivery on Mail Free. The paid Mail Lite upgrade is deferred by the user; payment is not a remaining launch prerequisite for this mailbox choice.
 - Establish the office-managed account ownership/recovery arrangement with individual technical access. Determine the correct Play registration classification and evidence before registering.
 - Domain connection, mailbox creation and Android packaging are implementation tasks; approval of their identity/settings does not mean they already exist.
@@ -61,7 +67,7 @@ The support mailbox exists on Mail Free, but DNS validation and delivery checks 
 - [ ] Confirm incident/backup operating ownership during infrastructure preparation.
 - [x] Confirm launch countries and initial language.
 - [x] Confirm intended target audience/age groups.
-- [ ] Record branding/photo rights and the source/affiliation wording appropriate to the actual publisher.
+- [x] Record web branding/photo permission and public publisher wording: user confirmed logo/images permission and “Wassa East Constituency” on 7 November 2026. Each future project still requires its own information source; future Play registration identity remains separate.
 
 ## Registration guidance
 
