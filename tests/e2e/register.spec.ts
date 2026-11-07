@@ -407,11 +407,10 @@ test("public navigation stays available on phones and supports dismissal, focus 
     await page.setViewportSize({ width: 1100, height: 900 });
     await expect(toggle).toBeHidden();
     await expect(nav).toBeVisible();
+    await nav.getByRole("link", { name: "Projects", exact: true }).focus();
     await page.setViewportSize({ width: 800, height: 900 });
     await expect(toggle).toBeVisible();
-    // Preserve a focused desktop navigation link when crossing the breakpoint.
-    await expect(nav).toBeVisible();
-    await page.keyboard.press("Escape");
+    await expect(toggle).toBeFocused();
     await expect(nav).toBeHidden();
   } else {
     await expect(toggle).toBeHidden();

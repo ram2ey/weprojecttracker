@@ -9,6 +9,7 @@ export function SiteHeader() {
   const header = useRef<HTMLElement>(null);
   const toggle = useRef<HTMLButtonElement>(null);
   const navigation = useRef<HTMLElement>(null);
+  const lastFocused = useRef<EventTarget | null>(null);
 
   useEffect(() => {
     const element = header.current;
@@ -21,22 +22,31 @@ export function SiteHeader() {
     });
     observer.observe(element);
     const breakpoint = matchMedia("(max-width: 800px)");
+    function rememberFocus(event: FocusEvent) {
+      lastFocused.current = event.target;
+    }
     function resize() {
+      setOpen(false);
+      // CSS can hide the focused control before the media-query event runs.
+      const focused =
+        document.activeElement === document.body
+          ? lastFocused.current
+          : document.activeElement;
       if (
         breakpoint.matches &&
-        navigation.current?.contains(document.activeElement)
+        focused instanceof Node &&
+        navigation.current?.contains(focused)
       ) {
-        setOpen(true);
-      } else {
-        setOpen(false);
-        if (!breakpoint.matches && document.activeElement === toggle.current) {
-          navigation.current?.querySelector("a")?.focus();
-        }
+        toggle.current?.focus();
+      } else if (!breakpoint.matches && focused === toggle.current) {
+        navigation.current?.querySelector("a")?.focus();
       }
     }
+    document.addEventListener("focusin", rememberFocus);
     breakpoint.addEventListener("change", resize);
     return () => {
       observer.disconnect();
+      document.removeEventListener("focusin", rememberFocus);
       breakpoint.removeEventListener("change", resize);
       document.documentElement.style.removeProperty("--public-header-height");
     };
