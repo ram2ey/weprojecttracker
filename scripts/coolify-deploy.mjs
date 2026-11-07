@@ -1,4 +1,4 @@
-import { appendFile } from "node:fs/promises";
+import { appendFile, readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 import { parse } from "yaml";
 import { publicOrigin, smokePublicApp } from "./public-smoke.mjs";
@@ -154,8 +154,33 @@ export async function deploy(
   }
   const resourcePath = `/${config.type}s/${encodeURIComponent(config.uuid)}`;
   if (config.type === "service") {
-    const saved = await request(resourcePath);
-    validateServiceCompose(saved.docker_compose_raw);
+    if (env.COOLIFY_COMPOSE_FILE) {
+      // Coolify hides saved Compose from tokens without read:sensitive. Apply
+      // the reviewed repository definition using the existing write ability;
+      // never broaden token access or skip the volume/migration safeguards.
+      if (
+        !["compose.coolify.yaml", "compose.coolify-demo.yaml"].includes(
+          env.COOLIFY_COMPOSE_FILE,
+        )
+      )
+        throw new Error("Select a reviewed repository Coolify Compose file.");
+      const raw = await readFile(env.COOLIFY_COMPOSE_FILE, "utf8");
+      validateServiceCompose(raw);
+      await request(resourcePath, "PATCH", {
+        docker_compose_raw: Buffer.from(raw, "utf8").toString("base64"),
+        instant_deploy: false,
+      });
+      log(
+        "Reviewed Compose applied; existing secrets and volume names retained.",
+      );
+    } else {
+      const saved = await request(resourcePath);
+      if (typeof saved.docker_compose_raw !== "string")
+        throw new Error(
+          "Coolify withheld saved Compose. Set COOLIFY_COMPOSE_FILE to a reviewed repository definition.",
+        );
+      validateServiceCompose(saved.docker_compose_raw);
+    }
   }
   // Update both references before requesting a deployment; leave all other envs intact.
   await request(`${resourcePath}/envs/bulk`, "PATCH", {

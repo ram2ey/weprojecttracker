@@ -189,6 +189,9 @@ jobs:
       - run: npm ci --omit=dev --no-audit --no-fund
       - name: Update release images and redeploy
         env:
+          # Retain the existing loopback demo connector during the web release.
+          # Applying reviewed YAML avoids granting the token read:sensitive.
+          COOLIFY_COMPOSE_FILE: compose.coolify-demo.yaml
           COOLIFY_URL: ${{ vars.COOLIFY_URL }}
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
           COOLIFY_RESOURCE_UUID: ${{ vars.COOLIFY_RESOURCE_UUID }}
