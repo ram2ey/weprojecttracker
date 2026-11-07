@@ -152,14 +152,14 @@ export function CookieConsent() {
                 className="button button-outline"
                 onClick={() => save("rejected")}
               >
-                Reject analytics
+                Deny
               </button>
               <button
                 type="button"
                 className="button button-outline"
                 onClick={() => save("accepted")}
               >
-                Accept analytics
+                Accept
               </button>
             </div>
           </section>
