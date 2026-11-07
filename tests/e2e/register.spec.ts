@@ -239,7 +239,7 @@ test("additive migration preserves legacy credentials and data while revoking ol
     c.release();
   }
 });
-test("200-project register supports combined filters, code search, pagination and safe DTOs", async ({
+test("200-project public register supports title/community search, filters and pagination while keeping project codes staff-only", async ({
   page,
   request,
 }) => {
@@ -254,15 +254,56 @@ test("200-project register supports combined filters, code search, pagination an
   expect(JSON.stringify(data)).not.toContain("LEGACY-PRIVATE");
   expect(item.payload).not.toHaveProperty("progress");
   expect(item).not.toHaveProperty("history");
+  expect(item).not.toHaveProperty("code");
+  const detail = await (
+    await request.get("/api/public/content/" + item.slug)
+  ).json();
+  expect(detail).not.toHaveProperty("code");
+  const staffItem = await (
+    await editor.get("/api/staff/content/" + item.id)
+  ).json();
+  expect(staffItem.code).toMatch(/^WE-P\d+$/);
   const found = await request.get(
     "/api/public/content?q=" +
-      item.code +
+      encodeURIComponent(item.payload.title) +
       "&category=Education&status=Ongoing&community=" +
       encodeURIComponent("Launch community " + tag),
   );
   expect((await found.json()).total).toBe(1);
+  expect(
+    (
+      await (
+        await request.get(
+          "/api/public/content?q=" +
+            encodeURIComponent("Launch community " + tag),
+        )
+      ).json()
+    ).total,
+  ).toBe(200);
+  expect(
+    (
+      await (
+        await request.get("/api/public/content?q=" + staffItem.code)
+      ).json()
+    ).total,
+  ).toBe(0);
+  const staffFound = await (
+    await editor.get("/api/staff/content?q=" + staffItem.code)
+  ).json();
+  expect(staffFound.items.some((r: { id: string }) => r.id === item.id)).toBe(
+    true,
+  );
   await page.goto("/?q=" + encodeURIComponent(prefix));
   await expect(page.locator(".project-card")).toHaveCount(24);
+  await expect(
+    page.getByLabel("Search projects", { exact: true }),
+  ).toHaveAttribute("placeholder", "Project title or community");
+  await expect(
+    page.locator(".project-card").filter({ hasText: staffItem.code }),
+  ).toHaveCount(0);
+  await page.goto("/projects/" + item.slug);
+  await expect(page.locator("main")).not.toContainText(staffItem.code);
+  await page.goto("/?q=" + encodeURIComponent(prefix));
   await page.getByRole("link", { name: "Next", exact: true }).click();
   await expect(page).toHaveURL(/page=2/);
   await expect(page.getByLabel("Search projects", { exact: true })).toHaveValue(

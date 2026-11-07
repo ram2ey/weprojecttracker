@@ -74,7 +74,7 @@ test("filters reject retired controls and preserve active choices", () => {
   );
   assert.equal(publicFiltersSchema.safeParse({ page: 1.5 }).success, false);
   const f = publicFiltersSchema.parse({
-    q: "WE-P00123",
+    q: "School",
     community: "Daboase",
     status: "Ongoing",
   });

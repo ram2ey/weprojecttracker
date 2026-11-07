@@ -186,7 +186,6 @@ export type AdminRecordSummary = {
 };
 export type PublicContent = {
   id: string;
-  code: string;
   kind: "project";
   slug: string;
   revisionId: string;

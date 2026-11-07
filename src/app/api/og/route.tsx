@@ -60,7 +60,7 @@ export async function GET(request: Request) {
             ? record.payload.communityName + " · " + record.payload.status
             : "Approved projects across Wassa East"}
         </span>
-        <span>{record?.code ?? "Western Region, Ghana"}</span>
+        <span>Western Region, Ghana</span>
       </div>
     </div>,
     { width: 1200, height: 630, headers: { "Cache-Control": "no-store" } },

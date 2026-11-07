@@ -42,7 +42,6 @@ export function ProjectCard({ project: r }: { project: PublicContent }) {
               timeZone: "UTC",
             })}
           </time>
-          <span>{r.code}</span>
         </div>
       </div>
     </article>
