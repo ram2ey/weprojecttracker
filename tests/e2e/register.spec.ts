@@ -490,7 +490,7 @@ test("optional analytics requires consent, remembers rejection and stops after w
   });
   await expect(banner).toBeVisible();
   await page
-    .getByRole("button", { name: "Reject analytics", exact: true })
+    .getByRole("button", { name: "Deny", exact: true })
     .click();
   await expect(banner).toBeHidden();
   await page.reload();
@@ -662,7 +662,7 @@ test("analytics validates consent and public paths, excludes staff, expires old 
     page.getByRole("region", { name: "Popular pages", exact: true }),
   ).toContainText(path);
   await expect(
-    page.getByRole("button", { name: "Accept analytics", exact: true }),
+    page.getByRole("button", { name: "Accept", exact: true }),
   ).toHaveCount(0);
   expect(
     (

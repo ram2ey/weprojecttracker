@@ -59,7 +59,7 @@ export default function Privacy() {
       <section className="detail-section">
         <h2>Optional page-view statistics</h2>
         <p>
-          Analytics stays off until you select Accept analytics or enable it in
+          Analytics stays off until you select Accept or enable it in
           Cookie settings. Rejecting has no effect on access to the website or
           staff authentication. You can change your choice using Cookie settings
           in the footer at any time. We also respect your browser’s Global
