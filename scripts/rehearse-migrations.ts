@@ -119,6 +119,9 @@ async function main() {
     await pool.query(
       "INSERT INTO staff_link (id,user_id,token_hash,kind,expires_at) VALUES ('link','fixture-0','synthetic-hash','setup',now()+interval '1 day')",
     );
+    await pool.query(
+      "INSERT INTO guest_submission (id,record_id,kind,display_name,body,state) VALUES ('retired-comment','record','comment','Historical visitor','Preserve retired comment privately','approved')",
+    );
     const tables = (
       await pool.query(
         "SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename",
@@ -147,6 +150,11 @@ async function main() {
       ["day", "path", "views"],
     );
     assert.deepEqual(await snapshot(), before);
+    assert.equal(
+      (await pool.query("SELECT count(*)::int AS n FROM project_comment"))
+        .rows[0].n,
+      0,
+    );
     assert.equal(
       createHash("sha256")
         .update(await readFile(join(folder, "historical-image")))

@@ -12,6 +12,7 @@ import { readFileSync } from "node:fs";
 import { hashPassword } from "better-auth/crypto";
 import { emptyPayload, emptyFinancials } from "../../src/lib/content/types";
 import { testDatabaseUrl } from "../../scripts/test-database.mjs";
+import { commentHash, commentCookie } from "../../src/lib/comments/guard";
 if (process.env.CI !== "true") config({ path: ".env.local", quiet: true });
 const database = testDatabaseUrl();
 const pool = new Pool({ connectionString: database.toString() }),
@@ -313,6 +314,7 @@ test("public and authenticated pages remain accessible and fit phone and desktop
     "/admin?view=team",
     "/admin?view=taxonomy",
     "/admin?view=audit",
+    "/admin?view=comments",
     "/admin/content/" + records[0],
   ]) {
     await page.goto(route);
@@ -489,9 +491,7 @@ test("optional analytics requires consent, remembers rejection and stops after w
     exact: true,
   });
   await expect(banner).toBeVisible();
-  await page
-    .getByRole("button", { name: "Deny", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Deny", exact: true }).click();
   await expect(banner).toBeHidden();
   await page.reload();
   await expect(banner).toBeHidden();
@@ -1829,4 +1829,499 @@ test("retirement worker removes only the app's offline caches and unregisters", 
       })),
     )
     .toEqual({ appCaches: [], registrations: 0, unrelated: true });
+});
+
+async function commentFixture(index: number) {
+  const row = (
+    await pool.query("SELECT id,slug FROM content_record WHERE id=$1", [
+      records[index],
+    ])
+  ).rows[0];
+  await pool.query("DELETE FROM project_comment WHERE record_id=$1", [row.id]);
+  await pool.query(
+    "UPDATE content_record SET comments_enabled=true,withdrawn_at=NULL WHERE id=$1",
+    [row.id],
+  );
+  await pool.query("DELETE FROM app_rate_limit WHERE key=$1", [
+    commentHash("global"),
+  ]);
+  return { ...row, endpoint: `/api/public/content/${row.slug}/comments` };
+}
+async function commentVisitor(endpoint: string) {
+  const api = await requests.newContext({
+    baseURL: origin,
+    extraHTTPHeaders: headers,
+  });
+  expect((await api.post(endpoint + "/session")).status()).toBe(200);
+  return api;
+}
+const commentBody = () => ({
+  submissionId: randomUUID(),
+  displayName: "Visitor name",
+  body: "A public project comment.",
+  website: "",
+});
+
+test("project comments publish once, stay plain text, paginate and survive failed retries without tracking consent", async ({
+  page,
+  context,
+}) => {
+  const fixture = await commentFixture(170);
+  await context.addCookies([
+    { name: "wassa_cookie_consent", value: "v1.rejected", url: origin },
+  ]);
+  await page.goto("/projects/" + fixture.slug);
+  await expect(
+    page.getByRole("button", { name: "Leave a comment", exact: true }),
+  ).toBeVisible();
+  expect((await context.cookies()).some((c) => c.name === commentCookie)).toBe(
+    false,
+  );
+  await page
+    .getByRole("button", { name: "Leave a comment", exact: true })
+    .click();
+  await expect(
+    page.getByRole("textbox", { name: "Name", exact: true }),
+  ).toBeVisible();
+  const cookie = (await context.cookies()).find(
+    (c) => c.name === commentCookie,
+  )!;
+  expect(cookie.httpOnly).toBe(true);
+  expect(cookie.sameSite).toBe("Strict");
+  await expect(
+    page.getByRole("textbox", { name: "Name", exact: true }),
+  ).toBeFocused();
+  await page
+    .getByRole("textbox", { name: "Name", exact: true })
+    .fill("A visitor <b>name</b>");
+  const text =
+    "<script>alert('plain')</script> https://example.invalid\nA community thought.";
+  await page.getByRole("textbox", { name: "Comment", exact: true }).fill(text);
+  // Simulate a committed response lost in transit, then retry the same submission.
+  let failed = false;
+  await page.route("**/comments", async (route) => {
+    if (route.request().method() === "POST" && !failed) {
+      failed = true;
+      await route.fetch();
+      await route.abort();
+    } else await route.continue();
+  });
+  await page.getByRole("button", { name: "Post comment", exact: true }).click();
+  await expect(
+    page.locator(".comments-section").getByRole("alert"),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("textbox", { name: "Comment", exact: true }),
+  ).toHaveValue(text);
+  await page.getByRole("button", { name: "Post comment", exact: true }).click();
+  await expect(
+    page.getByText("Your comment is now public.", { exact: true }),
+  ).toBeVisible();
+  const list = page.getByRole("list", {
+    name: "Visitor comments",
+    exact: true,
+  });
+  await expect(list).toContainText(text);
+  await expect(list.locator("script,a,b")).toHaveCount(0);
+  expect(
+    (
+      await pool.query(
+        "SELECT count(*)::int AS n FROM project_comment WHERE record_id=$1",
+        [fixture.id],
+      )
+    ).rows[0].n,
+  ).toBe(1);
+  expect(
+    (await context.cookies()).find((c) => c.name === "wassa_cookie_consent")
+      ?.value,
+  ).toBe("v1.rejected");
+  for (let i = 0; i < 21; i++)
+    await pool.query(
+      "INSERT INTO project_comment (id,record_id,submission_key,display_name,body,created_at) VALUES ($1,$2,$1,'Pagination visitor',$3,NOW()+$4*INTERVAL '1 second')",
+      [randomUUID(), fixture.id, "Page comment " + i, i + 1],
+    );
+  await page.reload();
+  await expect(list.locator("li")).toHaveCount(20);
+  await page.route("**/comments?page=2", (route) =>
+    route.fulfill({
+      status: 503,
+      json: { message: "Temporary comment page failure." },
+    }),
+  );
+  await page
+    .getByRole("button", { name: "Older comments", exact: true })
+    .click();
+  await expect(
+    page.locator(".comments-section").getByRole("alert"),
+  ).toContainText("Temporary comment page failure.");
+  await expect(list.locator("li")).toHaveCount(20);
+  await page.unroute("**/comments?page=2");
+  await page
+    .getByRole("button", { name: "Older comments", exact: true })
+    .click();
+  await expect(list.locator("li")).toHaveCount(2);
+  await expect(list).toContainText(text);
+  await page
+    .getByRole("button", { name: "Newer comments", exact: true })
+    .click();
+  await expect(list.locator("li")).toHaveCount(20);
+  await page
+    .getByRole("button", { name: "Leave a comment", exact: true })
+    .click();
+  expect(
+    (
+      await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
+        .analyze()
+    ).violations,
+  ).toEqual([]);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth + 1,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: ".local/comments-" + test.info().project.name + "-public.png",
+    fullPage: true,
+  });
+});
+
+test("only operators moderate comments, keep hidden copies, close projects and audit without comment bodies", async ({
+  page,
+  context,
+  request,
+}) => {
+  const fixture = await commentFixture(171),
+    visitor = await commentVisitor(fixture.endpoint);
+  try {
+    const input = {
+      ...commentBody(),
+      body: "PRIVATE-MODERATION-CONTENT-" + tag,
+    };
+    const posted = await (
+      await visitor.post(fixture.endpoint, { data: input })
+    ).json();
+    for (const api of [editor, approver, request]) {
+      expect((await api.get("/api/staff/comments")).status()).toBe(403);
+      expect(
+        (
+          await api.patch("/api/staff/comments", {
+            headers,
+            data: { action: "hide", id: posted.id, version: 0 },
+          })
+        ).status(),
+      ).toBe(403);
+      expect(
+        (
+          await api.patch("/api/staff/comments", {
+            headers,
+            data: {
+              action: "set-enabled",
+              id: fixture.id,
+              version: 0,
+              enabled: false,
+            },
+          })
+        ).status(),
+      ).toBe(403);
+    }
+    await context.addCookies((await operator.storageState()).cookies);
+    await page.goto("/admin?view=comments");
+    await page.getByLabel("Project", { exact: true }).selectOption(fixture.id);
+    await expect(
+      page.getByRole("list", { name: "Manage comments" }),
+    ).toContainText(input.body);
+    await page
+      .getByRole("button", { name: "Hide comment", exact: true })
+      .click();
+    await expect(
+      page.getByText(
+        "Comment hidden. You can restore it from Hidden comments.",
+        { exact: true },
+      ),
+    ).toBeVisible();
+    expect((await (await request.get(fixture.endpoint)).json()).items).toEqual(
+      [],
+    );
+    expect(
+      (
+        await pool.query(
+          "SELECT body,hidden_at,version FROM project_comment WHERE id=$1",
+          [posted.id],
+        )
+      ).rows[0],
+    ).toMatchObject({ body: input.body, version: 1 });
+    expect(
+      (
+        await operator.patch("/api/staff/comments", {
+          data: { action: "restore", id: posted.id, version: 0 },
+        })
+      ).status(),
+    ).toBe(409);
+    await page.getByLabel("Show", { exact: true }).selectOption("hidden");
+    await expect(
+      page.getByRole("button", { name: "Restore comment", exact: true }),
+    ).toBeVisible();
+    await page
+      .getByRole("button", { name: "Restore comment", exact: true })
+      .click();
+    await expect(
+      page.getByText("Comment restored publicly.", { exact: true }),
+    ).toBeVisible();
+    expect(
+      (await (await request.get(fixture.endpoint)).json()).items,
+    ).toHaveLength(1);
+    await page
+      .getByRole("button", { name: "Close new comments", exact: true })
+      .click();
+    await expect(
+      page.getByText("New comments closed.", { exact: true }),
+    ).toBeVisible();
+    expect(
+      (await visitor.post(fixture.endpoint, { data: commentBody() })).status(),
+    ).toBe(409);
+    const closed = await (await request.get(fixture.endpoint)).json();
+    expect(closed.enabled).toBe(false);
+    expect(closed.items).toHaveLength(1);
+    await page
+      .getByRole("button", { name: "Reopen comments", exact: true })
+      .click();
+    await expect(
+      page.getByText("New comments reopened.", { exact: true }),
+    ).toBeVisible();
+    expect((await (await request.get(fixture.endpoint)).json()).enabled).toBe(
+      true,
+    );
+    const logs = await pool.query(
+      "SELECT action,details FROM audit_log WHERE subject_id=ANY($1::text[])",
+      [[posted.id, fixture.id]],
+    );
+    expect(logs.rows.map((r) => r.action)).toEqual(
+      expect.arrayContaining([
+        "comment.hidden",
+        "comment.restored",
+        "comments.closed",
+        "comments.opened",
+      ]),
+    );
+    expect(JSON.stringify(logs.rows)).not.toContain(input.body);
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+    await page.screenshot({
+      path: ".local/comments-" + test.info().project.name + "-operator.png",
+      fullPage: true,
+    });
+    await pool.query(
+      "UPDATE content_record SET withdrawn_at=NOW() WHERE id=$1",
+      [fixture.id],
+    );
+    expect((await request.get(fixture.endpoint)).status()).toBe(404);
+    expect(
+      (await visitor.post(fixture.endpoint, { data: commentBody() })).status(),
+    ).toBe(404);
+    expect((await visitor.post(fixture.endpoint + "/session")).status()).toBe(
+      404,
+    );
+  } finally {
+    await pool.query(
+      "UPDATE content_record SET withdrawn_at=NULL,comments_enabled=true WHERE id=$1",
+      [fixture.id],
+    );
+    await visitor.dispose();
+  }
+});
+
+test("comment guards, request bounds and posting limits reject abuse without reviving retired submissions", async ({
+  request,
+}) => {
+  const fixture = await commentFixture(172),
+    visitor = await commentVisitor(fixture.endpoint);
+  try {
+    expect(
+      (
+        await request.post(fixture.endpoint, { headers, data: commentBody() })
+      ).status(),
+    ).toBe(403);
+    expect(
+      (
+        await visitor.post(fixture.endpoint, {
+          headers: { Origin: "https://other.example" },
+          data: commentBody(),
+        })
+      ).status(),
+    ).toBe(403);
+    expect(
+      (
+        await visitor.post(fixture.endpoint + "/session", {
+          headers: { Origin: "https://other.example" },
+        })
+      ).status(),
+    ).toBe(403);
+    expect((await request.get(fixture.endpoint + "?page=-1")).status()).toBe(
+      400,
+    );
+    const cookie = (await visitor.storageState()).cookies.find(
+      (c) => c.name === commentCookie,
+    )!;
+    expect(
+      (
+        await request.post(fixture.endpoint, {
+          headers: {
+            ...headers,
+            Cookie: commentCookie + "=" + cookie.value.slice(0, -2) + "zz",
+          },
+          data: commentBody(),
+        })
+      ).status(),
+    ).toBe(403);
+    const input = commentBody();
+    const responses = await Promise.all([
+      visitor.post(fixture.endpoint, { data: input }),
+      visitor.post(fixture.endpoint, { data: input }),
+    ]);
+    expect(responses.map((r) => r.status())).toEqual([200, 200]);
+    expect((await responses[0].json()).id).toBe((await responses[1].json()).id);
+    expect(
+      (
+        await visitor.post(fixture.endpoint, {
+          data: { ...input, body: "Changed retry" },
+        })
+      ).status(),
+    ).toBe(409);
+    expect(
+      (
+        await visitor.post(fixture.endpoint, {
+          data: { ...commentBody(), website: "spam.invalid" },
+        })
+      ).status(),
+    ).toBe(400);
+    expect(
+      (
+        await visitor.post(fixture.endpoint, {
+          data: "x".repeat(20000),
+          headers: { "Content-Type": "application/json" },
+        })
+      ).status(),
+    ).toBe(400);
+    expect(
+      (await visitor.post(fixture.endpoint, { data: commentBody() })).status(),
+    ).toBe(429);
+    expect(
+      (
+        await pool.query(
+          "SELECT count(*)::int AS n FROM project_comment WHERE record_id=$1",
+          [fixture.id],
+        )
+      ).rows[0].n,
+    ).toBe(1);
+    const keys = (
+      await pool.query(
+        "SELECT key FROM app_rate_limit WHERE key=ANY($1::text[])",
+        [
+          [
+            commentHash("global"),
+            commentHash("browser:" + cookie.value.split(".")[0]),
+          ],
+        ],
+      )
+    ).rows;
+    expect(keys).toHaveLength(2);
+    expect(keys.every((r) => /^[a-f0-9]{64}$/.test(r.key))).toBe(true);
+    const other = await commentVisitor(fixture.endpoint);
+    try {
+      await pool.query(
+        "UPDATE app_rate_limit SET count=60,resets_at=NOW()+INTERVAL '1 minute' WHERE key=$1",
+        [commentHash("global")],
+      );
+      expect(
+        (await other.post(fixture.endpoint, { data: commentBody() })).status(),
+      ).toBe(429);
+      await pool.query(
+        "UPDATE app_rate_limit SET resets_at=NOW()-INTERVAL '1 second' WHERE key=$1",
+        [commentHash("global")],
+      );
+      expect(
+        (await other.post(fixture.endpoint, { data: commentBody() })).status(),
+      ).toBe(200);
+    } finally {
+      await other.dispose();
+    }
+    const legacyId = randomUUID();
+    await pool.query(
+      "INSERT INTO guest_submission (id,record_id,kind,display_name,body,state) VALUES ($1,$2,'comment','Old visitor','RETIRED-COMMENT-NOT-RESTORED','approved')",
+      [legacyId, fixture.id],
+    );
+    expect(await (await request.get(fixture.endpoint)).text()).not.toContain(
+      "RETIRED-COMMENT-NOT-RESTORED",
+    );
+    await pool.query("DELETE FROM guest_submission WHERE id=$1", [legacyId]);
+  } finally {
+    await visitor.dispose();
+  }
+});
+
+test("closing or withdrawing a project wins against a waiting comment submission", async () => {
+  const fixture = await commentFixture(173),
+    visitor = await commentVisitor(fixture.endpoint);
+  const tx = await pool.connect();
+  try {
+    await tx.query("BEGIN");
+    await tx.query(
+      "UPDATE content_record SET comments_enabled=false WHERE id=$1",
+      [fixture.id],
+    );
+    const pending = visitor.post(fixture.endpoint, { data: commentBody() });
+    // The pending writer cannot pass the row lock before this closure commits.
+    await expect
+      .poll(
+        async () =>
+          (
+            await pool.query(
+              "SELECT count(*)::int AS n FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock' AND query LIKE 'SELECT r.id,r.comments_enabled%FOR UPDATE OF r'",
+            )
+          ).rows[0].n,
+      )
+      .toBeGreaterThan(0);
+    await tx.query("COMMIT");
+    expect((await pending).status()).toBe(409);
+    await tx.query("BEGIN");
+    await tx.query(
+      "UPDATE content_record SET comments_enabled=true,withdrawn_at=NOW() WHERE id=$1",
+      [fixture.id],
+    );
+    const withdrawn = visitor.post(fixture.endpoint, { data: commentBody() });
+    await expect
+      .poll(
+        async () =>
+          (
+            await pool.query(
+              "SELECT count(*)::int AS n FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock' AND query LIKE 'SELECT r.id,r.comments_enabled%FOR UPDATE OF r'",
+            )
+          ).rows[0].n,
+      )
+      .toBeGreaterThan(0);
+    await tx.query("COMMIT");
+    expect((await withdrawn).status()).toBe(404);
+    expect(
+      (
+        await pool.query(
+          "SELECT count(*)::int AS n FROM project_comment WHERE record_id=$1",
+          [fixture.id],
+        )
+      ).rows[0].n,
+    ).toBe(0);
+  } finally {
+    await tx.query("ROLLBACK");
+    tx.release();
+    await pool.query(
+      "UPDATE content_record SET comments_enabled=true,withdrawn_at=NULL WHERE id=$1",
+      [fixture.id],
+    );
+    await visitor.dispose();
+  }
 });

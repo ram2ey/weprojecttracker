@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getPublicContent } from "@/lib/content/public";
 import { PublishedContentView } from "@/components/content/published-content";
 import { contentMetadata } from "@/lib/site";
+import { PublicComments } from "@/components/comments/public-comments";
 export async function generateMetadata({
   params,
 }: {
@@ -19,5 +20,12 @@ export default async function Project({
 }) {
   const r = await getPublicContent((await params).slug);
   if (!r) notFound();
-  return <PublishedContentView record={r} />;
+  return (
+    <>
+      <PublishedContentView record={r} />
+      <div className="container comments-container">
+        <PublicComments key={r.id} slug={r.slug} />
+      </div>
+    </>
+  );
 }
