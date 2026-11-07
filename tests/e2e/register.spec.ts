@@ -1589,7 +1589,7 @@ test("long public text, source links, full-photo Back and text scaling remain us
   await expect(page.locator(".source-text")).toContainText(
     "<script>alert(2)</script>",
   );
-  await page.getByRole("link", { name: /^Open full photograph:/ }).click();
+  await page.getByRole("link", { name: /^Open full image:/ }).click();
   await expect(page).toHaveURL(origin + "/api/media/" + image.id);
   await page.goBack();
   await expect(
