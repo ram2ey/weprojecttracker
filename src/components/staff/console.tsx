@@ -28,6 +28,7 @@ export function Console({
           { key: "taxonomy", label: "Communities" },
           { key: "team", label: "Staff" },
           { key: "audit", label: "Audit log" },
+          { key: "analytics", label: "Website statistics" },
         ]
       : []),
   ];

@@ -157,6 +157,10 @@ test.beforeAll(async () => {
 });
 test.afterAll(async () => {
   await pool.query(
+    "DELETE FROM analytics_daily WHERE path IN (SELECT '/projects/' || slug FROM content_record WHERE id=ANY($1::text[]))",
+    [records],
+  );
+  await pool.query(
     "UPDATE content_record SET published_revision_id=NULL WHERE id=ANY($1::text[])",
     [records],
   );
@@ -443,7 +447,10 @@ test("contact and privacy expose approved contact links without a live form or p
     page.getByRole("heading", { name: "Privacy & Cookies", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByText(/There are currently no optional tracking cookies/),
+    page.getByRole("heading", {
+      name: "Optional page-view statistics",
+      exact: true,
+    }),
   ).toBeVisible();
   await expect(page.getByText(/90 days after closure/)).toBeVisible();
   await expect(page.locator("form, iframe")).toHaveCount(0);
@@ -455,6 +462,260 @@ test("contact and privacy expose approved contact links without a live form or p
     page.getByRole("heading", { name: "Staff sign-in", exact: true }),
   ).toBeVisible();
   await expect(page.getByLabel("Username", { exact: true })).toBeVisible();
+});
+
+test("optional analytics requires consent, remembers rejection and stops after withdrawal across tabs", async ({
+  page,
+  context,
+}) => {
+  const path = "/projects/" + firstSlug;
+  const views = async () =>
+    Number(
+      (
+        await pool.query(
+          "SELECT coalesce(sum(views),0)::int AS n FROM analytics_daily WHERE path=$1",
+          [path],
+        )
+      ).rows[0].n,
+    );
+  const before = await views();
+  let requests = 0;
+  page.on("request", (req) => {
+    if (req.url().endsWith("/api/public/analytics")) requests++;
+  });
+  await page.goto(path + "?q=do-not-store-this");
+  const banner = page.getByRole("region", {
+    name: "Cookie preferences",
+    exact: true,
+  });
+  await expect(banner).toBeVisible();
+  await page
+    .getByRole("button", { name: "Reject analytics", exact: true })
+    .click();
+  await expect(banner).toBeHidden();
+  await page.reload();
+  await expect(banner).toBeHidden();
+  expect(requests).toBe(0);
+  expect(await views()).toBe(before);
+  await page
+    .getByRole("button", { name: "Cookie settings", exact: true })
+    .click();
+  const dialog = page.getByRole("dialog", {
+    name: "Cookie settings",
+    exact: true,
+  });
+  await expect(dialog).toBeVisible();
+  const checkbox = dialog.getByRole("checkbox");
+  await expect(checkbox).not.toBeChecked();
+  await checkbox.check();
+  const response = page.waitForResponse(
+    (r) => r.url().endsWith("/api/public/analytics") && r.status() === 204,
+  );
+  await dialog
+    .getByRole("button", { name: "Save preferences", exact: true })
+    .click();
+  await response;
+  await expect.poll(views).toBe(before + 1);
+  expect(requests).toBe(1);
+  const cookie = (await context.cookies()).find(
+    (c) => c.name === "wassa_cookie_consent",
+  )!;
+  expect(cookie.value).toBe("v1.accepted");
+  expect(cookie.sameSite).toBe("Lax");
+  expect(cookie.expires - Date.now() / 1000).toBeGreaterThan(179 * 86400);
+  const otherTab = await context.newPage();
+  await otherTab.goto("/about");
+  await page
+    .getByRole("button", { name: "Cookie settings", exact: true })
+    .click();
+  await dialog.getByRole("checkbox").uncheck();
+  await dialog
+    .getByRole("button", { name: "Save preferences", exact: true })
+    .click();
+  await otherTab
+    .getByRole("button", { name: "Cookie settings", exact: true })
+    .click();
+  await expect(
+    otherTab.getByRole("dialog").getByRole("checkbox"),
+  ).not.toBeChecked();
+  await otherTab.keyboard.press("Escape");
+  await otherTab.goto(path);
+  await page.reload();
+  await expect(banner).toBeHidden();
+  expect(await views()).toBe(before + 1);
+  expect(
+    (
+      await pool.query(
+        "SELECT count(*)::int AS n FROM analytics_daily WHERE path LIKE '%do-not-store-this%'",
+      )
+    ).rows[0].n,
+  ).toBe(0);
+  await otherTab.close();
+});
+
+test("analytics validates consent and public paths, excludes staff, expires old counts and restricts the dashboard", async ({
+  request,
+  page,
+  context,
+}) => {
+  const endpoint = "/api/public/analytics";
+  const path = "/projects/" + firstSlug;
+  const accepted = { ...headers, Cookie: "wassa_cookie_consent=v1.accepted" };
+  expect(
+    (await request.post(endpoint, { headers, data: { path } })).status(),
+  ).toBe(403);
+  expect(
+    (
+      await request.post(endpoint, {
+        headers: { ...accepted, Origin: "https://untrusted.example" },
+        data: { path },
+      })
+    ).status(),
+  ).toBe(403);
+  expect(
+    (
+      await request.post(endpoint, {
+        headers: { ...accepted, "Sec-GPC": "1" },
+        data: { path },
+      })
+    ).status(),
+  ).toBe(403);
+  for (const data of [
+    { path: "/staff/login" },
+    { path: "/?q=private" },
+    { path: "/projects/not-published" },
+    { path, visitor: "private-id" },
+  ]) {
+    expect(
+      (await request.post(endpoint, { headers: accepted, data })).status(),
+    ).toBe(400);
+  }
+  expect(
+    (
+      await request.post(endpoint, {
+        headers: accepted,
+        data: { path: "/" + "x".repeat(600) },
+      })
+    ).status(),
+  ).toBe(400);
+  expect((await request.get(endpoint)).status()).toBe(405);
+  const expired = "/projects/expired-" + tag;
+  await pool.query(
+    "INSERT INTO analytics_daily (day,path,views) VALUES ((NOW() AT TIME ZONE 'UTC')::date - 100,$1,10)",
+    [expired],
+  );
+  expect(
+    (
+      await request.post(endpoint, { headers: accepted, data: { path } })
+    ).status(),
+  ).toBe(204);
+  expect(
+    (
+      await pool.query(
+        "SELECT count(*)::int AS n FROM analytics_daily WHERE path=$1",
+        [expired],
+      )
+    ).rows[0].n,
+  ).toBe(0);
+  const before = (
+    await pool.query(
+      "SELECT sum(views)::int AS n FROM analytics_daily WHERE path=$1",
+      [path],
+    )
+  ).rows[0].n;
+  const operatorCookie = (await operator.storageState()).cookies
+    .map((c) => c.name + "=" + c.value)
+    .join("; ");
+  expect(
+    (
+      await operator.post(endpoint, {
+        headers: {
+          ...headers,
+          Cookie: operatorCookie + "; wassa_cookie_consent=v1.accepted",
+        },
+        data: { path },
+      })
+    ).status(),
+  ).toBe(204);
+  expect(
+    (
+      await pool.query(
+        "SELECT sum(views)::int AS n FROM analytics_daily WHERE path=$1",
+        [path],
+      )
+    ).rows[0].n,
+  ).toBe(before);
+  for (const actor of [editor, approver]) {
+    expect((await actor.get("/admin?view=analytics")).url()).toBe(
+      origin + "/admin",
+    );
+  }
+  expect((await request.get("/admin?view=analytics")).url()).toBe(
+    origin + "/staff/login",
+  );
+  await context.addCookies((await operator.storageState()).cookies);
+  await page.goto("/admin?view=analytics");
+  await expect(
+    page.getByRole("heading", { name: "Website statistics", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "Popular pages", exact: true }),
+  ).toContainText(path);
+  await expect(
+    page.getByRole("button", { name: "Accept analytics", exact: true }),
+  ).toHaveCount(0);
+  expect(
+    (
+      await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
+        .analyze()
+    ).violations,
+  ).toEqual([]);
+});
+
+test("browser privacy signals suppress analytics and cookie settings remain accessible at large text", async ({
+  page,
+  context,
+}) => {
+  await context.addCookies([
+    { name: "wassa_cookie_consent", value: "v1.accepted", url: origin },
+  ]);
+  await page.addInitScript(() =>
+    Object.defineProperty(navigator, "globalPrivacyControl", {
+      get: () => true,
+    }),
+  );
+  let requests = 0;
+  page.on("request", (req) => {
+    if (req.url().endsWith("/api/public/analytics")) requests++;
+  });
+  await page.goto("/contact");
+  await page
+    .getByRole("button", { name: "Cookie settings", exact: true })
+    .click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("checkbox")).toBeDisabled();
+  await expect(dialog.getByRole("checkbox")).not.toBeChecked();
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = "200%";
+  });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth + 1,
+    ),
+  ).toBe(true);
+  expect(
+    (
+      await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
+        .analyze()
+    ).violations,
+  ).toEqual([]);
+  await dialog
+    .getByRole("button", { name: "Save preferences", exact: true })
+    .click();
+  await expect(dialog).toBeHidden();
+  expect(requests).toBe(0);
 });
 
 test("editor and independent approver can publish through the real screens", async ({

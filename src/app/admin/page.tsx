@@ -8,6 +8,7 @@ import { RecordList } from "@/components/content/record-list";
 import { TaxonomyManager } from "@/components/content/taxonomy-manager";
 import { listAdminRecords, listTaxonomy } from "@/lib/content/service";
 import { getPool } from "@/db";
+import { Analytics } from "@/components/staff/analytics";
 export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Staff workspace",
@@ -22,18 +23,32 @@ export default async function Admin({
     params = await searchParams,
     view = params.view ?? "projects";
   if (
-    !["projects", "review", "new", "team", "taxonomy", "audit"].includes(view)
+    ![
+      "projects",
+      "review",
+      "new",
+      "team",
+      "taxonomy",
+      "audit",
+      "analytics",
+    ].includes(view)
   )
     notFound();
   if (
-    ["team", "taxonomy", "audit"].includes(view) &&
+    ["team", "taxonomy", "audit", "analytics"].includes(view) &&
     identity.staff.role !== "super_admin"
   )
     redirect("/admin");
   if (view === "new" && identity.staff.role === "approver")
     redirect("/admin?view=review");
   let children: React.ReactNode;
-  if (view === "team") children = <TeamForm />;
+  if (view === "analytics")
+    children = (
+      <Analytics
+        days={params.days === "7" ? 7 : params.days === "90" ? 90 : 30}
+      />
+    );
+  else if (view === "team") children = <TeamForm />;
   else if (view === "taxonomy")
     children = <TaxonomyManager terms={await listTaxonomy()} />;
   else if (view === "new") children = <RecordCreator />;

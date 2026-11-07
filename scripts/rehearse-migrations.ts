@@ -138,6 +138,14 @@ async function main() {
     const before = await snapshot();
     await migrate(drizzle(pool), { migrationsFolder: "drizzle" });
     await migrate(drizzle(pool), { migrationsFolder: "drizzle" }); // retry must preserve results
+    assert.deepEqual(
+      (
+        await pool.query(
+          "SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name='analytics_daily' ORDER BY ordinal_position",
+        )
+      ).rows.map((row) => row.column_name),
+      ["day", "path", "views"],
+    );
     assert.deepEqual(await snapshot(), before);
     assert.equal(
       createHash("sha256")
@@ -173,7 +181,7 @@ async function main() {
           "SELECT count(*)::int AS count FROM drizzle.__drizzle_migrations",
         )
       ).rows[0].count,
-      7,
+      journal.entries.length,
     );
     // Exercise the same maintenance-reset and password-change functions used by operators.
     process.env.DATABASE_URL = target.toString();
@@ -213,7 +221,7 @@ async function main() {
       await getPool().end();
     }
     console.log(
-      "Migration rehearsal passed: 0003 → 0006; deterministic usernames, unchanged hashes/history/legacy tables/media, invalidated sessions, retry and operator recovery.",
+      "Migration rehearsal passed: 0003 → latest; deterministic usernames, unchanged hashes/history/legacy tables/media, invalidated sessions, retry and operator recovery.",
     );
   } finally {
     await pool.end();

@@ -30,9 +30,11 @@ export default function Privacy() {
           about information or a photograph published here.
         </p>
         <p>
-          The website does not currently use analytics or advertising trackers,
-          embedded social widgets, or a public enquiry form. It does not save a
-          separate history of phone or WhatsApp enquiries in its database.
+          With your permission, the website counts public page views using its
+          own server. It does not use third-party analytics, advertising
+          trackers, embedded social widgets, or a public enquiry form. It does
+          not save a separate history of phone or WhatsApp enquiries in its
+          database.
         </p>
       </section>
       <section className="detail-section">
@@ -47,10 +49,35 @@ export default function Privacy() {
         </p>
         <p>
           Staff can end their session by signing out. Blocking authentication
-          cookies can prevent sign-in from working. There are currently no
-          optional tracking cookies to accept or reject, so the website does not
-          display a cookie-consent banner. We will reassess consent before
-          adding optional tracking.
+          cookies can prevent sign-in from working. A separate first-party
+          cookie, wassa_cookie_consent, remembers whether you accept or reject
+          optional analytics for 180 days. This preference cookie contains only
+          your choice and is needed to remember it; it is not a visitor
+          identifier.
+        </p>
+      </section>
+      <section className="detail-section">
+        <h2>Optional page-view statistics</h2>
+        <p>
+          Analytics stays off until you select Accept analytics or enable it in
+          Cookie settings. Rejecting has no effect on access to the website or
+          staff authentication. You can change your choice using Cookie settings
+          in the footer at any time. We also respect your browser’s Global
+          Privacy Control signal.
+        </p>
+        <p>
+          We store only a daily date, a public page path and a count. Analytics
+          does not store visitor IDs, IP addresses, browser details, referrers,
+          search text or filter choices, and authenticated staff sessions are
+          excluded. Statistics show page views and popular pages, not unique
+          visitors. Only platform operators can view the statistics.
+        </p>
+        <p>
+          Daily statistics cover up to 90 days. Expired aggregates are removed
+          on the next collection or operator dashboard visit. Withdrawing
+          permission stops future counting. Previously collected totals are
+          anonymous and cannot be linked back to you. No analytics data is sent
+          to an external analytics provider.
         </p>
       </section>
       <section className="detail-section">
