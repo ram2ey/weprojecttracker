@@ -114,6 +114,53 @@ test("old healthy containers or missing migration marker time out and fail the r
     await assert.rejects(deploy(env, mock.options), /Timed out/);
   }
 });
+
+test("reviewed repository Compose deploys without sensitive-read access and preserves settings", async () => {
+  const mock = harness([
+    { body: { uuid: "target123" } },
+    { body: [] },
+    accepted,
+    { body: healthy },
+  ]);
+  await deploy(
+    { ...env, COOLIFY_COMPOSE_FILE: "compose.coolify-demo.yaml" },
+    mock.options,
+  );
+  const update = mock.calls[0];
+  assert.equal(update.method, "PATCH");
+  assert.ok(update.url.endsWith("/services/target123"));
+  const body = JSON.parse(update.body);
+  assert.deepEqual(Object.keys(body).sort(), [
+    "docker_compose_raw",
+    "instant_deploy",
+  ]);
+  assert.equal(body.instant_deploy, false);
+  const raw = Buffer.from(body.docker_compose_raw, "base64").toString("utf8");
+  assert.equal(raw, readFileSync("compose.coolify-demo.yaml", "utf8"));
+  validateServiceCompose(raw);
+  assert.ok(raw.includes("127.0.0.1:33187:3000"));
+  assert.ok(mock.calls[1].url.endsWith("/envs/bulk"));
+  assert.ok(mock.calls[2].url.endsWith("/deploy"));
+});
+
+test("withheld saved Compose and unreviewed file paths fail before release mutation", async () => {
+  const hidden = harness([{ body: { uuid: "target123" } }]);
+  await assert.rejects(deploy(env, hidden.options), /withheld saved Compose/);
+  assert.equal(hidden.calls.length, 1);
+  assert.equal(hidden.calls[0].method, "GET");
+  for (const file of [
+    ".env.local",
+    "../compose.coolify.yaml",
+    "/tmp/compose.yaml",
+  ]) {
+    const mock = harness([]);
+    await assert.rejects(
+      deploy({ ...env, COOLIFY_COMPOSE_FILE: file }, mock.options),
+      /reviewed repository/,
+    );
+    assert.equal(mock.calls.length, 0);
+  }
+});
 test("unhealthy replacement cannot pass even when the public endpoint is ready", async () => {
   const mock = harness([
     preflight,
