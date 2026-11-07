@@ -43,21 +43,10 @@ export async function PublishedContentView({
         <Badge tone={statusTone(p.status)}>{p.status}</Badge>
       </div>
       <section className="detail-section">
-        <h2>About this project</h2>
-        <p className="preserve-lines">{p.description}</p>
-      </section>
-      {p.status === "Completed" && (
-        <section className="detail-section">
-          <h2>Completion</h2>
-          <p>Completed {p.actualCompletionDate}</p>
-          <p className="preserve-lines">{p.completionSummary}</p>
-        </section>
-      )}
-      <section className="detail-section">
-        <h2>Photographs</h2>
+        <h2>Images</h2>
         {!!p.attachments.length && (
           <p className="subtle-note">
-            Select a photograph to view it in full. Use Back to return to this
+            Select an image to view it in full. Use Back to return to this
             project.
           </p>
         )}
@@ -67,7 +56,7 @@ export async function PublishedContentView({
               <figure key={a.id}>
                 <a
                   href={"/api/media/" + a.id}
-                  aria-label={"Open full photograph: " + (a.caption || p.title)}
+                  aria-label={"Open full image: " + (a.caption || p.title)}
                 >
                   <Image
                     src={"/api/public/thumbnails/" + a.id}
@@ -82,9 +71,20 @@ export async function PublishedContentView({
             ))}
           </div>
         ) : (
-          <p>No photographs have been published yet.</p>
+          <p>No images have been published yet.</p>
         )}
       </section>
+      <section className="detail-section">
+        <h2>About this project</h2>
+        <p className="preserve-lines">{p.description}</p>
+      </section>
+      {p.status === "Completed" && (
+        <section className="detail-section">
+          <h2>Completion</h2>
+          <p>Completed {p.actualCompletionDate}</p>
+          <p className="preserve-lines">{p.completionSummary}</p>
+        </section>
+      )}
       <section className="detail-section">
         <h2>Information source</h2>
         <p className="preserve-lines source-text">
