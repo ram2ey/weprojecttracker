@@ -34,9 +34,7 @@ export async function PublishedContentView({
       </Link>
       <div className="detail-title">
         <div>
-          <span className="eyebrow">
-            {r.code} · {p.categoryName}
-          </span>
+          <span className="eyebrow">{p.categoryName}</span>
           <h1>{p.title}</h1>
           <p>{p.communityName} · Wassa East</p>
         </div>

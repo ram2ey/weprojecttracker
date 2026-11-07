@@ -89,7 +89,7 @@ export default async function Register({
               name="q"
               maxLength={200}
               defaultValue={filters.q}
-              placeholder="Project title, code or community"
+              placeholder="Project title or community"
             />
           </label>
           <FilterPanel count={chips.length}>

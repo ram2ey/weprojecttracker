@@ -3,7 +3,6 @@ import { cache } from "react";
 import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { contentRecord, contentRevision, mediaFile } from "@/db/schema";
-import { recordCode } from "./service";
 import { launchPayload } from "./validation";
 import type { ContentPayload, PublicContent } from "./types";
 import type { PublicFilters } from "./filters";
@@ -15,7 +14,6 @@ export const livePublication = and(
 );
 async function projectView(r: {
   id: string;
-  number: number;
   slug: string;
   revisionId: string;
   payload: ContentPayload;
@@ -40,7 +38,6 @@ async function projectView(r: {
     : [];
   return {
     id: r.id,
-    code: recordCode("project", r.number),
     kind: "project",
     slug: r.slug,
     revisionId: r.revisionId,
@@ -50,7 +47,6 @@ async function projectView(r: {
 }
 const selection = {
   id: contentRecord.id,
-  number: contentRecord.number,
   slug: contentRecord.slug,
   revisionId: contentRevision.id,
   payload: contentRevision.payload,
@@ -63,7 +59,7 @@ export async function listPublicContent(filters: Partial<PublicFilters> = {}) {
   const where = and(
     livePublication,
     q
-      ? sql`position(${q} in lower(concat_ws(' ','WE-P'||lpad(${contentRecord.number}::text,5,'0'),${contentRevision.payload}->>'title',${contentRevision.payload}->>'communityName')))>0`
+      ? sql`position(${q} in lower(concat_ws(' ',${contentRevision.payload}->>'title',${contentRevision.payload}->>'communityName')))>0`
       : undefined,
     ...(
       [

@@ -22,7 +22,7 @@ Migration 0006 adds a staff access-version counter to reject sign-ins already in
 
 ## Launch scope
 
-Public pages: register at /, individual /projects/[slug] pages, /about, /contact and /privacy. /projects redirects to / and preserves filters. Search matches title, displayed project code or community. Filters cover category, community and status; approved updates appear newest first.
+Public pages: register at /, individual /projects/[slug] pages, /about, /contact and /privacy. /projects redirects to / and preserves filters. Public search matches project title or community. Filters cover category, community and status; approved updates appear newest first. Project codes are internal staff references, excluded from public pages, share previews, public API responses and public search matching. Staff retain code display and search.
 
 Public navigation has Projects, About and Contact Us, with Privacy & Cookies in the footer. Phones use a sticky header and hamburger menu. Staff bookmark /staff/login directly; no staff sign-in links appear in public navigation. Contact currently offers the approved phone/WhatsApp number only. The future email form remains hidden until actual sending and mailbox delivery are configured and tested; no email enquiries or contact-form copies are collected. See [contact and privacy decisions](docs/PUBLIC_CONTACT_UPDATE.md).
 
