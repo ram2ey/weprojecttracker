@@ -29,6 +29,7 @@ export function Console({
           { key: "team", label: "Staff" },
           { key: "audit", label: "Audit log" },
           { key: "analytics", label: "Website statistics" },
+          { key: "comments", label: "Comments" },
         ]
       : []),
   ];

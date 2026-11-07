@@ -32,9 +32,35 @@ export default function Privacy() {
         <p>
           With your permission, the website counts public page views using its
           own server. It does not use third-party analytics, advertising
-          trackers, embedded social widgets, or a public enquiry form. It does
-          not save a separate history of phone or WhatsApp enquiries in its
+          trackers, embedded social widgets, or a public email enquiry form. It
+          does not save a separate history of phone or WhatsApp enquiries in its
           database.
+        </p>
+      </section>
+      <section className="detail-section">
+        <h2>Public project comments</h2>
+        <p>
+          When you post a comment, your chosen name, message and posting date
+          appear publicly immediately. Names are not verified. Do not include
+          private contact details or sensitive information. No public account,
+          email address or phone number is required.
+        </p>
+        <p>
+          Opening a comment form creates the essential wassa_comment_guard
+          cookie for up to 24 hours. This signed, HttpOnly cookie supports
+          posting limits and safe retries. It works independently of optional
+          website statistics. Rate-limit keys and submission keys are hashed;
+          comment records do not store your IP address. Hosting security logs
+          may still contain IP addresses.
+        </p>
+        <p>
+          The platform operator can close new comments and hide or restore
+          comments. Hidden names and messages remain private and recoverable;
+          hiding is not deletion. Comments have no automatic expiry in this
+          version. To request removal or raise a concern, contact the office.
+          Without verified visitor accounts, the office cannot automatically
+          verify authorship. Public and hidden comments may be included in
+          private recovery copies.
         </p>
       </section>
       <section className="detail-section">
@@ -59,11 +85,11 @@ export default function Privacy() {
       <section className="detail-section">
         <h2>Optional page-view statistics</h2>
         <p>
-          Analytics stays off until you select Accept or enable it in
-          Cookie settings. Rejecting has no effect on access to the website or
-          staff authentication. You can change your choice using Cookie settings
-          in the footer at any time. We also respect your browser’s Global
-          Privacy Control signal.
+          Analytics stays off until you select Accept or enable it in Cookie
+          settings. Rejecting has no effect on access to the website or staff
+          authentication. You can change your choice using Cookie settings in
+          the footer at any time. We also respect your browser’s Global Privacy
+          Control signal.
         </p>
         <p>
           We store only a daily date, a public page path and a count. Analytics

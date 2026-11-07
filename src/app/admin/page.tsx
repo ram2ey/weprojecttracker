@@ -9,6 +9,7 @@ import { TaxonomyManager } from "@/components/content/taxonomy-manager";
 import { listAdminRecords, listTaxonomy } from "@/lib/content/service";
 import { getPool } from "@/db";
 import { Analytics } from "@/components/staff/analytics";
+import { CommentManager } from "@/components/comments/comment-manager";
 export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Staff workspace",
@@ -31,18 +32,20 @@ export default async function Admin({
       "taxonomy",
       "audit",
       "analytics",
+      "comments",
     ].includes(view)
   )
     notFound();
   if (
-    ["team", "taxonomy", "audit", "analytics"].includes(view) &&
+    ["team", "taxonomy", "audit", "analytics", "comments"].includes(view) &&
     identity.staff.role !== "super_admin"
   )
     redirect("/admin");
   if (view === "new" && identity.staff.role === "approver")
     redirect("/admin?view=review");
   let children: React.ReactNode;
-  if (view === "analytics")
+  if (view === "comments") children = <CommentManager />;
+  else if (view === "analytics")
     children = (
       <Analytics
         days={params.days === "7" ? 7 : params.days === "90" ? 90 : 30}

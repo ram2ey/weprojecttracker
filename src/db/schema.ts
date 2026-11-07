@@ -268,6 +268,35 @@ export const mediaFile = pgTable(
   (t) => [index("media_record_idx").on(t.recordId)],
 );
 
+// New launch comments are deliberately separate from retired guest submissions.
+export const projectComment = pgTable(
+  "project_comment",
+  {
+    id: text("id").primaryKey(),
+    recordId: text("record_id")
+      .notNull()
+      .references(() => contentRecord.id, { onDelete: "cascade" }),
+    submissionKey: text("submission_key").notNull().unique(),
+    displayName: text("display_name").notNull(),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    hiddenAt: timestamp("hidden_at"),
+    moderatedAt: timestamp("moderated_at"),
+    moderatedBy: text("moderated_by").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    version: integer("version").notNull().default(0),
+  },
+  (t) => [
+    index("project_comment_list_idx").on(
+      t.recordId,
+      t.hiddenAt,
+      t.createdAt,
+      t.id,
+    ),
+  ],
+);
+
 export const guestDevice = pgTable("guest_device", {
   id: text("id").primaryKey(),
   tokenHash: text("token_hash").notNull().unique(),

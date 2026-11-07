@@ -1192,3 +1192,100 @@ td:first-child {
     scroll-behavior: auto !important;
   }
 }
+
+.comments-container {
+  padding-bottom: 48px;
+}
+.comments-section {
+  max-width: 820px;
+  margin-top: 0;
+}
+.comment-list {
+  list-style: none;
+  padding: 0;
+  margin: 24px 0;
+  display: grid;
+  gap: 16px;
+}
+.comment-card {
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--card);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.comment-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 16px;
+}
+.comment-meta time {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+.comment-card p {
+  margin-block: 12px;
+}
+.comment-form {
+  display: grid;
+  gap: 10px;
+  margin-block: 24px;
+  max-width: 680px;
+}
+.comment-form label {
+  font-weight: 600;
+}
+.comment-form input,
+.comment-form textarea {
+  width: 100%;
+  min-width: 0;
+}
+.comment-form textarea {
+  resize: vertical;
+}
+.comment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-block: 16px;
+}
+.comment-trap {
+  display: none;
+}
+.comment-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: end;
+  margin-block: 24px;
+}
+.comment-filters > div {
+  display: grid;
+  gap: 8px;
+  max-width: 100%;
+  min-width: 0;
+}
+.comment-filters select {
+  max-width: 100%;
+}
+.comment-project-control {
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 560px) {
+  .comment-filters {
+    display: grid;
+  }
+  .comment-card {
+    padding: 16px;
+  }
+  .comment-actions > .button {
+    flex: 1 1 auto;
+  }
+}
