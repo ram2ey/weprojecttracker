@@ -1320,8 +1320,7 @@ td:first-child {
   flex-wrap: wrap;
   gap: 8px;
 }
-.layout-options,
-.grid-community {
+.layout-options {
   display: none;
 }
 .project-actions {
@@ -1381,19 +1380,24 @@ td:first-child {
   }
   [data-project-layout="grid"] .project-card-body {
     padding: 10px;
+    display: flex;
+    flex-direction: column;
   }
   [data-project-layout="grid"] .project-card h2 {
+    order: -1;
     font-size: 1rem;
     line-height: 1.25;
     margin: 0;
   }
-  [data-project-layout="grid"] .grid-community {
-    display: block;
+  [data-project-layout="grid"] .card-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
     font-size: 0.875rem;
     margin: 2px 0 10px;
   }
   [data-project-layout="grid"]
-    :is(.card-meta, .card-description, .card-bottom time, .image-category) {
+    :is(.card-category, .card-description, .card-bottom time, .image-category) {
     display: none;
   }
   [data-project-layout="grid"] .project-image {

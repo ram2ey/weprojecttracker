@@ -1754,10 +1754,12 @@ test("long public text, source links, full-photo Back and text scaling remain us
   for (const width of [360, 430]) {
     await page.setViewportSize({ width, height: 820 });
     await page.getByRole("button", { name: "Grid", exact: true }).click();
-    await expect(page.locator(".grid-community")).toHaveText(
+    await expect(page.locator(".card-community")).toHaveText(
       "LongCommunityName".repeat(8),
     );
     await expect(page.locator(".project-image")).toBeVisible();
+    await expect(page.locator(".card-meta .badge")).toBeVisible();
+    await expect(page.locator(".card-meta .badge")).toHaveText("Completed");
     expect(
       await page
         .locator(".project-card-body")
@@ -2547,8 +2549,9 @@ test("phone grid, comment shortcuts and browser favourites work across pages and
   for (const width of [360, 430]) {
     await page.setViewportSize({ width, height: 820 });
     await page.getByRole("button", { name: "Grid", exact: true }).click();
-    await expect(card.locator(".grid-community")).toBeVisible();
-    await expect(card.locator(".card-meta")).toBeHidden();
+    await expect(card.locator(".card-community")).toBeVisible();
+    await expect(card.locator(".card-meta .badge")).toBeVisible();
+    await expect(card.locator(".card-meta .badge")).toHaveText("Ongoing");
     const first = (await card.boundingBox())!;
     const second = (await page.locator(".project-card").nth(1).boundingBox())!;
     expect(second.y).toBe(first.y);
