@@ -133,7 +133,12 @@ export default async function Admin({
     );
   }
   return (
-    <Console view={view} name={identity.user.name} role={identity.staff.role}>
+    <Console
+      key={view}
+      view={view}
+      name={identity.user.name}
+      role={identity.staff.role}
+    >
       {children}
     </Console>
   );

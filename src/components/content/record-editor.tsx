@@ -1,4 +1,5 @@
 "use client";
+import { flushSync } from "react-dom";
 import { useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -15,7 +16,7 @@ import {
 } from "@/lib/content/types";
 import { contentRequest, errorMessage } from "./client-api";
 import { useUnsavedChanges } from "./unsaved-changes";
-import { publicationErrors } from "@/lib/content/validation";
+import { publicationFieldErrors } from "@/lib/content/validation";
 export function RecordEditor({
   record,
   revisionId,
@@ -39,9 +40,14 @@ export function RecordEditor({
     [message, setMessage] = useState(""),
     [error, setError] = useState(""),
     [reason, setReason] = useState(""),
+    [withdrawalReason, setWithdrawalReason] = useState(""),
     [reviewed, setReviewed] = useState(false),
+    [showIssues, setShowIssues] = useState(false),
     [recovery, setRecovery] = useState(false),
     form = useRef<HTMLFormElement>(null);
+  const publishedRevision = record.revisions.find(
+    (item) => item.id === record.publishedRevisionId,
+  );
   const dirty = JSON.stringify(payload) !== baseline,
     canLeave = useUnsavedChanges(dirty),
     editable = revision.state === "draft" && canSubmit(role),
@@ -50,6 +56,23 @@ export function RecordEditor({
       revision.authorId !== actorId &&
       !revision.contributors.includes(actorId) &&
       revision.submittedBy !== actorId;
+  const issues = showIssues && editable ? publicationFieldErrors(payload) : {};
+  function fieldProps(key: keyof LaunchPayload, hint?: string) {
+    return {
+      id: "project-" + key,
+      "aria-invalid": issues[key] ? true : undefined,
+      "aria-describedby": issues[key] ? "error-" + key : hint,
+    };
+  }
+  function fieldError(key: keyof LaunchPayload) {
+    return (
+      issues[key] && (
+        <span className="field-error" id={"error-" + key}>
+          {issues[key]}
+        </span>
+      )
+    );
+  }
   function field<K extends keyof LaunchPayload>(
     key: K,
     value: LaunchPayload[K],
@@ -69,15 +92,21 @@ export function RecordEditor({
     }
   }
   async function save(submit: boolean) {
-    if (!form.current?.reportValidity()) return;
     if (submit) {
-      const issues = publicationErrors(payload);
-      if (issues.length) {
-        setMessage("");
-        setError("Before submission: " + issues.join(" "));
+      const firstIssue = Object.keys(publicationFieldErrors(payload))[0];
+      if (firstIssue) {
+        flushSync(() => {
+          setShowIssues(true);
+          setError("");
+          setRecovery(false);
+          setMessage("");
+        });
+        document.getElementById("project-" + firstIssue)?.focus();
         return;
       }
     }
+    if (!form.current?.reportValidity()) return;
+    setShowIssues(false);
     await operation(async () => {
       const { categoryName, communityName, ...input } = payload;
       void categoryName;
@@ -221,6 +250,7 @@ export function RecordEditor({
           <label>
             Title
             <input
+              {...fieldProps("title")}
               aria-label="Title"
               value={payload.title}
               minLength={3}
@@ -228,23 +258,26 @@ export function RecordEditor({
               required
               onChange={(e) => field("title", e.target.value)}
             />
+            {fieldError("title")}
           </label>
           <label>
             Description
             <textarea
+              {...fieldProps("description", "submission-help")}
               aria-label="Description"
               aria-required="true"
-              aria-describedby="submission-help"
               rows={6}
               value={payload.description}
               maxLength={15000}
               onChange={(e) => field("description", e.target.value)}
             />
+            {fieldError("description")}
           </label>
           <div className="form-columns">
             <label>
               Category
               <select
+                {...fieldProps("categoryId")}
                 aria-label="Category"
                 aria-required="true"
                 value={payload.categoryId}
@@ -259,10 +292,12 @@ export function RecordEditor({
                     </option>
                   ))}
               </select>
+              {fieldError("categoryId")}
             </label>
             <label>
               Community
               <select
+                {...fieldProps("communityId")}
                 aria-label="Community"
                 aria-required="true"
                 value={payload.communityId}
@@ -282,6 +317,7 @@ export function RecordEditor({
                     </option>
                   ))}
               </select>
+              {fieldError("communityId")}
             </label>
             <label>
               Status
@@ -301,20 +337,22 @@ export function RecordEditor({
           <label>
             Information source
             <textarea
+              {...fieldProps("source", "submission-help")}
               aria-label="Information source"
               aria-required="true"
-              aria-describedby="submission-help"
               rows={2}
               maxLength={2000}
               value={payload.source}
               onChange={(e) => field("source", e.target.value)}
             />
+            {fieldError("source")}
           </label>
           {payload.status === "Completed" && (
             <div className="form-stack">
               <label>
                 Completion date
                 <input
+                  {...fieldProps("actualCompletionDate")}
                   type="date"
                   aria-required="true"
                   value={payload.actualCompletionDate}
@@ -322,6 +360,7 @@ export function RecordEditor({
                     field("actualCompletionDate", e.target.value)
                   }
                 />
+                {fieldError("actualCompletionDate")}
               </label>
               <label>
                 Completion summary
@@ -329,9 +368,11 @@ export function RecordEditor({
                   rows={3}
                   aria-required="true"
                   maxLength={4000}
+                  {...fieldProps("completionSummary")}
                   value={payload.completionSummary}
                   onChange={(e) => field("completionSummary", e.target.value)}
                 />
+                {fieldError("completionSummary")}
               </label>
               <p className="subtle-note">
                 Completed projects need a completion date, summary and at least
@@ -344,6 +385,7 @@ export function RecordEditor({
             <label>
               Upload photograph
               <input
+                {...fieldProps("attachments")}
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
                 onChange={(e) => {
@@ -352,6 +394,7 @@ export function RecordEditor({
                   if (f) void upload(f);
                 }}
               />
+              {fieldError("attachments")}
             </label>
           )}
           {payload.attachments.map((a) => {
@@ -459,89 +502,123 @@ export function RecordEditor({
           </div>
         )}
       </form>
-      {reviewer && (
+      {reviewer && revision.state === "pending" && (
         <section className="form-section form-stack">
-          <h2>Publication actions</h2>
+          <h2>Review decision</h2>
           <label>
-            Decision or withdrawal reason
+            Review decision reason
             <textarea
               rows={3}
+              aria-describedby="decision-reason-help"
               minLength={10}
               maxLength={2000}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
             />
           </label>
-          {revision.state === "pending" &&
-            (independent ? (
-              <>
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={reviewed}
-                    onChange={(e) => setReviewed(e.target.checked)}
-                  />
-                  I checked the project information and photographs.
-                </label>
-                <div className="action-row">
-                  <Button
-                    disabled={busy || reason.trim().length < 10 || !reviewed}
-                    onClick={() => decision("approve")}
-                  >
-                    Approve & publish
-                  </Button>
-                  <Button
-                    variant="outline"
-                    disabled={busy || reason.trim().length < 10}
-                    onClick={() => decision("return")}
-                  >
-                    Return for correction
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <p>
-                You helped prepare this revision. Another approver must review
-                it.
-              </p>
-            ))}
-          {record.publishedRevisionId && !record.withdrawnAt && (
-            <Button
-              variant="outline"
-              disabled={busy || reason.trim().length < 10}
-              onClick={() => {
-                if (!canLeave()) return;
-                void operation(async () => {
-                  await contentRequest(
-                    "/api/staff/content/" + record.id,
-                    "POST",
-                    { action: "withdraw", reason },
-                  );
-                  setBaseline(JSON.stringify(payload));
-                  setMessage("Project withdrawn from public access.");
-                  router.refresh();
-                });
-              }}
-            >
-              Withdraw published project
-            </Button>
+          <p id="decision-reason-help" className="subtle-note">
+            Enter at least 10 characters for the reason. Leading and trailing
+            spaces do not count.
+          </p>
+          {independent ? (
+            <>
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={reviewed}
+                  onChange={(e) => setReviewed(e.target.checked)}
+                />
+                I checked the project information and photographs.
+              </label>
+              <div className="action-row">
+                <Button
+                  disabled={busy || reason.trim().length < 10 || !reviewed}
+                  onClick={() => decision("approve")}
+                >
+                  Approve & publish
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={busy || reason.trim().length < 10}
+                  onClick={() => decision("return")}
+                >
+                  Return for correction
+                </Button>
+              </div>
+            </>
+          ) : (
+            <p>
+              You helped prepare this revision. Another approver must review it.
+            </p>
           )}
+        </section>
+      )}
+      {reviewer && publishedRevision && !record.withdrawnAt && (
+        <section className="form-section form-stack">
+          <h2>Withdraw publication</h2>
+          <p>
+            Withdrawal removes “{publishedRevision.payload.title}” from the
+            public register.
+          </p>
+          <label>
+            Withdrawal reason
+            <textarea
+              rows={3}
+              value={withdrawalReason}
+              maxLength={2000}
+              aria-describedby="withdraw-help"
+              onChange={(e) => setWithdrawalReason(e.target.value)}
+            />
+          </label>
+          <p className="subtle-note" id="withdraw-help">
+            Enter at least 10 characters.
+          </p>
+          <Button
+            variant="outline"
+            disabled={busy || withdrawalReason.trim().length < 10}
+            onClick={() => {
+              if (
+                !window.confirm(
+                  "Withdraw “" +
+                    publishedRevision.payload.title +
+                    "” from the public register?",
+                )
+              )
+                return;
+              void operation(async () => {
+                await contentRequest(
+                  "/api/staff/content/" + record.id,
+                  "POST",
+                  { action: "withdraw", reason: withdrawalReason },
+                );
+                setWithdrawalReason("");
+                setMessage("Project withdrawn from public access.");
+                router.refresh();
+              });
+            }}
+          >
+            Withdraw published project
+          </Button>
         </section>
       )}
       {error && (
         <div role="alert" className="form-error">
           <p>{error}</p>
-          <Button variant="outline" onClick={() => setRecovery(true)}>
-            Preserve my changes
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={() => {
-              if (canLeave()) window.location.reload();
-            }}
-          >
-            Reload record
-          </Button>
+          {editable && dirty && (
+            <>
+              <Button variant="outline" onClick={() => setRecovery(true)}>
+                Preserve my changes
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  if (canLeave()) window.location.reload();
+                }}
+              >
+                Reload record
+              </Button>
+            </>
+          )}
         </div>
       )}
       {message && (

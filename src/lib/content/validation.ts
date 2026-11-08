@@ -58,25 +58,29 @@ export function launchPayload(
       .map((a) => ({ id: a.id, caption: a.caption })),
   };
 }
-export function publicationErrors(p: LaunchPayload) {
-  const errors: string[] = [];
-  if (p.title.trim().length < 3) errors.push("Add a title.");
+export function publicationFieldErrors(p: LaunchPayload) {
+  const errors: Partial<Record<keyof LaunchPayload, string>> = {};
+  if (p.title.trim().length < 3)
+    errors.title = "Enter a title of at least 3 characters.";
   if (p.description.trim().length < 20)
-    errors.push("Add a description of at least 20 characters.");
-  if (!p.categoryId || !p.communityId)
-    errors.push("Choose a category and community.");
-  if (!p.source.trim()) errors.push("Identify the information source.");
+    errors.description = "Add a description of at least 20 characters.";
+  if (!p.categoryId) errors.categoryId = "Choose a category.";
+  if (!p.communityId) errors.communityId = "Choose a community.";
+  if (!p.source.trim()) errors.source = "Identify the information source.";
   if (p.status === "Completed") {
-    if (
-      !p.actualCompletionDate ||
-      p.completionSummary.trim().length < 10 ||
-      !p.attachments.length
-    )
-      errors.push(
-        "Completed projects need a completion date, summary of at least 10 characters and a photograph.",
-      );
-    if (p.actualCompletionDate > new Date().toISOString().slice(0, 10))
-      errors.push("Completion cannot be in the future.");
+    if (!p.actualCompletionDate)
+      errors.actualCompletionDate = "Enter the completion date.";
+    else if (p.actualCompletionDate > new Date().toISOString().slice(0, 10))
+      errors.actualCompletionDate = "Completion cannot be in the future.";
+    if (p.completionSummary.trim().length < 10)
+      errors.completionSummary =
+        "Add a completion summary of at least 10 characters.";
+    if (!p.attachments.length)
+      errors.attachments =
+        "Attach at least one photograph of the completed project.";
   }
   return errors;
+}
+export function publicationErrors(p: LaunchPayload) {
+  return Object.values(publicationFieldErrors(p));
 }

@@ -312,6 +312,14 @@ test("200-project public register supports title/community search, filters and p
   await expect(
     page.getByRole("navigation", { name: "Active filters" }),
   ).toContainText(prefix);
+  const pageTwo = page.url();
+  await page.locator(".project-card h2 a").first().click();
+  await page.getByRole("link", { name: "Back to results" }).click();
+  await expect(page).toHaveURL(pageTwo);
+  await page.goto("/projects/" + item.slug);
+  await expect(
+    page.getByRole("link", { name: "All projects" }),
+  ).toHaveAttribute("href", "/");
   const redirect = await request.get("/projects?q=school&status=Ongoing", {
     maxRedirects: 0,
   });
@@ -795,14 +803,13 @@ test("editor and independent approver can publish through the real screens", asy
     review = await reviewer.newPage();
   await review.goto("/admin/content/" + id);
   await review
-    .getByLabel("Decision or withdrawal reason")
+    .getByLabel("Review decision reason")
     .fill("Reviewed the field notes and project details.");
   await review.getByRole("checkbox").check();
   await review.getByRole("button", { name: "Approve & publish" }).click();
   await expect(
     review.getByText("Approved and published.", { exact: true }),
   ).toBeVisible();
-  await reviewer.close();
   const record = await (await editor.get("/api/staff/content/" + id)).json();
   await page.goto("/projects/" + record.slug);
   await expect(
@@ -811,6 +818,46 @@ test("editor and independent approver can publish through the real screens", asy
       exact: true,
     }),
   ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Images" })).toHaveCount(0);
+  const enquiry = new URL(
+    (await page
+      .getByRole("link", { name: /Ask on WhatsApp/ })
+      .getAttribute("href"))!,
+  );
+  expect(enquiry.searchParams.get("text")).toContain(
+    "Phone learning space " + tag,
+  );
+  expect(enquiry.searchParams.get("text")).toContain(
+    origin + "/projects/" + record.slug,
+  );
+  await expect(page.getByRole("link", { name: /Call / })).toHaveAttribute(
+    "href",
+    "tel:+233542985346",
+  );
+  await review
+    .getByLabel("Withdrawal reason")
+    .fill("Withdraw the test project after verification.");
+  const withdraw = review.getByRole("button", {
+    name: "Withdraw published project",
+  });
+  const cancel = review.waitForEvent("dialog");
+  const cancelClick = withdraw.click();
+  const prompt = await cancel;
+  expect(prompt.message()).toContain("Phone learning space " + tag);
+  await prompt.dismiss();
+  await cancelClick;
+  expect((await page.request.get("/projects/" + record.slug)).status()).toBe(
+    200,
+  );
+  review.once("dialog", (dialog) => dialog.accept());
+  await withdraw.click();
+  await expect(
+    review.getByText("Project withdrawn from public access."),
+  ).toBeVisible();
+  expect((await page.request.get("/projects/" + record.slug)).status()).toBe(
+    404,
+  );
+  await reviewer.close();
 });
 test("concurrent writes and self-approval are rejected; previous publication survives review and withdrawal hides it", async ({
   request,
@@ -1108,6 +1155,8 @@ test("unsaved edits require confirmation and conflicts offer a copy", async ({
   await page
     .getByLabel("Description", { exact: true })
     .fill("Unsaved local text that must be preserved.");
+  const staffMenu = page.getByRole("button", { name: "Staff menu" });
+  if (await staffMenu.isVisible()) await staffMenu.click();
   const dialog = page.waitForEvent("dialog");
   const click = page
     .getByRole("link", { name: "Projects", exact: true })
@@ -1173,6 +1222,43 @@ test("retired routes and mutations are unavailable; worker only retires app cach
   expect(sw.headers()["cache-control"]).toContain("no-store");
 });
 
+test("first visit exposes search above consent and explains empty search results", async ({
+  page,
+}) => {
+  for (const viewport of [
+    { width: 360, height: 740 },
+    { width: 1440, height: 900 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto("/");
+    const banner = page.getByRole("region", { name: "Cookie preferences" });
+    await expect(banner).toBeVisible();
+    await page.evaluate(() => document.fonts.ready);
+    const search = page.getByRole("button", { name: "Search projects" });
+    await expect
+      .poll(async () => {
+        const button = await search.boundingBox();
+        const notice = await banner.boundingBox();
+        return !!button && !!notice && button.y + button.height <= notice.y;
+      })
+      .toBe(true);
+    await page
+      .getByLabel("Search projects", { exact: true })
+      .fill("no-such-project-" + tag);
+    await search.click();
+    await expect(
+      page.getByRole("heading", { name: "No projects match your search." }),
+    ).toBeVisible();
+    if (viewport.width === 360)
+      await expect(page.locator(".filter-panel summary")).toHaveText(
+        "Filter projects",
+      );
+    await page.getByRole("link", { name: "Clear search", exact: true }).click();
+    await expect(
+      page.getByLabel("Search projects", { exact: true }),
+    ).toHaveValue("");
+  }
+});
 test("phone filters are usable and show removable choices", async ({
   page,
   isMobile,
@@ -1270,6 +1356,8 @@ test("both sign-out controls handle HTTP and network failures before allowing a 
   await context.addCookies((await isolatedSession.storageState()).cookies);
   for (const path of ["/admin", "/staff/password"]) {
     await page.goto(path);
+    const staffMenu = page.getByRole("button", { name: "Staff menu" });
+    if (await staffMenu.isVisible()) await staffMenu.click();
     const routePattern = "**/api/auth/sign-out";
     await page.route(routePattern, (route) =>
       route.fulfill({
@@ -1538,24 +1626,57 @@ test("unfinished drafts save privately and explain all submission requirements",
   await page
     .getByRole("button", { name: "Save & send for review", exact: true })
     .click();
-  await expect(page.locator(".form-error[role=alert]")).toContainText(
-    "Before submission:",
+  const description = page.getByRole("textbox", {
+    name: "Description",
+    exact: true,
+  });
+  await expect(description).toBeFocused();
+  await expect(description).toHaveAccessibleDescription(
+    "Add a description of at least 20 characters.",
   );
-  await expect(page.locator(".form-error[role=alert]")).toContainText(
-    "description of at least 20 characters",
+  await expect(
+    page.getByLabel("Information source", { exact: true }),
+  ).toHaveAccessibleDescription("Identify the information source.");
+  await expect(page.locator("input[type=file]")).toHaveAccessibleDescription(
+    "Attach at least one photograph of the completed project.",
   );
-  await expect(page.locator(".form-error[role=alert]")).toContainText(
-    "Identify the information source",
-  );
-  await expect(page.locator(".form-error[role=alert]")).toContainText(
-    "Completed projects need",
-  );
+  await expect(
+    page.getByRole("button", { name: "Preserve my changes" }),
+  ).toHaveCount(0);
+  await description.fill("This project serves the local community.");
+  await expect(description).not.toHaveAttribute("aria-invalid", "true");
   expect(
     (await (await editor.get("/api/staff/content/" + d.recordId)).json())
       .revisions[0].state,
   ).toBe("draft");
 });
 
+test("staff mobile menu opens the review queue and an empty search can be cleared", async ({
+  page,
+  context,
+}) => {
+  await context.addCookies((await operator.storageState()).cookies);
+  await page.setViewportSize({ width: 360, height: 740 });
+  await page.goto("/admin");
+  const menu = page.getByRole("button", { name: "Staff menu" });
+  await expect(menu).toHaveAttribute("aria-expanded", "false");
+  await expect(
+    page.getByRole("navigation", { name: "Staff navigation" }),
+  ).toBeHidden();
+  await menu.click();
+  await page.getByRole("link", { name: "Review queue" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Review queue" }),
+  ).toBeVisible();
+  await expect(menu).toHaveAttribute("aria-expanded", "false");
+  await page.getByLabel("Search register").fill("no-match-" + tag);
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await expect(
+    page.getByText("No submissions match", { exact: false }),
+  ).toBeVisible();
+  await page.getByRole("link", { name: "Clear search" }).click();
+  await expect(page.getByLabel("Search register")).toHaveValue("");
+});
 test("long public text, source links, full-photo Back and text scaling remain usable", async ({
   page,
 }) => {
@@ -1576,12 +1697,28 @@ test("long public text, source links, full-photo Back and text scaling remain us
   );
   expect(upload.status()).toBe(200);
   const image = await upload.json();
+  const secondUpload = await editor.post(
+    "/api/staff/content/" + d.recordId + "/media",
+    {
+      multipart: {
+        file: { name: "second.png", mimeType: "image/png", buffer },
+      },
+    },
+  );
+  expect(secondUpload.status()).toBe(200);
+  const secondImage = await secondUpload.json();
   const title = "CommunityLearning".repeat(9);
   await save(d.recordId, d.revisionId, {
     ...payload(title),
     source:
       "Office notes: https://example.org/report. javascript:alert(1) <script>alert(2)</script>",
-    attachments: [{ id: image.id, caption: "PhotographCaption".repeat(28) }],
+    status: "Completed",
+    actualCompletionDate: "2026-05-01",
+    completionSummary: "The work is complete.",
+    attachments: [
+      { id: image.id, caption: "PhotographCaption".repeat(28) },
+      { id: secondImage.id, caption: "Second view" },
+    ],
   });
   const endpoint =
     "/api/staff/content/" + d.recordId + "/revisions/" + d.revisionId;
@@ -1630,7 +1767,20 @@ test("long public text, source links, full-photo Back and text scaling remain us
   await expect(page.locator(".source-text")).toContainText(
     "<script>alert(2)</script>",
   );
-  await page.getByRole("link", { name: /^Open full image:/ }).click();
+  await expect(
+    page.getByText("Completed 1 May 2026", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: /Open full image:/ }),
+  ).toHaveCount(1);
+  await page.getByText("View all 2 photos").click();
+  await expect(
+    page.getByRole("link", { name: /Open full image:/ }),
+  ).toHaveCount(2);
+  await page
+    .getByRole("link", { name: /^Open full image:/ })
+    .first()
+    .click();
   await expect(page).toHaveURL(origin + "/api/media/" + image.id);
   await page.goBack();
   await expect(

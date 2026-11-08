@@ -18,6 +18,7 @@ export function Console({
   children: ReactNode;
 }) {
   const router = useRouter(),
+    [menuOpen, setMenuOpen] = useState(false),
     [error, setError] = useState(""),
     [signingOut, setSigningOut] = useState(false);
   const links = [
@@ -37,56 +38,74 @@ export function Console({
     <div className="console-shell">
       <aside className="console-sidebar">
         <SiteBrand staff />
-        <nav aria-label="Staff navigation">
-          {links.map((l) => (
-            <Link
-              key={l.key}
-              href={"/admin?view=" + l.key}
-              aria-current={view === l.key ? "page" : undefined}
-            >
-              {l.label}
-            </Link>
-          ))}
-        </nav>
-        <p>
-          {name}
-          <br />
-          <small>
-            {role === "super_admin"
-              ? "Operator"
-              : role === "officer"
-                ? "Editor"
-                : "Approver"}
-          </small>
-        </p>
-        <Link href="/staff/password">Change password</Link>
-        <Link href="/">Public register ↗</Link>
-        <Button
-          variant="outline"
-          disabled={signingOut}
-          onClick={async () => {
-            if (
-              !document.dispatchEvent(
-                new Event("wassa-before-leave", { cancelable: true }),
+        <div className="staff-mobile-bar">
+          <strong>
+            {links.find((link) => link.key === view)?.label ?? "New project"}
+          </strong>
+          <Button
+            variant="outline"
+            aria-expanded={menuOpen}
+            aria-controls="staff-menu"
+            onClick={() => setMenuOpen(!menuOpen)}
+          >
+            Staff menu
+          </Button>
+        </div>
+        <div id="staff-menu" data-open={menuOpen}>
+          <nav aria-label="Staff navigation">
+            {links.map((l) => (
+              <Link
+                key={l.key}
+                onNavigate={() => {
+                  if (view === l.key) setMenuOpen(false);
+                }}
+                href={"/admin?view=" + l.key}
+                aria-current={view === l.key ? "page" : undefined}
+              >
+                {l.label}
+              </Link>
+            ))}
+          </nav>
+          <p>
+            {name}
+            <br />
+            <small>
+              {role === "super_admin"
+                ? "Operator"
+                : role === "officer"
+                  ? "Editor"
+                  : "Approver"}
+            </small>
+          </p>
+          <Link href="/staff/password">Change password</Link>
+          <Link href="/">Public register ↗</Link>
+          <Button
+            variant="outline"
+            disabled={signingOut}
+            onClick={async () => {
+              if (
+                !document.dispatchEvent(
+                  new Event("wassa-before-leave", { cancelable: true }),
+                )
               )
-            )
-              return;
-            setError("");
-            setSigningOut(true);
-            try {
-              await signOut();
-              router.replace("/staff/login");
-              router.refresh();
-            } catch {
-              setError(signOutErrorMessage);
-            } finally {
-              setSigningOut(false);
-            }
-          }}
-        >
-          Sign out
-        </Button>
-        {error && <p role="alert">{error}</p>}
+                return;
+              setError("");
+              setSigningOut(true);
+              try {
+                await signOut();
+                router.replace("/staff/login");
+                router.refresh();
+              } catch {
+                setError(signOutErrorMessage);
+              } finally {
+                setSigningOut(false);
+              }
+            }}
+          >
+            Sign out
+          </Button>
+          {error && <p role="alert">{error}</p>}
+        </div>
       </aside>
       <main id="main-content" tabIndex={-1} className="console-main">
         {children}

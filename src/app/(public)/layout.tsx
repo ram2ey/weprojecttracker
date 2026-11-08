@@ -1,3 +1,4 @@
+import { ResultsNavigation } from "@/components/content/results-navigation";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { RetireOffline } from "@/components/retire-offline";
@@ -13,7 +14,7 @@ export default function PublicLayout({
       <SiteHeader />
       <RetireOffline />
       <main id="main-content" tabIndex={-1}>
-        {children}
+        <ResultsNavigation>{children}</ResultsNavigation>
       </main>
       <SiteFooter />
       <CookieConsent />
