@@ -1,3 +1,4 @@
+import { FavouriteButton } from "./project-preferences";
 import { officeCall, officePhone, officeWhatsApp } from "@/lib/office-contact";
 import { RegisterReturnLink } from "./results-navigation";
 import Image from "next/image";
@@ -72,7 +73,10 @@ export async function PublishedContentView({
           <h1>{p.title}</h1>
           <p>{p.communityName} · Wassa East</p>
         </div>
-        <Badge tone={statusTone(p.status)}>{p.status}</Badge>
+        <div className="project-actions">
+          <Badge tone={statusTone(p.status)}>{p.status}</Badge>
+          <FavouriteButton slug={r.slug} title={p.title} />
+        </div>
       </div>
       <section className="detail-section">
         <h2>About this project</h2>

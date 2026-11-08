@@ -22,17 +22,22 @@ export function ProjectResultLink({
   slug,
   resultsHref,
   className,
+  comments = false,
+  label,
   children,
 }: {
   slug: string;
   resultsHref: string;
   className?: string;
+  comments?: boolean;
+  label?: string;
   children: ReactNode;
 }) {
   const navigation = useContext(RegisterContext);
   return (
     <Link
-      href={"/projects/" + slug}
+      href={"/projects/" + slug + (comments ? "#project-comments-title" : "")}
+      aria-label={label}
       className={className}
       onNavigate={() => navigation?.remember({ slug, href: resultsHref })}
     >
@@ -46,7 +51,12 @@ export function RegisterReturnLink({ slug }: { slug: string }) {
   const href = origin?.slug === slug ? origin.href : "/";
   return (
     <Link href={href} className="text-link">
-      ← {href === "/" ? "All projects" : "Back to results"}
+      ←{" "}
+      {href === "/"
+        ? "All projects"
+        : href === "/favourites"
+          ? "Back to favourites"
+          : "Back to results"}
     </Link>
   );
 }

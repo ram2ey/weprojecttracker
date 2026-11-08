@@ -422,7 +422,7 @@ test("public navigation stays available on phones and supports dismissal, focus 
     await page.getByLabel("Search projects", { exact: true }).click();
     await expect(nav).toBeHidden();
     await toggle.click();
-    for (let i = 0; i < 4; i++) await page.keyboard.press("Tab");
+    for (let i = 0; i < 5; i++) await page.keyboard.press("Tab");
     await expect(nav).toBeHidden();
     await expect(
       page.getByLabel("Search projects", { exact: true }),
@@ -470,7 +470,7 @@ test("public navigation stays available on phones and supports dismissal, focus 
   } else {
     await expect(toggle).toBeHidden();
     await expect(nav).toBeVisible();
-    await expect(nav.getByRole("link")).toHaveCount(3);
+    await expect(nav.getByRole("link")).toHaveCount(4);
   }
 });
 
@@ -1750,6 +1750,21 @@ test("long public text, source links, full-photo Back and text scaling remain us
   ).json();
   await page.goto("/?q=" + title);
   await expect(page.locator(".project-card")).toHaveCount(1);
+  const originalSize = page.viewportSize()!;
+  for (const width of [360, 430]) {
+    await page.setViewportSize({ width, height: 820 });
+    await page.getByRole("button", { name: "Grid", exact: true }).click();
+    await expect(page.locator(".grid-community")).toHaveText(
+      "LongCommunityName".repeat(8),
+    );
+    await expect(page.locator(".project-image")).toBeVisible();
+    expect(
+      await page
+        .locator(".project-card-body")
+        .evaluate((el) => el.scrollWidth <= el.clientWidth + 1),
+    ).toBe(true);
+  }
+  await page.setViewportSize(originalSize);
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth + 1,
@@ -2515,4 +2530,125 @@ test("closing or withdrawing a project wins against a waiting comment submission
     );
     await visitor.dispose();
   }
+});
+
+test("phone grid, comment shortcuts and browser favourites work across pages and tabs", async ({
+  page,
+  context,
+}) => {
+  await context.addCookies([
+    { name: "wassa_cookie_consent", value: "v1.rejected", url: origin },
+  ]);
+  const results = "/?q=" + encodeURIComponent(prefix) + "&page=2";
+  await page.goto(results);
+  const card = page.locator(".project-card").first();
+  const title = (await card.locator("h2").innerText()).trim();
+  const projectPath = (await card.locator("h2 a").getAttribute("href"))!;
+  for (const width of [360, 430]) {
+    await page.setViewportSize({ width, height: 820 });
+    await page.getByRole("button", { name: "Grid", exact: true }).click();
+    await expect(card.locator(".grid-community")).toBeVisible();
+    await expect(card.locator(".card-meta")).toBeHidden();
+    const first = (await card.boundingBox())!;
+    const second = (await page.locator(".project-card").nth(1).boundingBox())!;
+    expect(second.y).toBe(first.y);
+    expect(second.x).toBeGreaterThan(first.x + first.width);
+    for (const control of [
+      card.locator("h2 a"),
+      card.getByRole("button"),
+      card.getByRole("link", { name: /Comments on/ }),
+    ]) {
+      await control.focus();
+      await expect(control).toBeFocused();
+      expect((await control.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    }
+  }
+  await card.getByRole("button").click();
+  await page.reload();
+  await expect(card.getByRole("button")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(
+    page.getByRole("button", { name: "Grid", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await card.getByRole("link", { name: /Comments on/ }).click();
+  await expect(page).toHaveURL(
+    origin + projectPath + "#project-comments-title",
+  );
+  const heading = page.getByRole("heading", { name: "Visitor comments" });
+  await expect(heading).toBeInViewport();
+  expect((await heading.boundingBox())!.y).toBeGreaterThanOrEqual(
+    (await page.locator(".site-header").boundingBox())!.height,
+  );
+  await expect(
+    page.getByRole("button", { name: "Leave a comment" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Favourite " + title, exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("link", { name: "Back to results" }).click();
+  await expect(
+    page.getByRole("navigation", { name: "Project pages" }),
+  ).toContainText("Page 2");
+  const secondCard = page.locator(".project-card").nth(1);
+  const secondTitle = (await secondCard.locator("h2").innerText()).trim();
+  await secondCard.getByRole("button").click();
+  const saved = await context.newPage();
+  await saved.setViewportSize({ width: 360, height: 820 });
+  await saved.goto("/favourites");
+  await expect(saved.locator(".project-card h2")).toHaveText([
+    secondTitle,
+    title,
+  ]);
+  expect(
+    (
+      await new AxeBuilder({ page: saved })
+        .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
+        .analyze()
+    ).violations.map((v) => v.id),
+  ).toEqual([]);
+  await saved.getByRole("button", { name: "List", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "List", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await secondCard.getByRole("button").click();
+  await expect(saved.locator(".project-card")).toHaveCount(1);
+  await pool.query(
+    "UPDATE content_record SET comments_enabled=false WHERE slug=$1",
+    [projectPath.split("/").pop()],
+  );
+  await saved.getByRole("link", { name: "Comments on " + title }).click();
+  await expect(
+    saved.getByText("New comments are closed for this project."),
+  ).toBeVisible();
+  await saved.getByRole("link", { name: "Back to favourites" }).click();
+  await expect(saved).toHaveURL(origin + "/favourites");
+  const api = "**/api/public/content/" + projectPath.split("/").pop();
+  await saved.route(api, (route) => route.fulfill({ status: 503, json: {} }));
+  await saved.reload();
+  await expect(saved.getByRole("main").getByRole("alert")).toContainText(
+    "Some favourites could not load",
+  );
+  await saved.unroute(api);
+  await saved.getByRole("button", { name: "Retry loading favourites" }).click();
+  await expect(saved.locator(".project-card h2")).toHaveText(title);
+  await saved.route(api, (route) => route.fulfill({ status: 404, json: {} }));
+  await saved.reload();
+  await expect(
+    saved.getByRole("heading", { name: "No favourites yet" }),
+  ).toBeVisible();
+  await saved.unroute(api);
+  await saved.reload();
+  await saved
+    .getByRole("button", { name: "Favourite " + title, exact: true })
+    .click();
+  await expect(
+    saved.getByRole("heading", { name: "No favourites yet" }),
+  ).toBeVisible();
+  await expect(card.getByRole("button")).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+  await saved.close();
 });
