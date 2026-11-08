@@ -11,7 +11,15 @@ export default function Privacy() {
   return (
     <div className="container section narrow">
       <h1>Privacy &amp; Cookies</h1>
-      <p className="subtle-note">Last updated: 7 November 2026</p>
+      <p className="subtle-note">Last updated: 8 November 2026</p>
+      <section className="detail-section">
+        <h2>Favourites and phone layout</h2>
+        <p>
+          When you save a project or choose a phone layout, this browser
+          remembers your selection on this device. Clearing site data removes
+          your favourites and layout preference.
+        </p>
+      </section>
       <section className="detail-section">
         <h2>Who manages this website</h2>
         <p>

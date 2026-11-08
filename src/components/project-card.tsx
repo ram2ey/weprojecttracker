@@ -1,3 +1,5 @@
+import { MessageCircle } from "lucide-react";
+import { FavouriteButton } from "./content/project-preferences";
 import { ProjectResultLink } from "./content/results-navigation";
 import Image from "next/image";
 import { Badge } from "./ui/badge";
@@ -45,7 +47,8 @@ export function ProjectCard({
             {p.title}
           </ProjectResultLink>
         </h2>
-        <p>
+        <p className="grid-community">{p.communityName}</p>
+        <p className="card-description">
           {p.description.slice(0, 180)}
           {p.description.length > 180 ? "…" : ""}
         </p>
@@ -56,6 +59,18 @@ export function ProjectCard({
               timeZone: "UTC",
             })}
           </time>
+          <div className="project-actions">
+            <FavouriteButton slug={r.slug} title={p.title} />
+            <ProjectResultLink
+              className="project-action"
+              comments
+              resultsHref={resultsHref}
+              slug={r.slug}
+              label={"Comments on " + p.title}
+            >
+              <MessageCircle aria-hidden="true" />
+            </ProjectResultLink>
+          </div>
         </div>
       </div>
     </article>

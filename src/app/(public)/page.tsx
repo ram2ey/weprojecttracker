@@ -1,3 +1,4 @@
+import { ProjectCollection } from "@/components/content/project-preferences";
 import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
@@ -165,14 +166,11 @@ export default async function Register({
             )}
           </nav>
         )}
-        <p role="status" className="results-count">
-          {listing.total} {listing.total === 1 ? "project" : "projects"}
-        </p>
-        <div className="project-grid">
+        <ProjectCollection count={listing.total}>
           {listing.items.map((r) => (
             <ProjectCard key={r.id} project={r} resultsHref={resultsHref} />
           ))}
-        </div>
+        </ProjectCollection>
         {!listing.items.length && result.success && (
           <div className="empty-state">
             <h2>

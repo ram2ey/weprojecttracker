@@ -1307,3 +1307,100 @@ td:first-child {
     flex: 1 1 auto;
   }
 }
+
+.collection-toolbar,
+.project-actions,
+.project-action,
+.layout-options button {
+  display: flex;
+  align-items: center;
+}
+.collection-toolbar {
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.layout-options,
+.grid-community {
+  display: none;
+}
+.project-actions {
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.project-action {
+  justify-content: center;
+  width: 48px;
+  min-height: 48px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: white;
+  color: var(--foreground);
+  cursor: pointer;
+}
+.project-action svg {
+  width: 20px;
+  height: 20px;
+}
+.heart-action[aria-pressed="true"] {
+  color: #b11636;
+}
+.card-bottom {
+  align-items: center;
+  flex-wrap: wrap;
+}
+@media (max-width: 560px) {
+  .layout-options {
+    display: inline-flex;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2px;
+  }
+  .layout-options button {
+    min-width: 44px;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0 9px;
+    border: 0;
+    border-radius: var(--radius);
+    color: var(--foreground);
+    background: transparent;
+    cursor: pointer;
+  }
+  .layout-options button[aria-pressed="true"] {
+    background: var(--primary);
+    color: white;
+  }
+  .layout-options svg {
+    width: 16px;
+    height: 16px;
+  }
+  [data-project-layout="grid"] .project-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  [data-project-layout="grid"] .project-card-body {
+    padding: 10px;
+  }
+  [data-project-layout="grid"] .project-card h2 {
+    font-size: 1rem;
+    line-height: 1.25;
+    margin: 0;
+  }
+  [data-project-layout="grid"] .grid-community {
+    display: block;
+    font-size: 0.875rem;
+    margin: 2px 0 10px;
+  }
+  [data-project-layout="grid"]
+    :is(.card-meta, .card-description, .card-bottom time, .image-category) {
+    display: none;
+  }
+  [data-project-layout="grid"] .project-image {
+    height: auto;
+    aspect-ratio: 4 / 3;
+  }
+  [data-project-layout="grid"] .card-bottom {
+    padding-top: 8px;
+  }
+}
