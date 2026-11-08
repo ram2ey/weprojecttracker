@@ -146,7 +146,7 @@ fieldset:disabled select {
   isolation: isolate;
   display: flex;
   align-items: center;
-  min-height: max(480px, 36vw);
+  min-height: clamp(240px, 22vw, 360px);
   background: var(--brand-black);
   color: var(--brand-white);
 }
@@ -580,6 +580,10 @@ input[type="checkbox"] {
 .notice p:last-child {
   margin-bottom: 0;
 }
+.field-error {
+  font-size: 0.875rem;
+  color: var(--destructive, #a11b27);
+}
 .register-filters {
   display: flex;
   align-items: end;
@@ -641,6 +645,7 @@ input[type="checkbox"] {
   gap: 24px;
 }
 .project-card {
+  align-self: start;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 1.25rem;
@@ -657,15 +662,6 @@ input[type="checkbox"] {
   width: 100%;
   height: 210px;
   object-fit: cover;
-}
-.photo-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 210px;
-  font-size: 0.875rem;
-  color: var(--muted-foreground);
-  padding: 24px;
 }
 .image-category {
   position: absolute;
@@ -758,6 +754,14 @@ input[type="checkbox"] {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 24px;
 }
+.more-photos summary,
+.detail-section details > summary {
+  min-height: 48px;
+  padding-block: 12px;
+  color: var(--primary);
+  font-weight: 600;
+  cursor: pointer;
+}
 .photo-gallery figure {
   margin: 0;
 }
@@ -794,6 +798,14 @@ input[type="checkbox"] {
 .console-sidebar .constituency-logo {
   width: 200px;
 }
+.staff-mobile-bar {
+  display: none;
+}
+#staff-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
 .console-sidebar nav {
   display: grid;
   gap: 6px;
@@ -811,7 +823,7 @@ input[type="checkbox"] {
   background: var(--primary);
   color: white;
 }
-.console-sidebar > a:not(.constituency-brand),
+#staff-menu > a,
 td > a,
 .console-main[role="alert"] > a {
   display: inline-flex;
@@ -1025,11 +1037,11 @@ td:first-child {
     display: none;
   }
   .register-hero {
-    min-height: 380px;
+    min-height: 160px;
     align-items: flex-end;
   }
   .register-hero-content {
-    padding-block: 32px;
+    padding-block: 20px;
   }
   .container {
     width: calc(100% - 40px);
@@ -1065,15 +1077,25 @@ td:first-child {
     padding: 16px 20px;
     gap: 12px;
   }
+  .staff-mobile-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  #staff-menu[data-open="false"],
+  .console-sidebar > .constituency-brand {
+    display: none;
+  }
   .console-sidebar nav {
     display: flex;
     flex-wrap: wrap;
   }
-  .console-sidebar > p {
+  #staff-menu > p {
     font-size: 0.875rem;
   }
-  .console-sidebar > .button,
-  .console-sidebar > a:not(.constituency-brand) {
+  #staff-menu > .button,
+  #staff-menu > a {
     align-self: start;
   }
   .console-main {
@@ -1082,8 +1104,8 @@ td:first-child {
   .console-sidebar .constituency-logo {
     width: 180px;
   }
-  .console-sidebar > p,
-  .console-sidebar > a:not(.constituency-brand) {
+  #staff-menu > p,
+  #staff-menu > a {
     display: inline-block;
   }
   .console-heading {
@@ -1140,10 +1162,6 @@ td:first-child {
   .filter-grid {
     grid-template-columns: 1fr;
     padding-block: 12px;
-  }
-  .project-image,
-  .photo-placeholder {
-    height: 210px;
   }
   .detail-title {
     display: block;

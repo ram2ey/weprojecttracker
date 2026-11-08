@@ -1,3 +1,4 @@
+import { officeCall, officePhone, officeWhatsApp } from "@/lib/office-contact";
 import Link from "next/link";
 import { pageMetadata } from "@/lib/site";
 
@@ -22,14 +23,14 @@ export default function Contact() {
         <h2>Speak to the office</h2>
         <p>You can call or send a message on WhatsApp.</p>
         <p>
-          <a className="text-link" href="tel:+233542985346">
-            +233 54 298 5346
+          <a className="text-link" href={officeCall}>
+            {officePhone}
           </a>
         </p>
         <div className="action-row">
           <a
             className="button button-primary"
-            href="https://wa.me/233542985346"
+            href={officeWhatsApp}
             target="_blank"
             rel="noopener noreferrer"
           >

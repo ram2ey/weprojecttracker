@@ -92,21 +92,36 @@ export function RecordList({
         </div>
         {!items.length && (
           <p className="empty-state">
-            {view === "review"
-              ? "No submissions awaiting review."
-              : "No matching projects."}
+            {q && view === "review" ? (
+              <>
+                No submissions match “{q}”.{" "}
+                <Link className="text-link" href="/admin?view=review">
+                  Clear search
+                </Link>
+              </>
+            ) : page > 1 ? (
+              "No projects on this page."
+            ) : view === "review" ? (
+              "No submissions awaiting review."
+            ) : (
+              "No matching projects."
+            )}
           </p>
         )}
       </div>
-      <nav className="pagination" aria-label="Register pages">
-        {page > 1 && (
-          <Link href={"/admin?" + query + "&page=" + (page - 1)}>Previous</Link>
-        )}
-        <span>Page {page}</span>
-        {hasMore && (
-          <Link href={"/admin?" + query + "&page=" + (page + 1)}>Next</Link>
-        )}
-      </nav>
+      {(page > 1 || hasMore) && (
+        <nav className="pagination" aria-label="Register pages">
+          {page > 1 && (
+            <Link href={"/admin?" + query + "&page=" + (page - 1)}>
+              Previous
+            </Link>
+          )}
+          <span>Page {page}</span>
+          {hasMore && (
+            <Link href={"/admin?" + query + "&page=" + (page + 1)}>Next</Link>
+          )}
+        </nav>
+      )}
     </>
   );
 }

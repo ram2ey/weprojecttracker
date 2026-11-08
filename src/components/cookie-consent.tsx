@@ -140,9 +140,7 @@ export function CookieConsent() {
             <div>
               <h2>Optional website statistics</h2>
               <p>
-                May we count page views to understand which pages are useful? We
-                use no visitor IDs or advertising trackers. Rejecting won’t
-                affect your access.{" "}
+                May we count page views? Your choice won’t affect access.{" "}
                 <Link href="/privacy">Privacy &amp; Cookies</Link>
               </p>
             </div>

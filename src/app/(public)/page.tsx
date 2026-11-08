@@ -54,6 +54,9 @@ export default async function Register({
       ["status", "Status"],
     ] as const
   ).filter(([k]) => filters[k]);
+  const panelCount = chips.filter(([key]) => key !== "q").length;
+  const resultsHref =
+    chips.length || filters.page > 1 ? "/?" + filterQuery(filters) : "/";
   return (
     <>
       <section className="register-hero" aria-labelledby="register-title">
@@ -92,7 +95,7 @@ export default async function Register({
               placeholder="Project title or community"
             />
           </label>
-          <FilterPanel count={chips.length}>
+          <FilterPanel count={panelCount}>
             <div className="filter-grid">
               {[
                 {
@@ -141,7 +144,7 @@ export default async function Register({
             </Link>
           </p>
         )}
-        {!!chips.length && (
+        {chips.length > 0 && (listing.items.length > 0 || chips.length > 1) && (
           <nav className="active-filters" aria-label="Active filters">
             {chips.map(([k, label]) => (
               <Link
@@ -157,7 +160,9 @@ export default async function Register({
                 {label}: {filters[k]} ×
               </Link>
             ))}
-            <Link href="/">Clear all</Link>
+            {chips.length > 1 && listing.items.length > 0 && (
+              <Link href="/">Clear all</Link>
+            )}
           </nav>
         )}
         <p role="status" className="results-count">
@@ -165,7 +170,7 @@ export default async function Register({
         </p>
         <div className="project-grid">
           {listing.items.map((r) => (
-            <ProjectCard key={r.id} project={r} />
+            <ProjectCard key={r.id} project={r} resultsHref={resultsHref} />
           ))}
         </div>
         {!listing.items.length && result.success && (
@@ -173,24 +178,36 @@ export default async function Register({
             <h2>
               {listing.total
                 ? "This page has no projects."
-                : "No published projects found."}
+                : chips.length
+                  ? "No projects match your search."
+                  : "No published projects yet."}
             </h2>
             <p>
               {listing.total
                 ? "Return to the first page of results."
-                : "Try another search or check back for approved projects."}
+                : chips.length
+                  ? "Try a different keyword or remove a filter."
+                  : "Check back for approved projects."}
             </p>
-            <Link
-              className="button button-outline"
-              href={
-                listing.total ? "/?" + filterQuery(filters, { page: "1" }) : "/"
-              }
-            >
-              {listing.total ? "First page" : "Clear filters"}
-            </Link>
+            {(listing.total > 0 || chips.length > 0) && (
+              <Link
+                className="button button-outline"
+                href={
+                  listing.total
+                    ? "/?" + filterQuery(filters, { page: "1" })
+                    : "/"
+                }
+              >
+                {listing.total
+                  ? "First page"
+                  : panelCount
+                    ? "Clear filters"
+                    : "Clear search"}
+              </Link>
+            )}
           </div>
         )}
-        {listing.total > 0 && (
+        {pages > 1 && listing.items.length > 0 && (
           <nav className="pagination" aria-label="Project pages">
             {filters.page > 1 && (
               <Link
