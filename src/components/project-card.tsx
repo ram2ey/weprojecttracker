@@ -36,8 +36,10 @@ export function ProjectCard({
       )}
       <div className="project-card-body">
         <div className="card-meta">
-          <span>
-            {!photo && <>{p.categoryName} · </>}
+          <span className="card-community">
+            {!photo && (
+              <span className="card-category">{p.categoryName} · </span>
+            )}
             {p.communityName}
           </span>
           <Badge tone={statusTone(p.status)}>{p.status}</Badge>
@@ -47,7 +49,6 @@ export function ProjectCard({
             {p.title}
           </ProjectResultLink>
         </h2>
-        <p className="grid-community">{p.communityName}</p>
         <p className="card-description">
           {p.description.slice(0, 180)}
           {p.description.length > 180 ? "…" : ""}
