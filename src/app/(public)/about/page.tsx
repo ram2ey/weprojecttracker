@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { MpProfile } from "@/components/mp-profile";
 import { pageMetadata } from "@/lib/site";
 export const metadata = pageMetadata(
   "About Wassa East",
@@ -32,19 +33,7 @@ export default function About() {
         aria-labelledby="leadership-title"
       >
         <h2 id="leadership-title">MP and Constituency Executives</h2>
-        <div className="mp-profile">
-          <Image
-            className="leadership-portrait"
-            src="/illustrations/leadership-portrait.svg"
-            alt="MP portrait placeholder"
-            width={160}
-            height={192}
-          />
-          <div>
-            <h3>Member of Parliament for Wassa East</h3>
-            <p>MP name and biography awaiting confirmation.</p>
-          </div>
-        </div>
+        <MpProfile />
         <h3>Constituency executives</h3>
         <ul className="executive-list">
           {[1, 2].map((entry) => (
