@@ -15,6 +15,7 @@ export function readConsent(cookies: string): Consent {
 export function analyticsPath(value: unknown): string | null {
   if (typeof value !== "string") return null;
   // Do not accept URLs, queries, fragments, encoded paths or private routes.
-  if (["/", "/about", "/contact", "/privacy"].includes(value)) return value;
+  if (["/", "/projects", "/about", "/contact", "/privacy"].includes(value))
+    return value;
   return /^\/projects\/[a-z0-9][a-z0-9-]{0,159}$/.test(value) ? value : null;
 }

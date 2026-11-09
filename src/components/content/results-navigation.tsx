@@ -48,11 +48,11 @@ export function ProjectResultLink({
 
 export function RegisterReturnLink({ slug }: { slug: string }) {
   const origin = useContext(RegisterContext)?.origin;
-  const href = origin?.slug === slug ? origin.href : "/";
+  const href = origin?.slug === slug ? origin.href : "/projects";
   return (
     <Link href={href} className="text-link">
       ←{" "}
-      {href === "/"
+      {href === "/projects"
         ? "All projects"
         : href === "/favourites"
           ? "Back to favourites"

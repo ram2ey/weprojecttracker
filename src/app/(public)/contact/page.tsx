@@ -4,7 +4,7 @@ import { pageMetadata } from "@/lib/site";
 
 export const metadata = pageMetadata(
   "Contact Us",
-  "Contact the Wassa East Constituency office by phone or WhatsApp.",
+  "Contact the Wassa East Constituency office about projects and general enquiries by phone or WhatsApp.",
   "/contact",
 );
 
@@ -15,8 +15,8 @@ export default function Contact() {
         <span className="eyebrow">WASSA EAST CONSTITUENCY</span>
         <h1>Contact Us</h1>
         <p>
-          Get in touch with the office about projects and information on this
-          website.
+          Get in touch with the office about a local project or a general
+          constituency enquiry.
         </p>
       </div>
       <section className="detail-section">

@@ -10,7 +10,12 @@ const nextConfig: NextConfig = {
     ],
   },
   async redirects() {
-    return [{ source: "/projects", destination: "/", permanent: true }];
+    return ["q", "category", "community", "status", "page"].map((key) => ({
+      source: "/",
+      has: [{ type: "query" as const, key, value: ".*" }],
+      destination: "/projects",
+      permanent: true,
+    }));
   },
   async headers() {
     return [

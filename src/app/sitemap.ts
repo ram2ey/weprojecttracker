@@ -18,6 +18,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .limit(49000);
   return [
     { url: siteUrl() },
+    { url: siteUrl() + "/projects" },
     { url: siteUrl() + "/about" },
     { url: siteUrl() + "/contact" },
     { url: siteUrl() + "/privacy" },

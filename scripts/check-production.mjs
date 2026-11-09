@@ -93,11 +93,11 @@ try {
       path,
     );
   }
-  const redirect = await fetch("http://127.0.0.1:3200/projects?q=school", {
+  const redirect = await fetch("http://127.0.0.1:3200/?q=school", {
     redirect: "manual",
   });
   assert.equal(redirect.status, 308);
-  assert.equal(redirect.headers.get("location"), "/?q=school");
+  assert.equal(redirect.headers.get("location"), "/projects?q=school");
   assert.equal(
     (await fetch("http://127.0.0.1:3200/api/staff/content")).status,
     403,
@@ -118,7 +118,7 @@ try {
       viewport: { width: 360, height: 800 },
     });
     const page = await context.newPage();
-    await page.goto("http://127.0.0.1:3200/");
+    await page.goto("http://127.0.0.1:3200/projects");
     await page.evaluate(() => document.fonts.ready);
     await page.screenshot({
       path: ".local/phase1-phone-register.png",
@@ -147,7 +147,7 @@ try {
     );
     await page.getByRole("link", { name: "Return home", exact: true }).click();
     await page
-      .getByRole("heading", { name: "Project Tracker", exact: true })
+      .getByRole("heading", { name: "Wassa East Project Tracker", exact: true })
       .waitFor();
   } finally {
     await browser.close();
@@ -207,7 +207,7 @@ try {
       viewport: { width: 360, height: 800 },
     });
     const page = await context.newPage();
-    await page.goto("http://127.0.0.1:3201/");
+    await page.goto("http://127.0.0.1:3201/projects");
     await page
       .getByRole("heading", {
         name: "Published information is temporarily unavailable.",

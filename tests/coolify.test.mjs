@@ -27,10 +27,10 @@ function publicResponse(url, release = env.IMAGE_TAG, migrated = true) {
   const path = new URL(url).pathname;
   if (path === "/api/ready")
     return Response.json({ ready: true, release, migrated });
-  if (path === "/projects")
+  if (path === "/" && new URL(url).searchParams.has("q"))
     return new Response(null, {
       status: 308,
-      headers: { location: "/?q=school" },
+      headers: { location: "/projects?q=school" },
     });
   if (
     [
@@ -260,7 +260,7 @@ test("outage, bad redirect and financial leakage are caught by public checks", a
         ? new Response(null, { status: 503 })
         : publicResponse(url),
     (url) =>
-      new URL(url).pathname === "/projects"
+      new URL(url).pathname === "/" && new URL(url).searchParams.has("q")
         ? new Response(null, {
             status: 308,
             headers: { location: "https://other.example/" },

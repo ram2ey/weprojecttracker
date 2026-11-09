@@ -293,7 +293,7 @@ test("200-project public register supports title/community search, filters and p
   expect(staffFound.items.some((r: { id: string }) => r.id === item.id)).toBe(
     true,
   );
-  await page.goto("/?q=" + encodeURIComponent(prefix));
+  await page.goto("/projects?q=" + encodeURIComponent(prefix));
   await expect(page.locator(".project-card")).toHaveCount(24);
   await expect(
     page.getByLabel("Search projects", { exact: true }),
@@ -303,7 +303,7 @@ test("200-project public register supports title/community search, filters and p
   ).toHaveCount(0);
   await page.goto("/projects/" + item.slug);
   await expect(page.locator("main")).not.toContainText(staffItem.code);
-  await page.goto("/?q=" + encodeURIComponent(prefix));
+  await page.goto("/projects?q=" + encodeURIComponent(prefix));
   await page.getByRole("link", { name: "Next", exact: true }).click();
   await expect(page).toHaveURL(/page=2/);
   await expect(page.getByLabel("Search projects", { exact: true })).toHaveValue(
@@ -319,12 +319,12 @@ test("200-project public register supports title/community search, filters and p
   await page.goto("/projects/" + item.slug);
   await expect(
     page.getByRole("link", { name: "All projects" }),
-  ).toHaveAttribute("href", "/");
-  const redirect = await request.get("/projects?q=school&status=Ongoing", {
+  ).toHaveAttribute("href", "/projects");
+  const redirect = await request.get("/?q=school&status=Ongoing", {
     maxRedirects: 0,
   });
   expect(redirect.status()).toBe(308);
-  expect(redirect.headers().location).toBe("/?q=school&status=Ongoing");
+  expect(redirect.headers().location).toBe("/projects?q=school&status=Ongoing");
 });
 test("public and authenticated pages remain accessible and fit phone and desktop screens", async ({
   page,
@@ -332,6 +332,7 @@ test("public and authenticated pages remain accessible and fit phone and desktop
 }) => {
   for (const route of [
     "/",
+    "/projects",
     "/about",
     "/contact",
     "/privacy",
@@ -391,9 +392,9 @@ test("public and authenticated pages remain accessible and fit phone and desktop
 test("public navigation stays available on phones and supports dismissal, focus and resizing", async ({
   page,
 }) => {
-  await page.goto("/?q=" + encodeURIComponent(prefix));
+  await page.goto("/projects?q=" + encodeURIComponent(prefix));
   await expect(
-    page.getByRole("heading", { name: "Project Tracker", exact: true }),
+    page.getByRole("heading", { name: "Projects", exact: true }),
   ).toBeVisible();
   await expect(
     page.locator(
@@ -413,29 +414,19 @@ test("public navigation stays available on phones and supports dismissal, focus 
     await expect(toggle).toHaveAttribute("aria-expanded", "true");
     await page.keyboard.press("Tab");
     await expect(
-      nav.getByRole("link", { name: "Projects", exact: true }),
+      nav.getByRole("link", { name: "Home", exact: true }),
     ).toBeFocused();
     await page.keyboard.press("Escape");
     await expect(toggle).toBeFocused();
     await expect(nav).toBeHidden();
     await toggle.click();
-    await page.getByLabel("Search projects", { exact: true }).click();
+    await page
+      .getByRole("heading", { name: "Optional website statistics" })
+      .click();
     await expect(nav).toBeHidden();
     await toggle.click();
-    for (let i = 0; i < 5; i++) await page.keyboard.press("Tab");
+    for (let i = 0; i < 6; i++) await page.keyboard.press("Tab");
     await expect(nav).toBeHidden();
-    await expect(
-      page.getByRole("button", { name: "Previous photo" }),
-    ).toBeFocused();
-    await page.keyboard.press("Tab");
-    await expect(
-      page.getByRole("button", { name: /^(Pause|Play) slideshow$/ }),
-    ).toBeFocused();
-    await page.keyboard.press("Tab");
-    await expect(
-      page.getByRole("button", { name: "Next photo" }),
-    ).toBeFocused();
-    await page.keyboard.press("Tab");
     await expect(
       page.getByLabel("Search projects", { exact: true }),
     ).toBeFocused();
@@ -482,7 +473,7 @@ test("public navigation stays available on phones and supports dismissal, focus 
   } else {
     await expect(toggle).toBeHidden();
     await expect(nav).toBeVisible();
-    await expect(nav.getByRole("link")).toHaveCount(4);
+    await expect(nav.getByRole("link")).toHaveCount(5);
   }
 });
 
@@ -1234,7 +1225,7 @@ test("retired routes and mutations are unavailable; worker only retires app cach
   expect(sw.headers()["cache-control"]).toContain("no-store");
 });
 
-test("first visit shows the full-height hero and search is reachable below it with consent open", async ({
+test("Home introduces Wassa East and leads to the project directory with consent open", async ({
   page,
 }) => {
   for (const viewport of [
@@ -1252,6 +1243,37 @@ test("first visit shows the full-height hero and search is reachable below it wi
         return hero ? Math.round(hero.y + hero.height) : 0;
       })
       .toBe(viewport.height);
+    await expect(
+      page.getByRole("heading", { name: "Wassa East Project Tracker" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Meet Wassa East" }),
+    ).toBeVisible();
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = "200%";
+    });
+    await expect(
+      page.getByRole("link", { name: "About Wassa East", exact: true }),
+    ).toHaveAttribute("href", "/about");
+    await expect(
+      page.getByRole("link", { name: "Contact the office" }),
+    ).toHaveAttribute("href", "/contact");
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth + 1,
+      ),
+    ).toBe(true);
+    const content = await page
+      .locator(".register-hero-content .page-heading")
+      .boundingBox();
+    const controls = await page.locator(".hero-photo-controls").boundingBox();
+    expect(content!.y + content!.height).toBeLessThanOrEqual(controls!.y);
+    await page.getByRole("link", { name: "Explore projects" }).click();
+    await expect(page).toHaveURL(origin + "/projects");
+    await expect(page.locator(".register-hero")).toHaveCount(0);
+    await page.evaluate(() => {
+      document.documentElement.style.fontSize = "";
+    });
     const search = page.getByRole("button", { name: "Search projects" });
     await search.evaluate((button) =>
       button.scrollIntoView({ block: "center" }),
@@ -1284,7 +1306,7 @@ test("phone filters are usable and show removable choices", async ({
   page,
   isMobile,
 }) => {
-  await page.goto("/");
+  await page.goto("/projects");
   if (isMobile)
     await page.getByText("Filter projects", { exact: true }).click();
   await page.getByLabel("Search projects", { exact: true }).fill(prefix);
@@ -1350,7 +1372,7 @@ test("tracked register links retain real results and reject invalid supported fi
   const canonical = await page
     .locator('link[rel="canonical"]')
     .getAttribute("href");
-  expect(new URL(canonical!).href).toBe(new URL("/", origin).href);
+  expect(new URL(canonical!).href).toBe(new URL("/projects", origin).href);
   await page.getByRole("link", { name: "Next", exact: true }).click();
   await expect(page).toHaveURL(/page=2/);
   await expect(page.locator(".project-card")).toHaveCount(24);
@@ -1563,7 +1585,7 @@ test("CSP blocks injected scripts while fonts, filters and keyboard navigation w
   page,
   request,
 }) => {
-  const response = await page.goto("/?q=" + encodeURIComponent(prefix));
+  const response = await page.goto("/projects?q=" + encodeURIComponent(prefix));
   const policy = response!.headers()["content-security-policy"];
   expect(policy).toContain("default-src 'self'");
   expect(policy).not.toContain("unsafe-eval");
@@ -1607,12 +1629,12 @@ test("CSP blocks injected scripts while fonts, filters and keyboard navigation w
     if (await control.isVisible())
       expect((await control.boundingBox())!.height).toBeGreaterThanOrEqual(48);
   }
-  await page.goto("/?q=no-results-" + tag);
+  await page.goto("/projects?q=no-results-" + tag);
   expect(
     (await page.locator(".empty-state a").boundingBox())!.height,
   ).toBeGreaterThanOrEqual(48);
   await page.locator(".empty-state a").click();
-  await expect(page).toHaveURL(origin + "/");
+  await expect(page).toHaveURL(origin + "/projects");
   // Parser-inserted untrusted HTML must be blocked. DevTools-created scripts
   // inherit the debugging context's trust and are not a valid injection test.
   await page.route("**/about?csp-fixture=1", async (route) => {
@@ -1769,7 +1791,7 @@ test("long public text, source links, full-photo Back and text scaling remain us
   const record = await (
     await editor.get("/api/staff/content/" + d.recordId)
   ).json();
-  await page.goto("/?q=" + title);
+  await page.goto("/projects?q=" + title);
   await expect(page.locator(".project-card")).toHaveCount(1);
   const originalSize = page.viewportSize()!;
   for (const width of [360, 430]) {
@@ -2562,7 +2584,7 @@ test("phone grid, comment shortcuts and browser favourites work across pages and
   await context.addCookies([
     { name: "wassa_cookie_consent", value: "v1.rejected", url: origin },
   ]);
-  const results = "/?q=" + encodeURIComponent(prefix) + "&page=2";
+  const results = "/projects?q=" + encodeURIComponent(prefix) + "&page=2";
   await page.goto(results);
   const card = page.locator(".project-card").first();
   const title = (await card.locator("h2").innerText()).trim();

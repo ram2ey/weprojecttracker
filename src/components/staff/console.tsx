@@ -78,7 +78,7 @@ export function Console({
             </small>
           </p>
           <Link href="/staff/password">Change password</Link>
-          <Link href="/">Public register ↗</Link>
+          <Link href="/projects">Public register ↗</Link>
           <Button
             variant="outline"
             disabled={signingOut}

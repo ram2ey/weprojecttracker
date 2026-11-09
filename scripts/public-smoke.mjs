@@ -49,6 +49,7 @@ export async function smokePublicApp(
   for (const path of full
     ? [
         "/",
+        "/projects",
         "/about",
         "/contact",
         "/privacy",
@@ -59,11 +60,11 @@ export async function smokePublicApp(
     : ["/"])
     await get(path);
   if (!full) return ready;
-  const redirect = await get("/projects?q=school", 308, "manual");
+  const redirect = await get("/?q=school", 308, "manual");
   const target = new URL(redirect.headers.get("location") || "", origin);
   if (
     target.origin !== origin ||
-    target.pathname !== "/" ||
+    target.pathname !== "/projects" ||
     target.searchParams.get("q") !== "school"
   )
     throw new Error("Register redirect lost its query or origin.");
