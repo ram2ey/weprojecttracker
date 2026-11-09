@@ -425,6 +425,18 @@ test("public navigation stays available on phones and supports dismissal, focus 
     for (let i = 0; i < 5; i++) await page.keyboard.press("Tab");
     await expect(nav).toBeHidden();
     await expect(
+      page.getByRole("button", { name: "Previous photo" }),
+    ).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(
+      page.getByRole("button", { name: /^(Pause|Play) slideshow$/ }),
+    ).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(
+      page.getByRole("button", { name: "Next photo" }),
+    ).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(
       page.getByLabel("Search projects", { exact: true }),
     ).toBeFocused();
     const headerBottom = (await header.boundingBox())!;
@@ -1222,7 +1234,7 @@ test("retired routes and mutations are unavailable; worker only retires app cach
   expect(sw.headers()["cache-control"]).toContain("no-store");
 });
 
-test("first visit exposes search above consent and explains empty search results", async ({
+test("first visit shows the full-height hero and search is reachable below it with consent open", async ({
   page,
 }) => {
   for (const viewport of [
@@ -1234,7 +1246,16 @@ test("first visit exposes search above consent and explains empty search results
     const banner = page.getByRole("region", { name: "Cookie preferences" });
     await expect(banner).toBeVisible();
     await page.evaluate(() => document.fonts.ready);
+    await expect
+      .poll(async () => {
+        const hero = await page.locator(".register-hero").boundingBox();
+        return hero ? Math.round(hero.y + hero.height) : 0;
+      })
+      .toBe(viewport.height);
     const search = page.getByRole("button", { name: "Search projects" });
+    await search.evaluate((button) =>
+      button.scrollIntoView({ block: "center" }),
+    );
     await expect
       .poll(async () => {
         const button = await search.boundingBox();
