@@ -86,7 +86,7 @@ export function MpProfile() {
             In 2013, he moved into government service following his appointment
             as Deputy Minister for Roads and Highways, a position he held until
             2016. This appointment gave him an opportunity to contribute to
-            government policy and administration within Ghana's road
+            government policy and administration within Ghana&rsquo;s road
             infrastructure sector.
           </p>
           <h4>Political Journey and Parliamentary Career</h4>
@@ -113,11 +113,11 @@ export function MpProfile() {
           </p>
           <h4>Parliamentary Leadership and Responsibilities</h4>
           <p>
-            One of the notable areas of Hon. Mensah's parliamentary involvement
+            One of the notable areas of Hon. Mensah&rsquo;s parliamentary involvement
             is the roads and transportation sector.
           </p>
           <p>
-            He currently serves as the Chairperson of Parliament's Roads and
+            He currently serves as the Chairperson of Parliament&rsquo;s Roads and
             Transportation Committee. He also serves on the following
             committees:
           </p>
@@ -177,7 +177,7 @@ export function MpProfile() {
           </p>
           <p>
             His years of parliamentary representation, experience as Deputy
-            Minister for Roads and Highways, leadership of Parliament's Roads
+            Minister for Roads and Highways, leadership of Parliament&rsquo;s Roads
             and Transportation Committee and appointment as Chairman of the
             Ghana Road Fund Board form important parts of his public-service
             profile.
