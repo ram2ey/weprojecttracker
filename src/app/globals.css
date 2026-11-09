@@ -146,14 +146,48 @@ fieldset:disabled select {
   isolation: isolate;
   display: flex;
   align-items: center;
-  min-height: clamp(240px, 22vw, 360px);
+  min-height: calc(100vh - var(--public-header-height, 101px));
+  min-height: calc(100dvh - var(--public-header-height, 101px));
   background: var(--brand-black);
   color: var(--brand-white);
 }
 .register-hero-image {
   object-fit: cover;
-  object-position: 50% 12%;
+  object-position: var(--hero-crop);
   pointer-events: none;
+  opacity: 0;
+  transition: opacity 800ms ease-in-out;
+}
+.register-hero-image[data-visible="true"] {
+  opacity: 1;
+}
+.hero-photo-controls {
+  position: absolute;
+  z-index: 3;
+  bottom: 12px;
+  right: max(16px, 4vw);
+  display: flex;
+  gap: 4px;
+}
+.hero-photo-controls button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  color: white;
+  background: rgb(0 0 0 / 75%);
+  border: 1px solid rgb(255 255 255 / 65%);
+  border-radius: 50%;
+  cursor: pointer;
+}
+.hero-photo-controls button:focus-visible {
+  outline: 3px solid white;
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .register-hero-image {
+    transition: none;
+  }
 }
 .register-hero::after {
   content: "";
@@ -1037,11 +1071,10 @@ td:first-child {
     display: none;
   }
   .register-hero {
-    min-height: 160px;
     align-items: flex-end;
   }
-  .register-hero-content {
-    padding-block: 20px;
+  .register-hero-image {
+    object-position: var(--hero-mobile-crop);
   }
   .container {
     width: calc(100% - 40px);
