@@ -554,6 +554,10 @@ footer :is(a, button) {
 }
 .mp-profile > div, .executive-list li > div { flex: 1 1 10rem; }
 .leadership-portrait { border-radius: 8px; object-fit: cover; }
+.mp-portrait { max-width: 100%; height: auto; }
+.mp-biography { margin-bottom: 32px; }
+.mp-biography p { margin-bottom: 16px; }
+.mp-biography h4 { font-weight: 650; margin-block: 24px 12px; font-size: 1.125rem; }
 .executive-list, .contact-columns, .enquiry-pair {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
