@@ -595,6 +595,25 @@ footer :is(a, button) {
 }
 .office-panel { background: var(--muted); }
 .office-address { font-style: normal; }
+.whatsapp-icon { filter: brightness(0) invert(1); flex-shrink: 0; }
+.social-links, .site-footer .social-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 20px;
+}
+.social-links a, .site-footer .social-links a {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 44px;
+  min-height: 44px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--card);
+}
+.social-links a:hover { background: var(--muted); border-color: var(--primary); }
 .office-panel .subtle-note { margin: 20px 0 0; }
 .enquiry-panel { background: var(--card); border: 1px solid var(--border); }
 .enquiry-panel fieldset { display: grid; gap: 16px; border: 0; padding: 0; margin: 0; }

@@ -1,5 +1,7 @@
 import { officeCall, officePhone, officeWhatsApp } from "@/lib/office-contact";
 import Link from "next/link";
+import Image from "next/image";
+import { SocialLinks } from "@/components/social-links";
 import { FaqSection } from "@/components/faq-section";
 import { pageMetadata } from "@/lib/site";
 import { contactDelivery } from "@/lib/contact-delivery";
@@ -43,10 +45,12 @@ export default function Contact() {
                 target="_blank"
                 rel="noopener noreferrer"
               >
+                <Image src="/brand/whatsapp.svg" alt="" width={20} height={20} className="whatsapp-icon" />
                 Contact us on WhatsApp
                 <span className="sr-only"> (opens in a new tab)</span>
               </a>
             </div>
+            <SocialLinks />
             <p className="subtle-note">
               WhatsApp is an external service. Selecting the link opens
               WhatsApp, where its own privacy practices apply.
