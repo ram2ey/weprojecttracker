@@ -1,6 +1,6 @@
 import { ProjectCollection } from "@/components/content/project-preferences";
 import Link from "next/link";
-import Image from "next/image";
+import { HeroPhotos } from "@/components/hero-photos";
 import type { Metadata } from "next";
 import { listPublicContent, publicCommunities } from "@/lib/content/public";
 import {
@@ -61,13 +61,34 @@ export default async function Register({
   return (
     <>
       <section className="register-hero" aria-labelledby="register-title">
-        <Image
-          src="/images/register-hero.webp"
-          alt=""
-          fill
-          sizes="100vw"
-          preload
-          className="register-hero-image"
+        <HeroPhotos
+          photos={[
+            {
+              src: "/images/register-hero.webp",
+              desktopCrop: "50% 12%",
+              mobileCrop: "50% 20%",
+            },
+            {
+              src: "/images/community-gathering.webp",
+              desktopCrop: "50% 58%",
+              mobileCrop: "35% 48%",
+            },
+            {
+              src: "/images/yellow-building.webp",
+              desktopCrop: "50% 55%",
+              mobileCrop: "64% 50%",
+            },
+            {
+              src: "/images/school-desks.webp",
+              desktopCrop: "50% 52%",
+              mobileCrop: "56% 50%",
+            },
+            {
+              src: "/images/red-roof-building.webp",
+              desktopCrop: "50% 62%",
+              mobileCrop: "64% 54%",
+            },
+          ]}
         />
         <div className="container register-hero-content">
           <div className="page-heading">
