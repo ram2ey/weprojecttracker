@@ -1,12 +1,24 @@
 import Link from "next/link";
+import { publicCommunities } from "@/lib/content/public";
 import { HeroPhotos } from "@/components/hero-photos";
+import { AppDownloads, HomeNews } from "@/components/homepage-sections";
+import { FaqSection } from "@/components/faq-section";
 import { pageMetadata } from "@/lib/site";
 export const metadata = pageMetadata(
   "Wassa East Project Tracker",
   "Meet Wassa East and explore the progress of projects in its communities.",
   "/",
 );
-export default function Home() {
+export default async function Home() {
+  const communities = await publicCommunities();
+  const communityLinks = communities.map(({ name, count }) => (
+    <li key={name}>
+      <Link href={{ pathname: "/projects", query: { community: name } }}>
+        <strong>{name}</strong>
+        <span>{count} {count === 1 ? "project" : "projects"}</span>
+      </Link>
+    </li>
+  ));
   return (
     <>
       <section className="register-hero" aria-labelledby="register-title">
@@ -44,19 +56,34 @@ export default function Home() {
             <h1 id="register-title">Wassa East Project Tracker</h1>
             <p>
               See what’s being built, improved, and completed in communities
-              across Wassa East.
+              across Wassa East Constituency.
             </p>
             <div className="action-row">
-              <Link className="button button-light" href="/projects">
-                Explore projects
-              </Link>
-              <Link className="button hero-about" href="/about">
-                About Wassa East
+              <a className="button button-light" href="#communities">
+                Find my community
+              </a>
+              <Link className="button hero-about" href="/projects">
+                Explore all projects
               </Link>
             </div>
           </div>
         </div>
       </section>
+      <section id="communities" className="container section community-directory" aria-labelledby="communities-title">
+        <h2 id="communities-title">Browse by community</h2>
+        {communityLinks.length ? (
+          <ul className="community-grid">{communityLinks.slice(0, 6)}</ul>
+        ) : (
+          <p>Communities will appear here as projects are published.</p>
+        )}
+        {communityLinks.length > 6 && (
+          <details>
+            <summary>All communities</summary>
+            <ul className="community-grid">{communityLinks.slice(6)}</ul>
+          </details>
+        )}
+      </section>
+      <HomeNews />
       <section
         className="container section narrow"
         aria-labelledby="meet-wassa-east"
@@ -75,6 +102,8 @@ export default function Home() {
           </Link>
         </div>
       </section>
+      <FaqSection topic="tracker" />
+      <AppDownloads />
     </>
   );
 }

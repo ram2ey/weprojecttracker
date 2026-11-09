@@ -1,8 +1,9 @@
 import Link from "next/link";
+import Image from "next/image";
 import { pageMetadata } from "@/lib/site";
 export const metadata = pageMetadata(
   "About Wassa East",
-  "Learn about Wassa East, its communities, and how project updates are reviewed.",
+  "Learn about Wassa East, its constituency leadership, and how project updates are reviewed.",
   "/about",
 );
 export default function About() {
@@ -26,6 +27,43 @@ export default function About() {
           Read the Western Regional Co-ordinating Council’s district profile
         </a>
       </div>
+      <section
+        className="detail-section leadership"
+        aria-labelledby="leadership-title"
+      >
+        <h2 id="leadership-title">MP and Constituency Executives</h2>
+        <div className="mp-profile">
+          <Image
+            className="leadership-portrait"
+            src="/illustrations/leadership-portrait.svg"
+            alt="MP portrait placeholder"
+            width={160}
+            height={192}
+          />
+          <div>
+            <h3>Member of Parliament for Wassa East</h3>
+            <p>MP name and biography awaiting confirmation.</p>
+          </div>
+        </div>
+        <h3>Constituency executives</h3>
+        <ul className="executive-list">
+          {[1, 2].map((entry) => (
+            <li key={entry}>
+              <Image
+                className="leadership-portrait"
+                src="/illustrations/leadership-portrait.svg"
+                alt="Executive portrait placeholder"
+                width={80}
+                height={96}
+              />
+              <div>
+                <strong>Executive name pending</strong>
+                <span>Office to be confirmed</span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
       <section className="detail-section">
         <h2>How project updates are reviewed</h2>
         <p>
@@ -38,9 +76,14 @@ export default function About() {
           Each record identifies its information source and latest approved
           update.
         </p>
-        <Link className="text-link" href="/projects">
-          Explore projects
-        </Link>
+        <div className="action-row">
+          <Link className="text-link" href="/projects">
+            Explore projects
+          </Link>
+          <Link className="text-link" href="/contact">
+            Contact the office
+          </Link>
+        </div>
       </section>
     </div>
   );

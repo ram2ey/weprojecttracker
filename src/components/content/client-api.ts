@@ -5,8 +5,16 @@ export async function contentRequest<T>(
 ): Promise<T> {
   const response = await fetch(url, {
     method,
-    headers: { "Content-Type": "application/json" },
-    body: method === "GET" ? undefined : JSON.stringify(body),
+    headers:
+      body instanceof FormData
+        ? undefined
+        : { "Content-Type": "application/json" },
+    body:
+      method === "GET"
+        ? undefined
+        : body instanceof FormData
+          ? body
+          : JSON.stringify(body),
     cache: "no-store",
   });
   const data = await response.json().catch(() => ({

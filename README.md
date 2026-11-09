@@ -22,9 +22,9 @@ Migration 0006 adds a staff access-version counter to reject sign-ins already in
 
 ## Launch scope
 
-Public pages: register at /, individual /projects/[slug] pages, /about, /contact and /privacy. /projects redirects to / and preserves filters. Public search matches project title or community. Filters cover category, community and status; approved updates appear newest first. Project codes are internal staff references, excluded from public pages, share previews, public API responses and public search matching. Staff retain code display and search.
+The homepage links to the register at /projects, individual /projects/[slug] pages, /about, /contact, /faq and /privacy. Public search matches project title or community. Filters cover category, community and status. Project codes are internal staff references, excluded from public pages, share previews, public API responses and public search matching.
 
-Public navigation has Projects, About and Contact Us, with Privacy & Cookies in the footer. Phones use a sticky header and hamburger menu. Staff bookmark /staff/login directly; no staff sign-in links appear in public navigation. Contact currently offers the approved phone/WhatsApp number only. The future email form remains hidden until actual sending and mailbox delivery are configured and tested; no email enquiries or contact-form copies are collected. See [contact and privacy decisions](docs/PUBLIC_CONTACT_UPDATE.md).
+The sticky public header includes Home, Projects, Favourites, About and Contact Us. Staff bookmark /staff/login directly. Contact offers the approved phone and WhatsApp number. The email form is shown in preview until a provider and mailbox are configured. See [contact and privacy decisions](docs/PUBLIC_CONTACT_UPDATE.md).
 
 Optional first-party page-view statistics require acceptance in the consent banner or Cookie settings. Operators view aggregate daily counts/popular pages at /admin?view=analytics. No visitor IDs, IPs, search text or third-party analytics are stored in statistics. Counts cover up to 90 days, with expired rows removed on collection/dashboard access; the preference cookie remembers choices for 180 days. See [consent and analytics behavior](docs/CONSENTED_ANALYTICS.md). Apply additive migration 0007 before starting this version.
 
@@ -41,6 +41,12 @@ HTML uses a fresh CSP nonce per request and dynamic rendering. Scripts, fonts, i
 Simple visitor comments appear immediately beneath each published project. Visitors supply an unverified name and plain-text message; only operators can hide/restore comments or close/reopen submissions at /admin?view=comments. Opening the form creates a signed essential anti-abuse cookie for up to 24 hours. Comments work independently of optional statistics consent. Apply additive migration 0008 before starting this version. See [project comments](docs/PROJECT_COMMENTS.md).
 
 The retired guest-discussion system, following, notifications, maps, offline reading, announcements, reports/exports, Google login, MFA and dark mode remain inactive. Their database tables and historical data are retained. New comments use a separate table. No background worker is required. The temporary /sw.js retirement worker clears only this app's old offline caches and unregisters itself.
+
+## Homepage publishing and public integrations
+
+Apply migration 0009 and open **News & Features** in the staff workspace. Officers and operators can save drafts, upload a photo, select a published project, and submit for review. A separate approver or operator publishes the revision. Revising a story preserves the live copy until approval. Approvers can return submissions and withdraw published stories. The homepage shows the three latest approvals. Sample content is limited to design preview.
+
+Set `GOOGLE_PLAY_URL` and `APP_STORE_URL` independently when each listing is available. For contact email, see [mailbox configuration](docs/PUBLIC_CONTACT_UPDATE.md). Existing Coolify Compose Empty installations need the updated Compose environment mapping before activating the integrations.
 
 ## Verification
 

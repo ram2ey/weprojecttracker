@@ -48,6 +48,11 @@ services:
       PGPASSWORD: ${POSTGRES_PASSWORD}
       ENABLE_DESIGN_PREVIEW: "false"
       MEDIA_ROOT: /data/media
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      CONTACT_FROM_EMAIL: ${CONTACT_FROM_EMAIL:-}
+      CONTACT_TO_EMAIL: ${CONTACT_TO_EMAIL:-}
+      GOOGLE_PLAY_URL: ${GOOGLE_PLAY_URL:-}
+      APP_STORE_URL: ${APP_STORE_URL:-}
     command: [npm, run, db:migrate]
     mem_limit: 512m
     cpus: 0.5

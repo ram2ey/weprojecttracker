@@ -85,7 +85,7 @@ export default async function Register({
                 label: "Category",
                 options: fixedCategories.map((c) => c.name),
               },
-              { name: "community", label: "Community", options: communities },
+              { name: "community", label: "Community", options: communities.map((c) => c.name) },
               {
                 name: "status",
                 label: "Status",

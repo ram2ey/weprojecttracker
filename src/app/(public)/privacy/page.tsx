@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { contactDelivery } from "@/lib/contact-delivery";
 import { pageMetadata } from "@/lib/site";
 
 export const metadata = pageMetadata(
@@ -40,7 +41,7 @@ export default function Privacy() {
         <p>
           With your permission, the website counts public page views using its
           own server. It does not use third-party analytics, advertising
-          trackers, embedded social widgets, or a public email enquiry form. It
+          trackers or embedded social widgets. It
           does not save a separate history of phone or WhatsApp enquiries in its
           database.
         </p>
@@ -146,9 +147,7 @@ export default function Privacy() {
           on this website.
         </p>
         <p>
-          Website email enquiries are not currently enabled. If introduced, we
-          will explain the information collected and delivery service before
-          accepting submissions. The office plans to delete future email
+          {contactDelivery() ? "When you use the enquiry form, Resend processes your name, email, subject and message for delivery to the office. The website keeps no separate copy of the message. Hashed rate-limit keys help prevent abuse." : "Website email enquiries are not currently enabled."} The office plans to delete email
           enquiries 90 days after closure as a mailbox-handling policy; this is
           not automated by the website.
         </p>

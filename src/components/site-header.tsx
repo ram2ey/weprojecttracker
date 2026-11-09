@@ -1,10 +1,20 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { SiteBrand } from "./site-brand";
+const links = [
+  ["/", "Home"],
+  ["/projects", "Projects"],
+  ["/favourites", "Favourites"],
+  ["/about", "About"],
+  ["/contact", "Contact Us"],
+] as const;
+
 export function SiteHeader() {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const header = useRef<HTMLElement>(null);
   const toggle = useRef<HTMLButtonElement>(null);
@@ -112,11 +122,21 @@ export function SiteHeader() {
           ref={navigation}
           data-open={open}
         >
-          <Link href="/">Home</Link>
-          <Link href="/projects">Projects</Link>
-          <Link href="/favourites">Favourites</Link>
-          <Link href="/about">About</Link>
-          <Link href="/contact">Contact Us</Link>
+          {links.map(([href, label]) => (
+            <Link
+              key={href}
+              href={href}
+              aria-current={
+                pathname === href
+                  ? "page"
+                  : href !== "/" && pathname.startsWith(href + "/")
+                    ? "location"
+                    : undefined
+              }
+            >
+              {label}
+            </Link>
+          ))}
         </nav>
       </div>
     </header>
