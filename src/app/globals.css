@@ -558,6 +558,23 @@ footer :is(a, button) {
 .mp-biography { margin-bottom: 32px; }
 .mp-biography p { margin-bottom: 16px; }
 .mp-biography h4 { font-weight: 650; margin-block: 24px 12px; font-size: 1.125rem; }
+.about-reading, .mp-biography { max-width: 78ch; }
+.mp-profile-layout { margin-bottom: 32px; }
+@media (min-width: 1000px) {
+  .mp-profile-layout {
+    display: grid;
+    grid-template-columns: 320px minmax(0, 1fr);
+    gap: 32px;
+    align-items: start;
+  }
+  .mp-profile-layout .mp-profile {
+    flex-direction: column;
+    align-items: stretch;
+    margin: 0;
+  }
+  .mp-profile-layout .mp-profile > div { flex: 0 1 auto; }
+  .mp-profile-layout .mp-biography { margin: 0; }
+}
 .executive-list, .contact-columns, .enquiry-pair {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
