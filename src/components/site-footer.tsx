@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SocialLinks } from "@/components/social-links";
 import { CookieSettingsButton } from "./cookie-consent";
 import { SiteBrand } from "./site-brand";
 import { officeCall, officePhone, officeWhatsApp } from "@/lib/office-contact";
@@ -9,6 +10,7 @@ export function SiteFooter() {
         <div className="footer-identity">
           <SiteBrand />
           <p>Follow public projects across Wassa East Constituency in Ghana’s Western Region.</p>
+          <SocialLinks />
         </div>
         <nav aria-label="Footer">
           <div>
