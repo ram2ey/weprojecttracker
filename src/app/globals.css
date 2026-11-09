@@ -573,6 +573,7 @@ footer :is(a, button) {
   overflow-wrap: anywhere;
 }
 .office-panel { background: var(--muted); }
+.office-address { font-style: normal; }
 .office-panel .subtle-note { margin: 20px 0 0; }
 .enquiry-panel { background: var(--card); border: 1px solid var(--border); }
 .enquiry-panel fieldset { display: grid; gap: 16px; border: 0; padding: 0; margin: 0; }

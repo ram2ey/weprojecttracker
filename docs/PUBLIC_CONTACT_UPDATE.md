@@ -2,7 +2,7 @@
 
 Approved 7 November 2026. Public navigation includes Projects, About and Contact Us, with Privacy & Cookies in the footer. Staff bookmark `/staff/login`; removing public links does not replace authentication or make that address secret. Phone navigation at 800px and below uses a sticky header and accessible disclosure menu. The hero heading is Project Tracker.
 
-The office approved `+233542985346` for public phone and WhatsApp contact. No address or hours were supplied. Contact links open the phone handler or WhatsApp.
+The office supplied `+233241152479` as its contact number and the location Daboase - Atteiku Road, after Health Insurance Office. Its digital address is `WR-003-77-98`. Contact links open the phone handler or WhatsApp.
 
 The contact form stays in preview until the server has a Resend API key, a verified sender email address and an office destination. Set `RESEND_API_KEY`, `CONTACT_FROM_EMAIL` and `CONTACT_TO_EMAIL` in the deployment environment. The intended destination is `support@wassaeastprojecttracker.com`. Verify mailbox access and test receipt on staging before enabling production. The form delivers the resident’s name, reply email, subject and message as plain text. The website stores no message history. Provider acceptance is reported separately from inbox delivery. The office’s intended mailbox retention period is 90 days after enquiry closure.
 
