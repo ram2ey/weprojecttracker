@@ -1,63 +1,12 @@
-import { ProjectCollection } from "@/components/content/project-preferences";
 import Link from "next/link";
 import { HeroPhotos } from "@/components/hero-photos";
-import type { Metadata } from "next";
-import { listPublicContent, publicCommunities } from "@/lib/content/public";
-import {
-  publicFiltersSchema,
-  parsePageFilters,
-  filterQuery,
-} from "@/lib/content/filters";
-import { fixedCategories } from "@/lib/content/validation";
-import { projectStatuses } from "@/lib/content/types";
-import { ProjectCard } from "@/components/project-card";
-import { FilterPanel } from "@/components/content/filter-panel";
-import { Button } from "@/components/ui/button";
 import { pageMetadata } from "@/lib/site";
-type Params = Promise<Record<string, string | string[] | undefined>>;
-export async function generateMetadata({
-  searchParams,
-}: {
-  searchParams: Params;
-}): Promise<Metadata> {
-  const raw = await searchParams;
-  return {
-    ...pageMetadata(
-      "Project register",
-      "Explore approved projects and photographs across Wassa East.",
-      "/",
-    ),
-    ...(Object.values(raw).some(Boolean)
-      ? { robots: { index: false, follow: true } }
-      : {}),
-  };
-}
-export default async function Register({
-  searchParams,
-}: {
-  searchParams: Params;
-}) {
-  const raw = await searchParams,
-    result = parsePageFilters(raw),
-    filters = result.success ? result.data : publicFiltersSchema.parse({}),
-    [listing, communities] = await Promise.all([
-      result.success
-        ? listPublicContent(filters)
-        : Promise.resolve({ items: [], total: 0, limit: 24, page: 1 }),
-      publicCommunities(),
-    ]);
-  const pages = Math.max(1, Math.ceil(listing.total / 24));
-  const chips = (
-    [
-      ["q", "Search"],
-      ["category", "Category"],
-      ["community", "Community"],
-      ["status", "Status"],
-    ] as const
-  ).filter(([k]) => filters[k]);
-  const panelCount = chips.filter(([key]) => key !== "q").length;
-  const resultsHref =
-    chips.length || filters.page > 1 ? "/?" + filterQuery(filters) : "/";
+export const metadata = pageMetadata(
+  "Wassa East Project Tracker",
+  "Meet Wassa East and explore the progress of projects in its communities.",
+  "/",
+);
+export default function Home() {
   return (
     <>
       <section className="register-hero" aria-labelledby="register-title">
@@ -92,168 +41,40 @@ export default async function Register({
         />
         <div className="container register-hero-content">
           <div className="page-heading">
-            <span className="eyebrow">WASSA EAST CONSTITUENCY</span>
-            <h1 id="register-title">Project Tracker</h1>
+            <h1 id="register-title">Wassa East Project Tracker</h1>
             <p>
-              Explore the work in your community and its latest approved
-              information.
+              See what’s being built, improved, and completed in communities
+              across Wassa East.
             </p>
+            <div className="action-row">
+              <Link className="button button-light" href="/projects">
+                Explore projects
+              </Link>
+              <Link className="button hero-about" href="/about">
+                About Wassa East
+              </Link>
+            </div>
           </div>
         </div>
       </section>
-      <div className="container section directory">
-        <form
-          key={filterQuery(filters)}
-          action="/"
-          className="register-filters"
-          aria-label="Filter projects"
-        >
-          <label>
-            Search projects
-            <input
-              name="q"
-              maxLength={200}
-              defaultValue={filters.q}
-              placeholder="Project title or community"
-            />
-          </label>
-          <FilterPanel count={panelCount}>
-            <div className="filter-grid">
-              {[
-                {
-                  name: "category",
-                  label: "Category",
-                  options: fixedCategories.map((c) => c.name),
-                },
-                { name: "community", label: "Community", options: communities },
-                {
-                  name: "status",
-                  label: "Status",
-                  options: [...projectStatuses],
-                },
-              ].map(({ name, label, options }) => (
-                <label key={name}>
-                  {label}
-                  <select
-                    aria-label={label}
-                    name={name}
-                    defaultValue={
-                      filters[name as "category" | "community" | "status"] ?? ""
-                    }
-                  >
-                    <option value="">
-                      {name === "category"
-                        ? "All categories"
-                        : name === "community"
-                          ? "All communities"
-                          : "All statuses"}
-                    </option>
-                    {options.map((v) => (
-                      <option key={v}>{v}</option>
-                    ))}
-                  </select>
-                </label>
-              ))}
-            </div>
-          </FilterPanel>
-          <Button type="submit">Search projects</Button>
-        </form>
-        {!result.success && (
-          <p role="alert" className="form-error">
-            Please check your filters.{" "}
-            <Link href="/" className="text-link">
-              Clear filters
-            </Link>
-          </p>
-        )}
-        {chips.length > 0 && (listing.items.length > 0 || chips.length > 1) && (
-          <nav className="active-filters" aria-label="Active filters">
-            {chips.map(([k, label]) => (
-              <Link
-                key={k}
-                href={
-                  "/?" +
-                  filterQuery(filters, { [k]: undefined, page: undefined })
-                }
-                aria-label={
-                  "Remove " + label.toLowerCase() + " filter: " + filters[k]
-                }
-              >
-                {label}: {filters[k]} ×
-              </Link>
-            ))}
-            {chips.length > 1 && listing.items.length > 0 && (
-              <Link href="/">Clear all</Link>
-            )}
-          </nav>
-        )}
-        <ProjectCollection count={listing.total}>
-          {listing.items.map((r) => (
-            <ProjectCard key={r.id} project={r} resultsHref={resultsHref} />
-          ))}
-        </ProjectCollection>
-        {!listing.items.length && result.success && (
-          <div className="empty-state">
-            <h2>
-              {listing.total
-                ? "This page has no projects."
-                : chips.length
-                  ? "No projects match your search."
-                  : "No published projects yet."}
-            </h2>
-            <p>
-              {listing.total
-                ? "Return to the first page of results."
-                : chips.length
-                  ? "Try a different keyword or remove a filter."
-                  : "Check back for approved projects."}
-            </p>
-            {(listing.total > 0 || chips.length > 0) && (
-              <Link
-                className="button button-outline"
-                href={
-                  listing.total
-                    ? "/?" + filterQuery(filters, { page: "1" })
-                    : "/"
-                }
-              >
-                {listing.total
-                  ? "First page"
-                  : panelCount
-                    ? "Clear filters"
-                    : "Clear search"}
-              </Link>
-            )}
-          </div>
-        )}
-        {pages > 1 && listing.items.length > 0 && (
-          <nav className="pagination" aria-label="Project pages">
-            {filters.page > 1 && (
-              <Link
-                href={
-                  "/?" +
-                  filterQuery(filters, { page: String(filters.page - 1) })
-                }
-              >
-                Previous
-              </Link>
-            )}
-            <span>
-              Page {filters.page} of {pages}
-            </span>
-            {filters.page < pages && (
-              <Link
-                href={
-                  "/?" +
-                  filterQuery(filters, { page: String(filters.page + 1) })
-                }
-              >
-                Next
-              </Link>
-            )}
-          </nav>
-        )}
-      </div>
+      <section
+        className="container section narrow"
+        aria-labelledby="meet-wassa-east"
+      >
+        <h2 id="meet-wassa-east">Meet Wassa East</h2>
+        <p>
+          Wassa East lies in Ghana’s Western Region. Across its farming
+          communities, families grow food crops as well as cocoa and oil palm.
+        </p>
+        <div className="action-row">
+          <Link className="text-link" href="/about">
+            More about Wassa East
+          </Link>
+          <Link className="text-link" href="/contact">
+            Contact the office
+          </Link>
+        </div>
+      </section>
     </>
   );
 }

@@ -89,7 +89,7 @@ export function FavouriteProjects() {
         <div className="empty-state">
           <h2>No favourites yet</h2>
           <p>Select the heart on a project to save it here.</p>
-          <Link className="button button-outline" href="/">
+          <Link className="button button-outline" href="/projects">
             Browse projects
           </Link>
         </div>

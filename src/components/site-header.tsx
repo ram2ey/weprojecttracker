@@ -112,7 +112,8 @@ export function SiteHeader() {
           ref={navigation}
           data-open={open}
         >
-          <Link href="/">Projects</Link>
+          <Link href="/">Home</Link>
+          <Link href="/projects">Projects</Link>
           <Link href="/favourites">Favourites</Link>
           <Link href="/about">About</Link>
           <Link href="/contact">Contact Us</Link>
