@@ -15,6 +15,7 @@ import {
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import type { Story } from "../lib/news/types";
 import type { ContentPayload, Financials } from "../lib/content/types";
 
 // Aggregate counts only: no visitor, session, IP, referrer or query-string data.
@@ -27,6 +28,16 @@ export const analyticsDaily = pgTable(
   },
   (t) => [primaryKey({ columns: [t.day, t.path] })],
 );
+
+export const newsStory = pgTable("news_story", {
+  id: text("id").primaryKey(),
+  state: text("state").$type<"draft" | "pending" | "published" | "withdrawn">().notNull(),
+  version: integer("version").notNull().default(1),
+  contributors: jsonb("contributors").$type<string[]>().notNull(),
+  draft: jsonb("draft").$type<Story>().notNull(),
+  published: jsonb("published").$type<Story>(),
+  publishedAt: timestamp("published_at", { withTimezone: true }),
+});
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),

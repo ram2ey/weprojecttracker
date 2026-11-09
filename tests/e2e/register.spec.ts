@@ -30,6 +30,7 @@ let operator: APIRequestContext,
   operatorId: string,
   community: string,
   firstSlug: string;
+const storyIds: string[] = [];
 async function login(username: string, pw = password) {
   // Keep unrelated fixture logins out of the real sign-in throttle's shared IP window.
   await pool.query("DELETE FROM auth_rate_limit");
@@ -157,6 +158,7 @@ test.beforeAll(async () => {
   }
 });
 test.afterAll(async () => {
+  await pool.query("DELETE FROM news_story WHERE id=ANY($1::text[])",[storyIds]);
   await pool.query(
     "DELETE FROM analytics_daily WHERE path IN (SELECT '/projects/' || slug FROM content_record WHERE id=ANY($1::text[]))",
     [records],
@@ -405,11 +407,12 @@ test("public navigation stays available on phones and supports dismissal, focus 
   const nav = page.getByRole("navigation", { name: "Main navigation" });
   const toggle = page.getByRole("button", { name: /^(Open|Close) menu$/ });
   const width = page.viewportSize()!.width;
+  await expect(header.locator("nav [aria-current]")).toHaveText("Projects");
+  await page.evaluate(() => scrollTo(0, 650));
+  await expect.poll(async () => (await header.boundingBox())!.y).toBe(0);
   if (width <= 800) {
     await expect(nav).toBeHidden();
     expect((await toggle.boundingBox())!.height).toBeGreaterThanOrEqual(48);
-    await page.evaluate(() => scrollTo(0, 650));
-    await expect.poll(async () => (await header.boundingBox())!.y).toBe(0);
     await toggle.click();
     await expect(toggle).toHaveAttribute("aria-expanded", "true");
     await page.keyboard.press("Tab");
@@ -438,6 +441,7 @@ test("public navigation stays available on phones and supports dismissal, focus 
     await toggle.click();
     await nav.getByRole("link", { name: "Contact Us", exact: true }).click();
     await expect(page).toHaveURL(origin + "/contact");
+    await expect(header.locator("nav [aria-current]")).toHaveText("Contact Us");
     await expect(nav).toBeHidden();
     await toggle.click();
     await header
@@ -491,6 +495,36 @@ test("contact and privacy expose approved contact links without a live form or p
   const whatsapp = page.getByRole("link", { name: /Contact us on WhatsApp/ });
   await expect(whatsapp).toHaveAttribute("href", "https://wa.me/233542985346");
   await expect(whatsapp).toHaveAttribute("rel", "noopener noreferrer");
+  for (const width of [1440, 360]) {
+    await page.setViewportSize({ width, height: 900 });
+    const office = await page.locator(".office-panel").boundingBox();
+    const enquiry = await page.locator(".enquiry-panel").boundingBox();
+    if (width === 360) {
+      expect(enquiry!.y).toBeGreaterThanOrEqual(office!.y + office!.height);
+    } else {
+      expect(enquiry!.x).toBeGreaterThanOrEqual(office!.x + office!.width);
+    }
+  }
+  await page.getByLabel("Message", { exact: true }).fill("Preview enquiry");
+  await expect(page.getByRole("button", { name: "Send message" })).toBeDisabled();
+  await expect(page.locator("#faq details")).toHaveCount(5);
+  await page.getByRole("link", { name: "View all questions" }).click();
+  await expect(page).toHaveURL(origin + "/faq#contact");
+  await expect(page.locator("main details")).toHaveCount(10);
+  await page.getByText("How do I suggest a correction?", { exact: true }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#contact details[open] p")).toBeVisible();
+  const reviewViewport = test.info().project.use.viewport;
+  if (reviewViewport) await page.setViewportSize(reviewViewport);
+  await page.goto("/about");
+  await expect(page.getByRole("heading", { name: "MP and Constituency Executives" })).toBeVisible();
+  const portraits = page.locator(".leadership img");
+  await expect(portraits).toHaveCount(3);
+  for (const portrait of await portraits.all()) {
+    await portrait.scrollIntoViewIfNeeded();
+    await expect.poll(() => portrait.evaluate((img) => (img as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+  }
+  await page.goto("/contact");
   await expect(page.locator("form, iframe, a[href^='mailto:']")).toHaveCount(0);
   await expect(page.locator("a[href='/staff/login']")).toHaveCount(0);
   await page
@@ -833,7 +867,7 @@ test("editor and independent approver can publish through the real screens", asy
   expect(enquiry.searchParams.get("text")).toContain(
     origin + "/projects/" + record.slug,
   );
-  await expect(page.getByRole("link", { name: /Call / })).toHaveAttribute(
+  await expect(page.getByRole("main").getByRole("link", { name: /Call / })).toHaveAttribute(
     "href",
     "tel:+233542985346",
   );
@@ -1228,6 +1262,29 @@ test("retired routes and mutations are unavailable; worker only retires app cach
 test("Home introduces Wassa East and leads to the project directory with consent open", async ({
   page,
 }) => {
+  for (let i=0;i<3;i++) {
+    const id=randomUUID(); storyIds.push(id);
+    const story={kind:i===2?"Feature":"News",title:"Community update "+tag+" "+i,summary:"A published test update.",detail:i===2?"More about this community update.":"",photo:"",caption:"",project:""};
+    await pool.query("INSERT INTO news_story(id,state,contributors,draft,published,published_at) VALUES ($1,'published','[]',$2,$2,now())",[id,story]);
+  }
+  await page.goto("/");
+  await page.getByRole("link", { name: "Find my community" }).click();
+  const directory = page.getByRole("region", { name: "Browse by community" });
+  const name = "Launch community " + tag;
+  const { rows: [published] } = await pool.query(
+    `SELECT count(*)::int AS total FROM content_record r
+     JOIN content_revision v ON v.id = r.published_revision_id
+     WHERE r.kind = 'project' AND r.withdrawn_at IS NULL AND v.state = 'approved'
+       AND v.payload->>'communityName' = $1`,
+    [name],
+  );
+  const communityLink = directory.getByRole("link", { name: name + " " + published.total + " projects", exact: true });
+  if (!(await communityLink.isVisible())) {
+    await directory.getByText("All communities", { exact: true }).click();
+  }
+  await communityLink.click();
+  await expect.poll(() => new URL(page.url()).searchParams.get("community")).toBe(name);
+  await expect(page.getByRole("heading", { name: "Projects", exact: true })).toBeVisible();
   for (const viewport of [
     { width: 360, height: 740 },
     { width: 1440, height: 900 },
@@ -1236,15 +1293,34 @@ test("Home introduces Wassa East and leads to the project directory with consent
     await page.goto("/");
     const banner = page.getByRole("region", { name: "Cookie preferences" });
     await expect(banner).toBeVisible();
+    const news = page.getByRole("region", { name: "News & Features" });
+    const stories = news.getByRole("article");
+    await expect(stories).toHaveCount(3);
+    const firstStory = await stories.nth(0).boundingBox();
+    const secondStory = await stories.nth(1).boundingBox();
+    expect(secondStory!.y > firstStory!.y).toBe(viewport.width < 800);
+    await news.locator("summary").focus();
+    await page.keyboard.press("Enter");
+    await expect(news.locator("details")).toHaveAttribute("open", "");
+    const faq = page.getByRole("region", { name: "Frequently asked questions" });
+    await expect(faq.locator("details")).toHaveCount(5);
+    await expect(faq.locator("details[open]")).toHaveCount(0);
+    await faq.locator("summary").first().focus();
+    await page.keyboard.press("Enter");
+    await expect(faq.locator("details[open] p")).toBeVisible();
+    const downloads = page.getByRole("region", { name: "Download the Wassa East Project Tracker app" });
+    await expect(downloads).toContainText("Google Play");
+    await expect(downloads).toContainText("App Store");
+    await page.evaluate(() => window.scrollTo(0, 0));
     await page.evaluate(() => document.fonts.ready);
     await expect
       .poll(async () => {
         const hero = await page.locator(".register-hero").boundingBox();
-        return hero ? Math.round(hero.y + hero.height) : 0;
+        return hero ? Math.abs(hero.height - (viewport.height - hero.y) * 0.85) : Infinity;
       })
-      .toBe(viewport.height);
+      .toBeLessThan(viewport.width < 400 ? viewport.height * 0.05 : 2);
     await expect(
-      page.getByRole("heading", { name: "Wassa East Project Tracker" }),
+      page.getByRole("heading", { name: "Wassa East Project Tracker", exact: true }),
     ).toBeVisible();
     await expect(
       page.getByRole("heading", { name: "Meet Wassa East" }),
@@ -1253,8 +1329,8 @@ test("Home introduces Wassa East and leads to the project directory with consent
       document.documentElement.style.fontSize = "200%";
     });
     await expect(
-      page.getByRole("link", { name: "About Wassa East", exact: true }),
-    ).toHaveAttribute("href", "/about");
+      page.getByRole("link", { name: "Find my community" }),
+    ).toHaveAttribute("href", "#communities");
     await expect(
       page.getByRole("link", { name: "Contact the office" }),
     ).toHaveAttribute("href", "/contact");
@@ -1263,12 +1339,8 @@ test("Home introduces Wassa East and leads to the project directory with consent
         () => document.documentElement.scrollWidth <= innerWidth + 1,
       ),
     ).toBe(true);
-    const content = await page
-      .locator(".register-hero-content .page-heading")
-      .boundingBox();
-    const controls = await page.locator(".hero-photo-controls").boundingBox();
-    expect(content!.y + content!.height).toBeLessThanOrEqual(controls!.y);
-    await page.getByRole("link", { name: "Explore projects" }).click();
+    await expect(page.locator(".register-hero").getByRole("button")).toHaveCount(0);
+    await page.getByRole("link", { name: "Explore all projects" }).click();
     await expect(page).toHaveURL(origin + "/projects");
     await expect(page.locator(".register-hero")).toHaveCount(0);
     await page.evaluate(() => {
@@ -1302,6 +1374,47 @@ test("Home introduces Wassa East and leads to the project directory with consent
     ).toHaveValue("");
   }
 });
+test("staff can draft, independently publish, revise and withdraw a homepage feature with a photo", async ({page,context,request})=>{
+  const fields={kind:"Feature",title:"Community feature "+tag,summary:"An approved report from the community.",detail:"Field notes",caption:"Community project site",project:firstSlug};
+  const endpoint="/api/staff/news";
+  expect((await request.post(endpoint,{headers,data:{}})).status()).toBe(403);
+  await context.addCookies((await operator.storageState()).cookies);
+  await page.goto("/admin?view=news");
+  await page.getByLabel("Headline").fill(fields.title);
+  await page.getByLabel("Story type").selectOption("Feature");
+  await page.getByLabel("Summary",{exact:true}).fill(fields.summary);
+  await page.getByLabel("Full story (optional)").fill(fields.detail);
+  await page.getByLabel("Related project",{exact:true}).selectOption(firstSlug);
+  await page.getByLabel("Photo (JPEG",{exact:false}).setInputFiles("public/images/school-desks.webp");
+  await page.getByLabel("Photo description").fill(fields.caption);
+  await page.getByRole("button",{name:"Save draft"}).click();
+  await expect(page).toHaveURL(/view=news&id=/);
+  const id=new URL(page.url()).searchParams.get("id")!;
+  storyIds.push(id);
+  await page.getByRole("button",{name:"Submit for review"}).click();
+  await expect(page.getByText("pending · Unpublished")).toBeVisible();
+  await page.goto("/");
+  await expect(page.getByText(fields.title,{exact:true})).toHaveCount(0);
+  const approve={id,version:2,action:"approve"};
+  expect((await operator.post(endpoint,{data:approve})).status()).toBe(403);
+  await context.addCookies((await approver.storageState()).cookies);
+  await page.goto("/admin?view=news&id="+id);
+  await page.getByRole("button",{name:"Approve and publish"}).click();
+  await expect(page.getByText("published · Visible on the website")).toBeVisible();
+  await page.goto("/");
+  const article=page.getByRole("article").filter({hasText:fields.title});
+  await expect(article.getByRole("img",{name:fields.caption})).toBeVisible();
+  await expect(article.getByRole("link",{name:"View project"})).toHaveAttribute("href","/projects/"+firstSlug);
+  const revision={id,version:3,action:"submit",removePhoto:false,fields:{...fields,title:"Revised "+tag}};
+  expect((await editor.post(endpoint,{data:revision})).status()).toBe(200);
+  expect((await editor.post(endpoint,{data:revision})).status()).toBe(409);
+  await page.reload(); await expect(article).toBeVisible();
+  expect((await approver.post(endpoint,{data:{id,version:4,action:"approve"}})).status()).toBe(200);
+  await page.reload();await expect(page.getByText(revision.fields.title,{exact:true})).toBeVisible();
+  expect((await approver.post(endpoint,{data:{id,version:5,action:"withdraw"}})).status()).toBe(200);
+  await page.reload();await expect(page.getByText(revision.fields.title,{exact:true})).toHaveCount(0);
+});
+
 test("phone filters are usable and show removable choices", async ({
   page,
   isMobile,

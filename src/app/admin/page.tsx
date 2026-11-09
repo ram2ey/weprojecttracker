@@ -10,6 +10,8 @@ import { listAdminRecords, listTaxonomy } from "@/lib/content/service";
 import { getPool } from "@/db";
 import { Analytics } from "@/components/staff/analytics";
 import { CommentManager } from "@/components/comments/comment-manager";
+import { NewsEditor } from "@/components/staff/news-editor";
+import { newsWorkspace, storyProjects } from "@/lib/news/service";
 export const dynamic = "force-dynamic";
 export const metadata = {
   title: "Staff workspace",
@@ -33,6 +35,7 @@ export default async function Admin({
       "audit",
       "analytics",
       "comments",
+      "news",
     ].includes(view)
   )
     notFound();
@@ -44,7 +47,26 @@ export default async function Admin({
   if (view === "new" && identity.staff.role === "approver")
     redirect("/admin?view=review");
   let children: React.ReactNode;
-  if (view === "comments") children = <CommentManager />;
+  if (view === "news") {
+    const [workspace, projects] = await Promise.all([
+      newsWorkspace(params.id),
+      storyProjects(),
+    ]);
+    if (params.id && !workspace.selected) notFound();
+    children = (
+      <NewsEditor
+        key={
+          workspace.selected
+            ? workspace.selected.id + workspace.selected.version
+            : "new"
+        }
+        {...workspace}
+        projects={projects}
+        actor={identity.user.id}
+        role={identity.staff.role}
+      />
+    );
+  } else if (view === "comments") children = <CommentManager />;
   else if (view === "analytics")
     children = (
       <Analytics

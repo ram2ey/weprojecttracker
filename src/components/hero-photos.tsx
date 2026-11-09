@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 type HeroPhoto = {
@@ -19,10 +18,6 @@ export function HeroPhotos({ photos }: { photos: HeroPhoto[] }) {
   const available = photos.map((_, i) => i).filter((i) => !failed.includes(i));
   const multiple = available.length > 1;
   const next = available[(available.indexOf(requested) + 1) % available.length];
-  const previous =
-    available[
-      (available.indexOf(requested) - 1 + available.length) % available.length
-    ];
 
   function select(index: number) {
     setRequested(index);
@@ -76,38 +71,6 @@ export function HeroPhotos({ photos }: { photos: HeroPhoto[] }) {
           }}
         />
       ))}
-      {multiple && (
-        <div
-          className="hero-photo-controls"
-          role="group"
-          aria-label="Hero photos"
-        >
-          <button
-            type="button"
-            aria-label="Previous photo"
-            onClick={() => select(previous)}
-          >
-            <ChevronLeft size={20} />
-          </button>
-          <button
-            type="button"
-            aria-label={playing ? "Pause slideshow" : "Play slideshow"}
-            onClick={() => {
-              if (playing) select(active);
-              setPlaying(!playing);
-            }}
-          >
-            {playing ? <Pause size={18} /> : <Play size={18} />}
-          </button>
-          <button
-            type="button"
-            aria-label="Next photo"
-            onClick={() => select(next)}
-          >
-            <ChevronRight size={20} />
-          </button>
-        </div>
-      )}
     </>
   );
 }

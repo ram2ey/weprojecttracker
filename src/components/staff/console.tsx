@@ -24,6 +24,7 @@ export function Console({
   const links = [
     { key: "projects", label: "Projects" },
     { key: "review", label: "Review queue" },
+    { key: "news", label: "News & Features" },
     ...(role === "super_admin"
       ? [
           { key: "taxonomy", label: "Communities" },

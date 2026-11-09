@@ -21,6 +21,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: siteUrl() + "/projects" },
     { url: siteUrl() + "/about" },
     { url: siteUrl() + "/contact" },
+    { url: siteUrl() + "/faq" },
     { url: siteUrl() + "/privacy" },
     ...records.map((r) => ({
       url: siteUrl() + "/projects/" + r.slug,

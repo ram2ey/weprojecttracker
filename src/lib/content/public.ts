@@ -114,13 +114,15 @@ export const getPublicContent = cache(async (slug: string) => {
   return r ? projectView(r) : null;
 });
 export async function publicCommunities() {
-  const rows = await getDb()
-    .select({ name: sql<string>`${contentRevision.payload}->>'communityName'` })
+  const name = sql<string>`${contentRevision.payload}->>'communityName'`;
+  return getDb()
+    .select({ name, count: sql<number>`count(*)::int` })
     .from(contentRecord)
     .innerJoin(
       contentRevision,
       eq(contentRevision.id, contentRecord.publishedRevisionId),
     )
-    .where(livePublication);
-  return [...new Set(rows.map((r) => r.name))].filter(Boolean).sort();
+    .where(and(livePublication, sql`${name} <> ''`))
+    .groupBy(name)
+    .orderBy(name);
 }
