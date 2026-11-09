@@ -1,7 +1,7 @@
 import Image from "next/image";
 export function MpProfile() {
   return (
-    <>
+    <div className="mp-profile-layout">
       <div className="mp-profile">
         <Image
           className="leadership-portrait mp-portrait"
@@ -197,6 +197,6 @@ export function MpProfile() {
           </p>
         </details>
       </div>
-    </>
+    </div>
   );
 }

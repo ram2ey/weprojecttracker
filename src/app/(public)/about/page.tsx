@@ -9,9 +9,9 @@ export const metadata = pageMetadata(
 );
 export default function About() {
   return (
-    <div className="container section narrow">
+    <div className="container section about-page">
       <h1>About Wassa East</h1>
-      <div>
+      <div className="about-reading">
         <p>
           Daboase is the district capital of Wassa East in Ghana’s Western
           Region. The district’s four area councils serve Daboase, Ekutuasie,
@@ -53,7 +53,7 @@ export default function About() {
           ))}
         </ul>
       </section>
-      <section className="detail-section">
+      <section className="detail-section about-reading">
         <h2>How project updates are reviewed</h2>
         <p>
           Staff prepare project records. A separate approver reviews each
