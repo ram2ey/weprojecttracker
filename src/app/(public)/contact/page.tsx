@@ -26,10 +26,14 @@ export default function Contact() {
         <div className="contact-columns">
           <section className="office-panel">
             <h2>Wassa East Constituency Office</h2>
+            <address className="office-address">
+              <p>Daboase - Atteiku Road<br />After Health Insurance Office</p>
+              <p>Digital address<br /><strong>WR-003-77-98</strong></p>
+            </address>
             <p>You can call or send a message on WhatsApp.</p>
             <p>
               <a className="text-link" href={officeCall}>
-                {officePhone}
+                Call us: {officePhone}
               </a>
             </p>
             <div className="action-row">

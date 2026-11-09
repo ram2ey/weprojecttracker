@@ -490,10 +490,10 @@ test("contact and privacy expose approved contact links without a live form or p
     page.getByRole("heading", { name: "Contact Us", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "+233 54 298 5346", exact: true }),
-  ).toHaveAttribute("href", "tel:+233542985346");
+    page.getByRole("link", { name: "Call us: +233 24 115 2479", exact: true }),
+  ).toHaveAttribute("href", "tel:+233241152479");
   const whatsapp = page.getByRole("link", { name: /Contact us on WhatsApp/ });
-  await expect(whatsapp).toHaveAttribute("href", "https://wa.me/233542985346");
+  await expect(whatsapp).toHaveAttribute("href", "https://wa.me/233241152479");
   await expect(whatsapp).toHaveAttribute("rel", "noopener noreferrer");
   for (const width of [1440, 360]) {
     await page.setViewportSize({ width, height: 900 });
@@ -869,7 +869,7 @@ test("editor and independent approver can publish through the real screens", asy
   );
   await expect(page.getByRole("main").getByRole("link", { name: /Call / })).toHaveAttribute(
     "href",
-    "tel:+233542985346",
+    "tel:+233241152479",
   );
   await review
     .getByLabel("Withdrawal reason")
