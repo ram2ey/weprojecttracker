@@ -4,18 +4,24 @@ import { getDb } from "@/db";
 import { mediaFile } from "@/db/schema";
 import { isPublicEvidence, mediaPath } from "@/lib/content/media";
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const headers = { "Cache-Control": "no-store" };
+  const missing = { "Cache-Control": "no-store" };
   if (!/^[a-f0-9-]{36}$/i.test(id) || !(await isPublicEvidence(id)))
-    return new Response(null, { status: 404, headers });
+    return new Response(null, { status: 404, headers: missing });
   const file = await getDb().query.mediaFile.findFirst({
     where: eq(mediaFile.id, id),
   });
   if (!file?.thumbnailKey || file.mimeType !== "image/webp")
-    return new Response(null, { status: 404, headers });
+    return new Response(null, { status: 404, headers: missing });
+  // Thumbnails never change after upload. Browsers keep them and revalidate on
+  // each view; publication is rechecked above, so withdrawal is immediate.
+  const etag = `"${file.id}-thumb"`;
+  const headers = { "Cache-Control": "private, no-cache", ETag: etag };
+  if (request.headers.get("if-none-match") === etag)
+    return new Response(null, { status: 304, headers });
   try {
     return new Response(await readFile(mediaPath(file.thumbnailKey)), {
       headers: {
@@ -26,6 +32,6 @@ export async function GET(
       },
     });
   } catch {
-    return new Response(null, { status: 404, headers });
+    return new Response(null, { status: 404, headers: missing });
   }
 }

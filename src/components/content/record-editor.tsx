@@ -510,15 +510,15 @@ export function RecordEditor({
             <textarea
               rows={3}
               aria-describedby="decision-reason-help"
-              minLength={10}
               maxLength={2000}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
             />
           </label>
           <p id="decision-reason-help" className="subtle-note">
-            Enter at least 10 characters for the reason. Leading and trailing
-            spaces do not count.
+            Optional when approving. To return a revision, enter at least 10
+            characters explaining what to correct; leading and trailing spaces
+            do not count.
           </p>
           {independent ? (
             <>
@@ -532,7 +532,7 @@ export function RecordEditor({
               </label>
               <div className="action-row">
                 <Button
-                  disabled={busy || reason.trim().length < 10 || !reviewed}
+                  disabled={busy || !reviewed}
                   onClick={() => decision("approve")}
                 >
                   Approve & publish

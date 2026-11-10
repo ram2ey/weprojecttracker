@@ -58,7 +58,9 @@ export default function Privacy() {
           Posting a comment creates the essential wassa_comment_guard
           cookie for up to 24 hours. This signed, HttpOnly cookie supports
           posting limits and safe retries. It works independently of optional
-          website statistics. Rate-limit keys and submission keys are hashed;
+          website statistics. Posting limits also count requests per network
+          address; the address is stored only as a one-way hash inside a
+          short-lived counter. Rate-limit keys and submission keys are hashed;
           comment records do not store your IP address. Hosting security logs
           may still contain IP addresses.
         </p>
@@ -147,7 +149,7 @@ export default function Privacy() {
           on this website.
         </p>
         <p>
-          {contactDelivery() ? "When you use the enquiry form, Resend processes your name, email, subject and message for delivery to the office. The website keeps no separate copy of the message. Hashed rate-limit keys help prevent abuse." : "Website email enquiries are not currently enabled."} The office plans to delete email
+          {contactDelivery() ? "When you use the enquiry form, Resend processes your name, email, subject and message for delivery to the office. The website keeps no separate copy of the message. Hashed rate-limit keys, including a one-way hash of your network address, help prevent abuse.": "Website email enquiries are not currently enabled."} The office plans to delete email
           enquiries 90 days after closure as a mailbox-handling policy; this is
           not automated by the website.
         </p>

@@ -12,8 +12,8 @@ export async function GET(
 ) {
   const { id } = await context.params;
   if (!/^[a-f0-9-]{36}$/i.test(id)) return new Response(null, { status: 404 });
-  const identity = await getIdentity(request.headers);
-  if (!identity?.verified && !(await isPublicEvidence(id)))
+  const published = await isPublicEvidence(id);
+  if (!published && !(await getIdentity(request.headers))?.verified)
     return new Response(null, {
       status: 404,
       headers: { "Cache-Control": "private, no-store" },
@@ -26,6 +26,17 @@ export async function GET(
     new URL(request.url).searchParams.get("variant") === "thumbnail";
   const key = thumbnail ? file.thumbnailKey : file.storageKey;
   if (!key) return new Response(null, { status: 404 });
+  // Stored files never change, so a published photo can be kept by the
+  // browser and revalidated on each view. Access is rechecked above every
+  // time, so a withdrawal still takes effect immediately. Private staff files
+  // are never stored.
+  const etag = `"${file.id}-${thumbnail ? "thumb" : "full"}"`;
+  const cacheControl = published ? "private, no-cache" : "private, no-store";
+  if (published && request.headers.get("if-none-match") === etag)
+    return new Response(null, {
+      status: 304,
+      headers: { ETag: etag, "Cache-Control": cacheControl },
+    });
   try {
     const path = mediaPath(key);
     const info = await stat(path);
@@ -39,7 +50,8 @@ export async function GET(
         headers: {
           "Content-Type": file.mimeType,
           "Content-Length": String(info.size),
-          "Cache-Control": "private, no-store",
+          "Cache-Control": cacheControl,
+          ...(published ? { ETag: etag } : {}),
           "X-Content-Type-Options": "nosniff",
           "Content-Security-Policy": "sandbox; default-src 'none'",
           "Content-Disposition": `${pdf ? "attachment" : "inline"}; filename="evidence.${pdf ? "pdf" : "webp"}"; filename*=UTF-8''${encodeURIComponent(filename)}`,

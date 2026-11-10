@@ -5,6 +5,7 @@ import {
 } from "@/lib/contact-delivery";
 import { checkOrigin, privateJson, smallJson } from "@/lib/security/http";
 import { consumeLimit } from "@/lib/security/rate-limit";
+import { addressBucket } from "@/lib/security/client-address";
 
 export async function POST(request: Request) {
   if (!checkOrigin(request))
@@ -25,7 +26,14 @@ export async function POST(request: Request) {
       400,
     );
   try {
+    const address = addressBucket(request.headers);
     if (
+      // Checked first so one sender cannot use up the shared hourly allowance.
+      !(await consumeLimit(
+        "contact:" + address.key,
+        address.known ? 5 : 30,
+        3600,
+      )) ||
       !(await consumeLimit("contact:hour", 90, 3600)) ||
       !(await consumeLimit(
         "contact:email:" + parsed.data.email.toLowerCase(),
