@@ -102,13 +102,13 @@ export function InstallTracker() {
               void install();
           }}
         >
-          Install tracker
+          Install App
         </button>
       </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Overlay className="install-overlay" data-install-dialog />
         <Dialog.Content className="install-dialog" data-install-dialog>
-          <Dialog.Title>Install tracker</Dialog.Title>
+          <Dialog.Title>Install App</Dialog.Title>
           <Dialog.Description>
             Add Wassa East Projects to your home screen. This version requires
             an internet connection.
@@ -124,7 +124,7 @@ export function InstallTracker() {
             </p>
           ) : available ? (
             <Button disabled={busy} onClick={() => void install()}>
-              Install now
+              Install App
             </Button>
           ) : !busy ? (
             <p>

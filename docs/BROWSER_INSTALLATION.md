@@ -1,6 +1,6 @@
 # Browser installation
 
-The public menu includes **Install tracker**. The app is named **Wassa East Projects**, with **Wassa East** as its short home-screen name. `/manifest.webmanifest` declares a standalone launch at `/`, the app ID/scope, theme and icons. Apple web-app metadata and a 180px touch icon support iPhone home-screen launch. The 192px, 512px and maskable PNGs reuse the existing constituency crest; regenerate them with `node scripts/generate-app-icons.mjs`.
+The public menu includes **Install App**. The app is named **Wassa East Projects**, with **Wassa East** as its short home-screen name. `/manifest.webmanifest` declares a standalone launch at `/`, the app ID/scope, theme and icons. Apple web-app metadata and a 180px touch icon support iPhone home-screen launch. The 192px, 512px and maskable PNGs reuse the existing constituency crest; regenerate them with `node scripts/generate-app-icons.mjs`.
 
 This release requires internet access. It adds no offline pages, background sync or content caching. The existing retirement worker still removes old `wassa-public-*` caches and unregisters itself. Installation is independent of analytics consent and does not create a public account.
 
@@ -16,7 +16,7 @@ Physical-device verification is pending: this Windows environment exposes no con
 
 | Device | Install | Launch | Navigation and comments | Internet requirement |
 | --- | --- | --- | --- | --- |
-| Android / Chrome | Tap Install tracker; accept native prompt, or use browser Install app | Launch Wassa East icon; confirm name, crest and standalone home page | Open a project and article, submit a comment, use navigation/back | Disable network; confirm no saved project/news content is served |
-| iPhone / Safari | Tap Install tracker; follow Share → Add to Home Screen; keep Open as Web App on | Launch Wassa East icon; confirm name, crest and standalone home page | Repeat project/article comment and navigation checks | Disable network; confirm network-dependent behavior |
+| Android / Chrome | Tap Install App; accept native prompt, or use browser Install app | Launch Wassa East icon; confirm name, crest and standalone home page | Open a project and article, submit a comment, use navigation/back | Disable network; confirm no saved project/news content is served |
+| iPhone / Safari | Tap Install App; follow Share → Add to Home Screen; keep Open as Web App on | Launch Wassa East icon; confirm name, crest and standalone home page | Repeat project/article comment and navigation checks | Disable network; confirm network-dependent behavior |
 
 Apply migration `0010_tearful_lake` through the normal deployment migration job before serving the updated application. No production database or deployment was changed by local implementation or isolated test runs.

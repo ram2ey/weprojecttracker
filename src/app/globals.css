@@ -364,17 +364,21 @@ fieldset:disabled select {
   text-decoration: none;
   border-radius: var(--radius);
 }
-.site-header nav a:hover,
-.install-menu-button:hover {
+.site-header nav a:hover {
   background: var(--muted);
 }
 .install-menu-button {
   border: 0;
-  background: transparent;
-  color: inherit;
+  background: #000;
+  color: #fff;
   font: inherit;
+  font-weight: 700;
   cursor: pointer;
-  text-align: left;
+  justify-content: center;
+  text-align: center;
+}
+.install-menu-button:hover {
+  background: #1a1a1a;
 }
 .install-overlay {
   position: fixed;
@@ -1337,6 +1341,10 @@ td:first-child {
   .site-header nav a {
     padding: 8px;
     font-size: 0.875rem;
+  }
+  .install-menu-button {
+    width: 100%;
+    margin-top: 8px;
   }
   .section {
     padding-block: 28px 48px;
