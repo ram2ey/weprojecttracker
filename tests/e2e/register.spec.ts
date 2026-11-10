@@ -428,7 +428,13 @@ test("public navigation stays available on phones and supports dismissal, focus 
       .click();
     await expect(nav).toBeHidden();
     await toggle.click();
-    for (let i = 0; i < 6; i++) await page.keyboard.press("Tab");
+    const menuControls = nav.locator("a, button");
+    for (let i = 0; i < await menuControls.count(); i++) {
+      await page.keyboard.press("Tab");
+      await expect(menuControls.nth(i)).toBeFocused();
+    }
+    await expect(nav.getByRole("button", { name: "Install tracker", exact: true })).toBeFocused();
+    await page.keyboard.press("Tab");
     await expect(nav).toBeHidden();
     await expect(
       page.getByLabel("Search projects", { exact: true }),
@@ -478,6 +484,7 @@ test("public navigation stays available on phones and supports dismissal, focus 
     await expect(toggle).toBeHidden();
     await expect(nav).toBeVisible();
     await expect(nav.getByRole("link")).toHaveCount(5);
+    await expect(nav.getByRole("button", { name: "Install tracker", exact: true })).toBeVisible();
   }
 });
 
