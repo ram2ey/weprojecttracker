@@ -13,7 +13,8 @@ Agreed scope: 5 November 2026. This replaces the earlier five-phase launch scope
 - Editors submit drafts; an independent approver publishes or returns them. Preserve old publications during review and private history afterward.
 - Individual usernames/passwords; operator account creation/reset/deactivation/session revocation; first-login password change. No Google login or MFA.
 - Five fixed categories; editable/retirable communities.
-- Remove engagement, following, inboxes, reminders, push, offline/PWA, maps, announcements, reports/exports, themes and decorative motion.
+- Remove engagement, following, inboxes, reminders, push, offline reading, maps, announcements, reports/exports, themes and decorative motion.
+- Later addition (10 November 2026): an online-only **Install App** button lets visitors add the site to a home screen. It adds no service worker or offline cache; see [docs/BROWSER_INSTALLATION.md](docs/BROWSER_INSTALLATION.md). Simple project/news comments were also added later; see [docs/PROJECT_COMMENTS.md](docs/PROJECT_COMMENTS.md).
 - Preserve existing data, password hashes, historical media and Git history. Retire old offline caches safely. Remove the worker and custom full-register render cache.
 
 ## Delivery checklist
