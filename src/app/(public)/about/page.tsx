@@ -2,6 +2,24 @@ import Link from "next/link";
 import Image from "next/image";
 import { MpProfile } from "@/components/mp-profile";
 import { pageMetadata } from "@/lib/site";
+const executives = [
+  ["Isaac Agyemang Agyekum", "Chairman"],
+  ["Frank Andoh", "Vice Chairman"],
+  ["Solomon Dunyo", "Secretary"],
+  ["Mamata Yakubu", "Deputy Secretary"],
+  ["Kweku Philip Oppong", "Treasurer"],
+  ["Mariam Zakari", "Deputy Treasurer"],
+  ["Ebenezer Akumanyi Mawuli", "Communication Officer"],
+  ["Frank Praye Awuah", "Deputy Communication Officer"],
+  ["Richard Agyapong", "Constituency Organizer"],
+  ["Mohammed Abass", "Deputy Constituency Organizer"],
+  ["Name not provided", "Zongo Coordinator"],
+  ["Confidence Coffie", "Constituency Youth Organizer"],
+  ["Stephan Afusah-Essien", "Deputy Constituency Youth Organizer"],
+  ["Alhassan Ibrahim", "Current MMDCE"],
+  ["Comfort Ali", "Constituency Women Organizer"],
+  ["Elizabeth Princess Konotey", "Deputy Constituency Women Organizer"],
+];
 export const metadata = pageMetadata(
   "About Wassa East",
   "Learn about Wassa East, its constituency leadership, and how project updates are reviewed.",
@@ -36,18 +54,18 @@ export default function About() {
         <MpProfile />
         <h3>Constituency executives</h3>
         <ul className="executive-list">
-          {[1, 2].map((entry) => (
-            <li key={entry}>
+          {executives.map(([name, office]) => (
+            <li key={office}>
               <Image
                 className="leadership-portrait"
                 src="/illustrations/leadership-portrait.svg"
-                alt="Executive portrait placeholder"
-                width={80}
-                height={96}
+                alt=""
+                width={64}
+                height={77}
               />
               <div>
-                <strong>Executive name pending</strong>
-                <span>Office to be confirmed</span>
+                <h4>{name}</h4>
+                <p>{office}</p>
               </div>
             </li>
           ))}

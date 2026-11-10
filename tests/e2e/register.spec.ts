@@ -519,7 +519,7 @@ test("contact and privacy expose approved contact links without a live form or p
   await page.goto("/about");
   await expect(page.getByRole("heading", { name: "MP and Constituency Executives" })).toBeVisible();
   const portraits = page.locator(".leadership img");
-  await expect(portraits).toHaveCount(3);
+  await expect(portraits).toHaveCount(17);
   for (const portrait of await portraits.all()) {
     await portrait.scrollIntoViewIfNeeded();
     await expect.poll(() => portrait.evaluate((img) => (img as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
