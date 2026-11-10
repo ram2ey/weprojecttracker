@@ -48,6 +48,15 @@ export function RecordEditor({
   const publishedRevision = record.revisions.find(
     (item) => item.id === record.publishedRevisionId,
   );
+  // A withdrawn photograph can leave the live "Completed" version without the
+  // photograph that status requires; the public page then shows none.
+  const completedWithoutPhoto =
+    !!publishedRevision &&
+    !record.withdrawnAt &&
+    publishedRevision.payload.status === "Completed" &&
+    !publishedRevision.payload.attachments.some((a) =>
+      record.files.some((f) => f.id === a.id && !f.withdrawn),
+    );
   const dirty = JSON.stringify(payload) !== baseline,
     canLeave = useUnsavedChanges(dirty),
     editable = revision.state === "draft" && canSubmit(role),
@@ -190,6 +199,16 @@ export function RecordEditor({
         </div>
         <Badge>{revision.state}</Badge>
       </div>
+      {completedWithoutPhoto && (
+        <div className="notice" role="status">
+          <p>
+            <strong>The published project has no photograph.</strong> It is
+            marked Completed, but its photographs have been withdrawn, so the
+            public page shows none. Create a new draft, add a current
+            photograph and send it for review.
+          </p>
+        </div>
+      )}
       <div className="revision-toolbar">
         <label>
           Revision history

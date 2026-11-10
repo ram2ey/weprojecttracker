@@ -246,6 +246,36 @@ export async function isPublicEvidence(id: string) {
       a.id === id && a.visibility === "public" && a.purpose !== "financial",
   );
 }
+type Tx = Parameters<Parameters<ReturnType<typeof getDb>["transaction"]>[0]>[0];
+async function missingCompletionPhoto(
+  tx: Tx,
+  publishedRevisionId: string | null,
+  withdrawnAt: Date | null,
+  recordId: string,
+) {
+  if (!publishedRevisionId || withdrawnAt) return false;
+  const [published] = await tx
+    .select({ payload: contentRevision.payload })
+    .from(contentRevision)
+    .where(eq(contentRevision.id, publishedRevisionId));
+  if (published?.payload.status !== "Completed") return false;
+  const ids = published.payload.attachments
+    .filter((a) => a.visibility === "public" && a.purpose !== "financial")
+    .map((a) => a.id);
+  if (!ids.length) return true;
+  const live = await tx
+    .select({ id: mediaFile.id })
+    .from(mediaFile)
+    .where(
+      and(
+        inArray(mediaFile.id, ids),
+        eq(mediaFile.recordId, recordId),
+        isNull(mediaFile.withdrawnAt),
+        eq(mediaFile.internalOnly, false),
+      ),
+    );
+  return live.length === 0;
+}
 export async function withdrawEvidence(
   actor: Actor,
   id: string,
@@ -292,13 +322,26 @@ export async function withdrawEvidence(
       .update(contentRecord)
       .set({ version: sql`${contentRecord.version} + 1` })
       .where(eq(contentRecord.id, file.recordId));
+    // Withdrawal always wins (it may be a privacy request), but it can leave
+    // a live "Completed" project without the photograph that status requires.
+    // Report that so staff can prepare a replacement revision.
+    const completedWithoutPhoto = await missingCompletionPhoto(
+      tx,
+      record.publishedRevisionId,
+      record.withdrawnAt,
+      file.recordId,
+    );
     await tx.insert(auditLog).values({
       id: crypto.randomUUID(),
       actorId: actor.id,
       action: "media.withdrawn",
       subjectId: file.recordId,
-      details: { mediaId: id, reason },
+      details: {
+        mediaId: id,
+        reason,
+        ...(completedWithoutPhoto ? { completedWithoutPhoto: "true" } : {}),
+      },
     });
-    return { withdrawn: true };
+    return { withdrawn: true, completedWithoutPhoto };
   });
 }

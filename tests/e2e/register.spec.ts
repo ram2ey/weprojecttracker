@@ -1120,6 +1120,68 @@ test("strict project inputs and image access reject excluded fields and historic
   ).toBe(404);
   expect((await editor.get("/api/media/" + image.id)).status()).toBe(200);
 });
+test("withdrawing the last photo of a published completed project is immediate and flagged for staff", async ({
+  context,
+  page,
+  request,
+}) => {
+  const d = await draft();
+  const sharp = (await import("sharp")).default,
+    buffer = await sharp({
+      create: { width: 80, height: 80, channels: 3, background: "#006b3f" },
+    })
+      .png()
+      .toBuffer();
+  const image = await (
+    await editor.post("/api/staff/content/" + d.recordId + "/media", {
+      multipart: {
+        file: { name: "finished.png", mimeType: "image/png", buffer },
+      },
+    })
+  ).json();
+  await save(d.recordId, d.revisionId, {
+    ...payload("Finished clinic " + tag),
+    status: "Completed",
+    actualCompletionDate: "2026-02-01",
+    completionSummary: "The clinic was finished and inspected.",
+    attachments: [{ id: image.id, caption: "Finished clinic" }],
+  });
+  await editor.post(
+    "/api/staff/content/" + d.recordId + "/revisions/" + d.revisionId,
+    { data: { action: "submit", lockVersion: 1 } },
+  );
+  expect(
+    (
+      await approver.post(
+        "/api/staff/content/" + d.recordId + "/revisions/" + d.revisionId,
+        {
+          data: { action: "approve", evidenceReviewed: true, lockVersion: 2 },
+        },
+      )
+    ).status(),
+  ).toBe(200);
+  expect((await request.get("/api/media/" + image.id)).status()).toBe(200);
+  const withdrawal = await approver.post(
+    "/api/media/" + image.id + "/withdraw",
+    { data: { reason: "The photograph shows a private residence." } },
+  );
+  expect(withdrawal.status()).toBe(200);
+  expect(await withdrawal.json()).toEqual({
+    withdrawn: true,
+    completedWithoutPhoto: true,
+  });
+  expect((await request.get("/api/media/" + image.id)).status()).toBe(404);
+  const audit = await pool.query(
+    "SELECT details FROM audit_log WHERE action='media.withdrawn' AND subject_id=$1",
+    [d.recordId],
+  );
+  expect(audit.rows[0].details.completedWithoutPhoto).toBe("true");
+  await context.addCookies((await editor.storageState()).cookies);
+  await page.goto("/admin/content/" + d.recordId);
+  await expect(
+    page.getByText("The published project has no photograph."),
+  ).toBeVisible();
+});
 test("temporary passwords gate all staff operations; resets and deactivation revoke sessions", async () => {
   const username = "new_" + randomUUID().slice(0, 8);
   const created = await operator.post("/api/staff/accounts", {

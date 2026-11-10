@@ -40,6 +40,12 @@ HTML uses a fresh CSP nonce per request and dynamic rendering. Scripts, fonts, i
 
 Simple visitor comments appear immediately beneath each published project. Visitors supply an unverified name and plain-text message; only operators can hide/restore comments or close/reopen submissions at /admin?view=comments. Opening the form creates a signed essential anti-abuse cookie for up to 24 hours. Comments work independently of optional statistics consent. Apply additive migration 0008 before starting this version. See [project comments](docs/PROJECT_COMMENTS.md).
 
+Posting limits combine a per-browser limit, a site-wide limit and a per-network-address limit (20 comment forms, 30 comments and 5 contact messages per address per hour). The address comes only from a single proxy-supplied `X-Forwarded-For` value; anything else shares one fallback bucket. It is stored only as an HMAC hash inside short-lived rate-limit counters. After each proxy change, confirm the proxy replaces a client-sent `X-Forwarded-For` header.
+
+The public **Install App** button offers the browser's install prompt, or home-screen steps on iPhone. The installed app is the same online-only website; no offline cache or service worker is added. See [browser installation](docs/BROWSER_INSTALLATION.md).
+
+Approving a submission requires the evidence confirmation; the decision note is optional. Returning a submission needs a reason of at least 10 characters. Withdrawing a photograph always takes effect immediately. If that leaves a published Completed project without a photograph, the staff editor shows a warning and the audit log records it; prepare a replacement revision.
+
 The retired guest-discussion system, following, notifications, maps, offline reading, announcements, reports/exports, Google login, MFA and dark mode remain inactive. Their database tables and historical data are retained. New comments use a separate table. No background worker is required. The temporary /sw.js retirement worker clears only this app's old offline caches and unregisters itself.
 
 ## Homepage publishing and public integrations
