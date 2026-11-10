@@ -519,7 +519,7 @@ test("contact and privacy expose approved contact links without a live form or p
   await page.goto("/about");
   await expect(page.getByRole("heading", { name: "MP and Constituency Executives" })).toBeVisible();
   const portraits = page.locator(".leadership img");
-  await expect(portraits).toHaveCount(17);
+  await expect(portraits).toHaveCount(1);
   for (const portrait of await portraits.all()) {
     await portrait.scrollIntoViewIfNeeded();
     await expect.poll(() => portrait.evaluate((img) => (img as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
@@ -1299,9 +1299,12 @@ test("Home introduces Wassa East and leads to the project directory with consent
     const firstStory = await stories.nth(0).boundingBox();
     const secondStory = await stories.nth(1).boundingBox();
     expect(secondStory!.y > firstStory!.y).toBe(viewport.width < 800);
-    await news.locator("summary").focus();
-    await page.keyboard.press("Enter");
-    await expect(news.locator("details")).toHaveAttribute("open", "");
+    await expect(news.locator("details")).toHaveCount(0);
+    const storyTitle = await stories.nth(0).getByRole("heading").innerText();
+    await stories.nth(0).getByRole("link", {name: /^Read more about/}).click();
+    await expect(page.getByRole("heading", {name:storyTitle,exact:true})).toBeVisible();
+    await expect(page.locator(".mobile-app-section")).toHaveCount(1);
+    await page.getByRole("link", {name:"Back to News & Features"}).click();
     const faq = page.getByRole("region", { name: "Frequently asked questions" });
     await expect(faq.locator("details")).toHaveCount(5);
     await expect(faq.locator("details[open]")).toHaveCount(0);
@@ -1393,6 +1396,7 @@ test("staff can draft, independently publish, revise and withdraw a homepage fea
   storyIds.push(id);
   await page.getByRole("button",{name:"Submit for review"}).click();
   await expect(page.getByText("pending · Unpublished")).toBeVisible();
+  expect((await request.get("/news/"+id)).status()).toBe(404);
   await page.goto("/");
   await expect(page.getByText(fields.title,{exact:true})).toHaveCount(0);
   const approve={id,version:2,action:"approve"};
@@ -1405,6 +1409,11 @@ test("staff can draft, independently publish, revise and withdraw a homepage fea
   const article=page.getByRole("article").filter({hasText:fields.title});
   await expect(article.getByRole("img",{name:fields.caption})).toBeVisible();
   await expect(article.getByRole("link",{name:"View project"})).toHaveAttribute("href","/projects/"+firstSlug);
+  await article.getByRole("link",{name:/^Read more about/}).click();
+  await expect(page).toHaveURL(origin+"/news/"+id);
+  await expect(page.getByText(fields.detail,{exact:true})).toBeVisible();
+  await expect(page.locator(".mobile-app-section")).toHaveCount(1);
+  await page.getByRole("link",{name:"Back to News & Features"}).click();
   const revision={id,version:3,action:"submit",removePhoto:false,fields:{...fields,title:"Revised "+tag}};
   expect((await editor.post(endpoint,{data:revision})).status()).toBe(200);
   expect((await editor.post(endpoint,{data:revision})).status()).toBe(409);
@@ -1412,6 +1421,7 @@ test("staff can draft, independently publish, revise and withdraw a homepage fea
   expect((await approver.post(endpoint,{data:{id,version:4,action:"approve"}})).status()).toBe(200);
   await page.reload();await expect(page.getByText(revision.fields.title,{exact:true})).toBeVisible();
   expect((await approver.post(endpoint,{data:{id,version:5,action:"withdraw"}})).status()).toBe(200);
+  expect((await request.get("/news/"+id)).status()).toBe(404);
   await page.reload();await expect(page.getByText(revision.fields.title,{exact:true})).toHaveCount(0);
 });
 

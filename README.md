@@ -44,7 +44,7 @@ The retired guest-discussion system, following, notifications, maps, offline rea
 
 ## Homepage publishing and public integrations
 
-Apply migration 0009 and open **News & Features** in the staff workspace. Officers and operators can save drafts, upload a photo, select a published project, and submit for review. A separate approver or operator publishes the revision. Revising a story preserves the live copy until approval. Approvers can return submissions and withdraw published stories. The homepage shows the three latest approvals. Sample content is limited to design preview.
+Apply migration 0009 and open **News & Features** in the staff workspace. Officers and operators can save drafts, upload a photo, select a published project, and submit for review. A separate approver or operator publishes the revision. Revising a story preserves the live copy until approval. Approvers can return submissions and withdraw published stories. The homepage shows the three latest approvals, with Read more links to individual story pages. Published stories remain available at their links after newer items appear on the homepage. Withdrawal also removes the public story page. Sample content is limited to design preview.
 
 Set `GOOGLE_PLAY_URL` and `APP_STORE_URL` independently when each listing is available. For contact email, see [mailbox configuration](docs/PUBLIC_CONTACT_UPDATE.md). Existing Coolify Compose Empty installations need the updated Compose environment mapping before activating the integrations.
 

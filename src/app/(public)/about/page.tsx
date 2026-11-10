@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { MpProfile } from "@/components/mp-profile";
 import { pageMetadata } from "@/lib/site";
 const executives = [
@@ -56,13 +55,6 @@ export default function About() {
         <ul className="executive-list">
           {executives.map(([name, office]) => (
             <li key={office}>
-              <Image
-                className="leadership-portrait"
-                src="/illustrations/leadership-portrait.svg"
-                alt=""
-                width={64}
-                height={77}
-              />
               <div>
                 <h4>{name}</h4>
                 <p>{office}</p>
