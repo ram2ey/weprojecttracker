@@ -12,6 +12,7 @@ import {
   pgEnum,
   date,
   primaryKey,
+  check,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
@@ -31,12 +32,16 @@ export const analyticsDaily = pgTable(
 
 export const newsStory = pgTable("news_story", {
   id: text("id").primaryKey(),
-  state: text("state").$type<"draft" | "pending" | "published" | "withdrawn">().notNull(),
+  state: text("state")
+    .$type<"draft" | "pending" | "published" | "withdrawn">()
+    .notNull(),
   version: integer("version").notNull().default(1),
   contributors: jsonb("contributors").$type<string[]>().notNull(),
   draft: jsonb("draft").$type<Story>().notNull(),
   published: jsonb("published").$type<Story>(),
   publishedAt: timestamp("published_at", { withTimezone: true }),
+  commentsEnabled: boolean("comments_enabled").notNull().default(true),
+  engagementVersion: integer("engagement_version").notNull().default(0),
 });
 
 export const user = pgTable("user", {
@@ -284,9 +289,12 @@ export const projectComment = pgTable(
   "project_comment",
   {
     id: text("id").primaryKey(),
-    recordId: text("record_id")
-      .notNull()
-      .references(() => contentRecord.id, { onDelete: "cascade" }),
+    recordId: text("record_id").references(() => contentRecord.id, {
+      onDelete: "cascade",
+    }),
+    storyId: text("story_id").references(() => newsStory.id, {
+      onDelete: "cascade",
+    }),
     submissionKey: text("submission_key").notNull().unique(),
     displayName: text("display_name").notNull(),
     body: text("body").notNull(),
@@ -299,6 +307,11 @@ export const projectComment = pgTable(
     version: integer("version").notNull().default(0),
   },
   (t) => [
+    check(
+      "comment_one_subject",
+      sql`(${t.recordId} IS NOT NULL) <> (${t.storyId} IS NOT NULL)`,
+    ),
+    index("news_comment_list_idx").on(t.storyId, t.hiddenAt, t.createdAt, t.id),
     index("project_comment_list_idx").on(
       t.recordId,
       t.hiddenAt,

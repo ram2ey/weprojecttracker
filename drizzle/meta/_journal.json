@@ -71,6 +71,13 @@
       "when": 1794240151882,
       "tag": "0009_news_publication",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794304169006,
+      "tag": "0010_tearful_lake",
+      "breakpoints": true
     }
   ]
 }

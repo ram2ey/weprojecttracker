@@ -8,6 +8,17 @@ import { commentInput, type CommentPage, type ManagedPage } from "./policy";
 
 const live = `r.kind='project' AND r.withdrawn_at IS NULL AND v.state='approved' AND v.record_id=r.id`;
 const joined = `content_record r JOIN content_revision v ON v.id=r.published_revision_id`;
+export type DiscussionKind = "project" | "news";
+function discussion(kind: DiscussionKind) {
+  return kind === "news"
+    ? {
+        joined: "news_story r",
+        live: "r.published IS NOT NULL",
+        key: "r.id",
+        column: "story_id",
+      }
+    : { joined, live, key: "r.slug", column: "record_id" };
+}
 export function commentPageNumber(value: string | null) {
   return z.coerce
     .number()
@@ -23,17 +34,19 @@ function operator(actor: Actor) {
 export async function listComments(
   slug: string,
   page = 1,
+  kind: DiscussionKind = "project",
 ): Promise<CommentPage> {
+  const subject = discussion(kind);
   // One statement gives publication, visibility and the list a common snapshot.
   const result = await getPool().query(
     `SELECT r.comments_enabled, COALESCE((SELECT jsonb_agg(c ORDER BY c."createdAt" DESC,c.id DESC) FROM (
       SELECT id,display_name AS "displayName",body,created_at AT TIME ZONE 'UTC' AS "createdAt" FROM project_comment
-      WHERE record_id=r.id AND hidden_at IS NULL ORDER BY created_at DESC,id DESC LIMIT 21 OFFSET $2
-    ) c),'[]'::jsonb) AS items FROM ${joined} WHERE r.slug=$1 AND ${live}`,
+      WHERE ${subject.column}=r.id AND hidden_at IS NULL ORDER BY created_at DESC,id DESC LIMIT 21 OFFSET $2
+    ) c),'[]'::jsonb) AS items FROM ${subject.joined} WHERE ${subject.key}=$1 AND ${subject.live}`,
     [slug, (page - 1) * 20],
   );
   if (!result.rowCount)
-    throw new ContentError(404, "This project is no longer available.");
+    throw new ContentError(404, "This discussion is no longer available.");
   const row = result.rows[0];
   return {
     enabled: row.comments_enabled,
@@ -60,7 +73,9 @@ export async function submitComment(
   slug: string,
   browser: string,
   raw: unknown,
+  kind: DiscussionKind = "project",
 ) {
+  const subject = discussion(kind);
   const tx = await getPool().connect();
   try {
     await tx.query("BEGIN");
@@ -69,24 +84,24 @@ export async function submitComment(
       commentHash(browser),
     ]);
     const record = await tx.query(
-      `SELECT r.id,r.comments_enabled FROM ${joined} WHERE r.slug=$1 AND ${live} FOR UPDATE OF r`,
+      `SELECT r.id,r.comments_enabled FROM ${subject.joined} WHERE ${subject.key}=$1 AND ${subject.live} FOR UPDATE OF r`,
       [slug],
     );
     if (!record.rowCount)
-      throw new ContentError(404, "This project is no longer available.");
+      throw new ContentError(404, "This discussion is no longer available.");
     const input = commentInput.safeParse(raw);
     const key = input.success
       ? commentHash(`${browser}:${input.data.submissionId}`)
       : null;
     if (key) {
       const previous = await tx.query(
-        "SELECT id,record_id,display_name,body,hidden_at FROM project_comment WHERE submission_key=$1",
+        "SELECT id,record_id,story_id,display_name,body,hidden_at FROM project_comment WHERE submission_key=$1",
         [key],
       );
       if (previous.rowCount) {
         const old = previous.rows[0];
         if (
-          old.record_id !== record.rows[0].id ||
+          old[subject.column] !== record.rows[0].id ||
           old.display_name !== input.data!.displayName ||
           old.body !== input.data!.body ||
           input.data!.website
@@ -100,7 +115,10 @@ export async function submitComment(
       }
     }
     if (!record.rows[0].comments_enabled)
-      throw new ContentError(409, "New comments are closed for this project.");
+      throw new ContentError(
+        409,
+        "New comments are closed for this discussion.",
+      );
     const globalAllowed = await limit(tx, "global", 60, 60);
     const browserAllowed = await limit(tx, "browser:" + browser, 3, 600);
     // Expired counters contain no raw browser tokens or IP addresses.
@@ -127,7 +145,7 @@ export async function submitComment(
     }
     const id = crypto.randomUUID();
     await tx.query(
-      "INSERT INTO project_comment (id,record_id,submission_key,display_name,body) VALUES ($1,$2,$3,$4,$5)",
+      `INSERT INTO project_comment (id,${subject.column},submission_key,display_name,body) VALUES ($1,$2,$3,$4,$5)`,
       [id, record.rows[0].id, key, input.data.displayName, input.data.body],
     );
     await tx.query("COMMIT");
@@ -148,16 +166,20 @@ export async function managedComments(
   operator(actor);
   const [comments, projects] = await Promise.all([
     getPool().query(
-      `SELECT c.id,c.record_id AS "recordId",c.display_name AS "displayName",c.body,c.created_at AS "createdAt",c.hidden_at AS "hiddenAt",c.version,
-      COALESCE(v.payload->>'title',r.slug) AS "projectTitle" FROM project_comment c JOIN content_record r ON r.id=c.record_id
+      `SELECT c.id,COALESCE(c.record_id,'news:'||c.story_id) AS "recordId",c.display_name AS "displayName",c.body,c.created_at AS "createdAt",c.hidden_at AS "hiddenAt",c.version,
+      COALESCE(v.payload->>'title',r.slug,n.published->>'title',n.draft->>'title') AS "projectTitle" FROM project_comment c LEFT JOIN content_record r ON r.id=c.record_id
+      LEFT JOIN news_story n ON n.id=c.story_id
       LEFT JOIN content_revision v ON v.id=r.published_revision_id
-      WHERE ($1::text IS NULL OR c.record_id=$1) AND (c.hidden_at IS NOT NULL)=$2
+      WHERE ($1::text IS NULL OR COALESCE(c.record_id,'news:'||c.story_id)=$1) AND (c.hidden_at IS NOT NULL)=$2
       ORDER BY c.created_at DESC,c.id DESC LIMIT 21 OFFSET $3`,
       [project, hidden, (page - 1) * 20],
     ),
     getPool()
       .query(`SELECT r.id,COALESCE(v.payload->>'title',r.slug) AS title,r.comments_enabled AS enabled,r.engagement_version AS version
-      FROM content_record r LEFT JOIN content_revision v ON v.id=r.published_revision_id WHERE r.kind='project' ORDER BY title,r.id`),
+      FROM content_record r LEFT JOIN content_revision v ON v.id=r.published_revision_id WHERE r.kind='project'
+      UNION ALL SELECT 'news:'||n.id,COALESCE(n.published->>'title',n.draft->>'title')||' (News)',n.comments_enabled,n.engagement_version
+      FROM news_story n WHERE n.published IS NOT NULL OR EXISTS (SELECT 1 FROM project_comment c WHERE c.story_id=n.id)
+      ORDER BY title,id`),
   ]);
   return {
     items: comments.rows.slice(0, 20),
@@ -210,17 +232,19 @@ export async function changeCommenting(
   version: number,
 ) {
   operator(actor);
+  const news = id.startsWith("news:");
+  const subjectId = news ? z.uuid().parse(id.slice(5)) : id;
   const tx = await getPool().connect();
   try {
     await tx.query("BEGIN");
     const changed = await tx.query(
-      "UPDATE content_record SET comments_enabled=$2,engagement_version=engagement_version+1 WHERE id=$1 AND kind='project' AND engagement_version=$3 RETURNING id",
-      [id, enabled, version],
+      `UPDATE ${news ? "news_story" : "content_record"} SET comments_enabled=$2,engagement_version=engagement_version+1 WHERE id=$1 ${news ? "" : "AND kind='project'"} AND engagement_version=$3 RETURNING id`,
+      [subjectId, enabled, version],
     );
     if (!changed.rowCount)
       throw new ContentError(
         409,
-        "This project setting changed. Reload before trying again.",
+        "This discussion setting changed. Reload before trying again.",
       );
     await tx.query(
       "INSERT INTO audit_log (id,actor_id,action,subject_id) VALUES ($1,$2,$3,$4)",

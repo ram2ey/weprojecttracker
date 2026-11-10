@@ -1230,7 +1230,6 @@ test("retired routes and mutations are unavailable; worker only retires app cach
     "/preview/console",
     "/staff/security",
     "/staff/setup",
-    "/manifest.webmanifest",
     "/api/public/engagement/session",
     "/api/public/updates",
     "/api/public/projects/map",
@@ -2246,25 +2245,18 @@ test("project comments publish once, stay plain text, paginate and survive faile
   ]);
   await page.goto("/projects/" + fixture.slug);
   await expect(
-    page.getByRole("button", { name: "Leave a comment", exact: true }),
+    page.getByRole("button", { name: "Write a comment", exact: true }),
   ).toBeVisible();
   expect((await context.cookies()).some((c) => c.name === commentCookie)).toBe(
     false,
   );
   await page
-    .getByRole("button", { name: "Leave a comment", exact: true })
+    .getByRole("button", { name: "Write a comment", exact: true })
     .click();
   await expect(
     page.getByRole("textbox", { name: "Name", exact: true }),
   ).toBeVisible();
-  const cookie = (await context.cookies()).find(
-    (c) => c.name === commentCookie,
-  )!;
-  expect(cookie.httpOnly).toBe(true);
-  expect(cookie.sameSite).toBe("Strict");
-  await expect(
-    page.getByRole("textbox", { name: "Name", exact: true }),
-  ).toBeFocused();
+  await expect(page.getByRole("textbox", { name: "Comment", exact: true })).toBeFocused();
   await page
     .getByRole("textbox", { name: "Name", exact: true })
     .fill("A visitor <b>name</b>");
@@ -2340,7 +2332,7 @@ test("project comments publish once, stay plain text, paginate and survive faile
     .click();
   await expect(list.locator("li")).toHaveCount(20);
   await page
-    .getByRole("button", { name: "Leave a comment", exact: true })
+    .getByRole("button", { name: "Write a comment", exact: true })
     .click();
   expect(
     (
@@ -2401,7 +2393,7 @@ test("only operators moderate comments, keep hidden copies, close projects and a
     }
     await context.addCookies((await operator.storageState()).cookies);
     await page.goto("/admin?view=comments");
-    await page.getByLabel("Project", { exact: true }).selectOption(fixture.id);
+    await page.getByLabel("Project or news story", { exact: true }).selectOption(fixture.id);
     await expect(
       page.getByRole("list", { name: "Manage comments" }),
     ).toContainText(input.body);
@@ -2725,7 +2717,7 @@ test("phone grid, comment shortcuts and browser favourites work across pages and
     for (const control of [
       card.locator("h2 a"),
       card.getByRole("button"),
-      card.getByRole("link", { name: /Comments on/ }),
+      card.getByRole("link", { name: /Write a comment on/ }),
     ]) {
       await control.focus();
       await expect(control).toBeFocused();
@@ -2741,18 +2733,17 @@ test("phone grid, comment shortcuts and browser favourites work across pages and
   await expect(
     page.getByRole("button", { name: "Grid", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
-  await card.getByRole("link", { name: /Comments on/ }).click();
+  await card.getByRole("link", { name: /Write a comment on/ }).click();
   await expect(page).toHaveURL(
-    origin + projectPath + "#project-comments-title",
+    origin + projectPath + "#write-comment",
   );
-  const heading = page.getByRole("heading", { name: "Visitor comments" });
+  const heading = page.getByRole("textbox", { name: "Comment", exact: true });
+  await expect(heading).toBeFocused();
   await expect(heading).toBeInViewport();
   expect((await heading.boundingBox())!.y).toBeGreaterThanOrEqual(
     (await page.locator(".site-header").boundingBox())!.height,
   );
-  await expect(
-    page.getByRole("button", { name: "Leave a comment" }),
-  ).toBeVisible();
+  await expect(page.getByRole("form", { name: "Write a comment" })).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Favourite " + title, exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
@@ -2787,7 +2778,8 @@ test("phone grid, comment shortcuts and browser favourites work across pages and
     "UPDATE content_record SET comments_enabled=false WHERE slug=$1",
     [projectPath.split("/").pop()],
   );
-  await saved.getByRole("link", { name: "Comments on " + title }).click();
+  await saved.reload();
+  await saved.getByRole("link", { name: "View comments on " + title }).click();
   await expect(
     saved.getByText("New comments are closed for this project."),
   ).toBeVisible();
@@ -2820,4 +2812,341 @@ test("phone grid, comment shortcuts and browser favourites work across pages and
     "false",
   );
   await saved.close();
+});
+
+test("news discussions share anonymous posting and operator moderation; more news ranks related publications first", async ({
+  page,
+  context,
+  request,
+}) => {
+  await pool.query("DELETE FROM app_rate_limit");
+  async function story(
+    title: string,
+    project: string,
+    date: string,
+    live = true,
+  ) {
+    const id = randomUUID();
+    storyIds.push(id);
+    const value = {
+      kind: "News",
+      title: title + " " + tag,
+      summary: "Published community news.",
+      detail: "A story with its own discussion.",
+      project,
+      photo: "",
+      caption: "",
+    };
+    await pool.query(
+      "INSERT INTO news_story(id,state,contributors,draft,published,published_at) VALUES ($1,$2,'[]',$3,$4,$5)",
+      [
+        id,
+        live ? "published" : "draft",
+        value,
+        live ? value : null,
+        live ? date : null,
+      ],
+    );
+    return { id, title: value.title };
+  }
+  const main = await story("Main story", firstSlug, "2080-01-01");
+  const relatedOld = await story(
+    "Older related story",
+    firstSlug,
+    "2001-01-01",
+  );
+  const relatedNew = await story(
+    "Newer related story",
+    firstSlug,
+    "2002-01-01",
+  );
+  const latest = await story("Latest unrelated story", "", "2099-01-01");
+  const extra = await story("Other unrelated story", "", "2098-01-01");
+  const unpublished = await story(
+    "Unpublished story",
+    firstSlug,
+    "2099-01-01",
+    false,
+  );
+  const endpoint = `/api/public/news/${main.id}/comments`;
+  await context.addCookies([
+    { name: "wassa_cookie_consent", value: "v1.rejected", url: origin },
+  ]);
+  await page.goto("/news/" + main.id);
+  const more = page.getByRole("region", { name: "More news", exact: true });
+  await expect(more.getByRole("link")).toHaveText([
+    relatedNew.title + "1 January 2002",
+    relatedOld.title + "1 January 2001",
+    latest.title + "1 January 2099",
+  ]);
+  await expect(more.getByRole("link")).toHaveCount(3);
+  await pool.query("UPDATE content_record SET withdrawn_at=NOW() WHERE slug=$1", [firstSlug]);
+  await page.reload();
+  await expect(page.getByRole("link", { name: "View project", exact: true })).toHaveCount(0);
+  await expect(more.getByRole("link")).toHaveText([
+    relatedNew.title + "1 January 2002", relatedOld.title + "1 January 2001", latest.title + "1 January 2099",
+  ]);
+  await pool.query("UPDATE content_record SET withdrawn_at=NULL WHERE slug=$1", [firstSlug]);
+  expect(
+    (await request.get(`/api/public/news/${unpublished.id}/comments`)).status(),
+  ).toBe(404);
+  expect(
+    (
+      await request.post(
+        `/api/public/news/sample-classroom-roof/comments/session`,
+        { headers },
+      )
+    ).status(),
+  ).toBe(404);
+  expect(
+    (await request.get(`/api/public/news/${extra.id}/comments`)).status(),
+  ).toBe(200);
+  await page
+    .getByRole("button", { name: "Write a comment", exact: true })
+    .click();
+  await expect(page.getByLabel("Comment", { exact: true })).toBeFocused();
+  await page
+    .getByLabel("Comment", { exact: true })
+    .fill("A visitor’s news comment <b>plain text</b>");
+  await page.getByLabel("Name", { exact: true }).fill("News reader");
+  await page.getByRole("button", { name: "Post comment", exact: true }).click();
+  await expect(
+    page.getByText("Your comment is now public.", { exact: true }),
+  ).toBeVisible();
+  const guard = (await context.cookies()).find(
+    (cookie) => cookie.name === commentCookie,
+  )!;
+  expect(guard).toMatchObject({ httpOnly: true, sameSite: "Strict" });
+  const posted = (await (await request.get(endpoint)).json()).items[0];
+  expect(posted.body).toContain("<b>plain text</b>");
+  await expect(page.locator(".comment-card b")).toHaveCount(0);
+  expect(
+    (await (await request.get(`/api/public/news/${extra.id}/comments`)).json())
+      .items,
+  ).toEqual([]);
+  expect(
+    (
+      await editor.patch("/api/staff/comments", {
+        data: { action: "hide", id: posted.id, version: 0 },
+      })
+    ).status(),
+  ).toBe(403);
+  await context.addCookies((await operator.storageState()).cookies);
+  await page.goto("/admin?view=comments");
+  await page
+    .getByLabel("Project or news story", { exact: true })
+    .selectOption("news:" + main.id);
+  await expect(
+    page.getByRole("list", { name: "Manage comments" }),
+  ).toContainText(posted.body);
+  await page.getByRole("button", { name: "Hide comment", exact: true }).click();
+  await expect(
+    page.getByText("Comment hidden. You can restore it from Hidden comments.", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  expect((await (await request.get(endpoint)).json()).items).toEqual([]);
+  await page.getByLabel("Show", { exact: true }).selectOption("hidden");
+  await page
+    .getByRole("button", { name: "Restore comment", exact: true })
+    .click();
+  await expect(
+    page.getByText("Comment restored publicly.", { exact: true }),
+  ).toBeVisible();
+  expect((await (await request.get(endpoint)).json()).items).toHaveLength(1);
+  await page
+    .getByRole("button", { name: "Close new comments", exact: true })
+    .click();
+  await expect(
+    page.getByText("New comments closed.", { exact: true }),
+  ).toBeVisible();
+  expect(
+    (
+      await operator.patch("/api/staff/comments", {
+        data: {
+          action: "set-enabled",
+          id: "news:" + main.id,
+          enabled: true,
+          version: 0,
+        },
+      })
+    ).status(),
+  ).toBe(409);
+  expect(
+    (
+      await context.request.post(endpoint, {
+        headers,
+        data: {
+          submissionId: randomUUID(),
+          displayName: "Reader",
+          body: "Closed",
+          website: "",
+        },
+      })
+    ).status(),
+  ).toBe(409);
+  await page.goto("/news/" + main.id + "#write-comment");
+  await expect(
+    page.getByText("New comments are closed for this story."),
+  ).toBeVisible();
+  await expect(page.getByRole("form", { name: "Write a comment" })).toHaveCount(
+    0,
+  );
+  await expect(
+    page.getByRole("list", { name: "Visitor comments" }),
+  ).toContainText(posted.body);
+  await pool.query(
+    "UPDATE news_story SET published=NULL,published_at=NULL,state='withdrawn' WHERE id=$1",
+    [main.id],
+  );
+  expect((await request.get(endpoint)).status()).toBe(404);
+  expect(
+    (
+      await context.request.post(endpoint, {
+        headers,
+        data: {
+          submissionId: randomUUID(),
+          displayName: "Reader",
+          body: "Withdrawn",
+          website: "",
+        },
+      })
+    ).status(),
+  ).toBe(404);
+  await page.goto("/news/" + relatedNew.id);
+  await expect(
+    page
+      .getByRole("region", { name: "More news" })
+      .getByRole("link", { name: main.title }),
+  ).toHaveCount(0);
+});
+
+test("install tracker exposes valid app assets, native prompt outcomes, and iPhone home screen instructions", async ({
+  page,
+  browser,
+  request,
+}) => {
+  const manifestResponse = await request.get("/manifest.webmanifest");
+  expect(manifestResponse.status()).toBe(200);
+  const manifest = await manifestResponse.json();
+  expect(manifest).toMatchObject({
+    id: "/",
+    name: "Wassa East Projects",
+    short_name: "Wassa East",
+    start_url: "/",
+    scope: "/",
+    display: "standalone",
+    prefer_related_applications: false,
+  });
+  const sharp = (await import("sharp")).default;
+  for (const icon of manifest.icons) {
+    const response = await request.get(icon.src);
+    expect(response.status()).toBe(200);
+    const metadata = await sharp(await response.body()).metadata();
+    expect(`${metadata.width}x${metadata.height}`).toBe(icon.sizes);
+  }
+  await page.goto("/");
+  await expect(page.locator('link[rel="manifest"]')).toHaveAttribute(
+    "href",
+    "/manifest.webmanifest",
+  );
+  await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute(
+    "href",
+    "/brand/apple-touch-icon.png",
+  );
+  const cdp = await page.context().newCDPSession(page);
+  const appManifest = await cdp.send("Page.getAppManifest");
+  expect(appManifest.errors).toEqual([]);
+  expect(appManifest.url).toBe(origin + "/manifest.webmanifest");
+  const installability = await cdp.send("Page.getInstallabilityErrors");
+  // Playwright contexts are incognito, which independently prevents installation.
+  // Every app/manifest error must still fail this check.
+  expect(installability.installabilityErrors.filter((error) => error.errorId !== "in-incognito")).toEqual([]);
+  await cdp.detach();
+  await expect(page.locator("footer")).toContainText(
+    `© ${new Date().getUTCFullYear()} Wassa East Constituency`,
+  );
+  for (const path of ["/projects", "/favourites", "/about", "/contact", "/faq", "/privacy", "/unavailable-fixture", "/news/unavailable-fixture"]) {
+    await page.goto(path);
+    await expect(page.locator("footer")).toHaveCount(1);
+    await expect(page.locator("footer")).toContainText(`© ${new Date().getUTCFullYear()} Wassa East Constituency`);
+  }
+  await page.goto("/");
+  for (const outcome of ["dismissed", "accepted"]) {
+    await page.evaluate((outcome) => {
+      const event = new Event("beforeinstallprompt", { cancelable: true });
+      Object.assign(event, {
+        prompt: async () => {
+          document.documentElement.dataset.prompted = "yes";
+        },
+        userChoice: Promise.resolve({ outcome }),
+      });
+      window.dispatchEvent(event);
+    }, outcome);
+    if (
+      await page
+        .getByRole("button", { name: "Open menu", exact: true })
+        .isVisible()
+    )
+      await page
+        .getByRole("button", { name: "Open menu", exact: true })
+        .click();
+    await page
+      .getByRole("button", { name: "Install tracker", exact: true })
+      .click();
+    const dialog = page.getByRole("dialog", { name: "Install tracker" });
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText("requires an internet connection");
+    await expect(dialog.getByRole("status")).toContainText(
+      outcome === "accepted"
+        ? "Installation requested"
+        : "Installation cancelled",
+    );
+    expect(await page.locator("html").getAttribute("data-prompted")).toBe(
+      "yes",
+    );
+    await dialog.getByRole("button", { name: "Close", exact: true }).click();
+  }
+  await page.evaluate(() => window.dispatchEvent(new Event("appinstalled")));
+  await page
+    .getByRole("button", { name: "Install tracker", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).toContainText("already installed");
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Close", exact: true })
+    .click();
+  const iphone = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+    userAgent:
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1",
+  });
+  const phone = await iphone.newPage();
+  await phone.goto(origin);
+  await phone.getByRole("button", { name: "Open menu", exact: true }).click();
+  await phone
+    .getByRole("button", { name: "Install tracker", exact: true })
+    .click();
+  await expect(phone.getByRole("dialog")).toContainText(
+    "Share → Add to Home Screen",
+  );
+  await expect(phone.getByRole("dialog")).toContainText("Open as Web App");
+  await phone.screenshot({ path: ".local/install-iphone-" + test.info().project.name + ".png" });
+  expect(
+    (
+      await new AxeBuilder({ page: phone })
+        .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+        .analyze()
+    ).violations.map((v) => v.id),
+  ).toEqual([]);
+  await phone
+    .getByRole("dialog")
+    .getByRole("button", { name: "Close", exact: true })
+    .click();
+  await expect(
+    phone.getByRole("button", { name: "Install tracker", exact: true }),
+  ).toBeFocused();
+  await iphone.close();
 });

@@ -1,5 +1,5 @@
 import "server-only";
-import { desc, eq, isNotNull, sql, and } from "drizzle-orm";
+import { desc, eq, ne, isNotNull, sql, and } from "drizzle-orm";
 import { cache } from "react";
 import { isDesignPreview } from "@/lib/env";
 import { sampleStories } from "./samples";
@@ -99,6 +99,32 @@ export const getPublicStory = cache(async (id: string) => {
   if (!z.uuid().safeParse(id).success) return null;
   return (await publishedNews(id))[0] ?? null;
 });
+export async function moreNews(story: { id: string }) {
+  if (isDesignPreview() && story.id.startsWith("sample-"))
+    return sampleStories.filter((item) => item.id !== story.id).slice(0, 3);
+  // Rank across all publications before limiting; related stories can be older
+  // than the three stories displayed on the homepage.
+  const rows = await getDb()
+    .select({
+      id: newsStory.id,
+      title: sql<string>`${newsStory.published}->>'title'`,
+      date: newsStory.publishedAt,
+    })
+    .from(newsStory)
+    .where(and(isNotNull(newsStory.published), ne(newsStory.id, story.id)))
+    .orderBy(
+      // Keep related news together even when the linked project's public link
+      // is unavailable. Read the relation from the published story snapshot.
+      sql`CASE WHEN NULLIF((SELECT current_story.published->>'project' FROM news_story current_story WHERE current_story.id=${story.id}), '')=${newsStory.published}->>'project' THEN 0 ELSE 1 END`,
+      desc(newsStory.publishedAt),
+      newsStory.id,
+    )
+    .limit(3);
+  return rows.map((row) => ({
+    ...row,
+    date: row.date!.toISOString().slice(0, 10),
+  }));
+}
 export async function newsWorkspace(id?: string) {
   const db = getDb();
   const items = await db

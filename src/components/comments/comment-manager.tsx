@@ -114,7 +114,7 @@ export function CommentManager() {
       </p>
       <div className="comment-filters">
         <div>
-          <label htmlFor="comments-project-filter">Project</label>
+          <label htmlFor="comments-project-filter">Project or news story</label>
           <select
             id="comments-project-filter"
             value={project}
@@ -129,7 +129,7 @@ export function CommentManager() {
               setNotice("");
             }}
           >
-            <option value="">All projects</option>
+            <option value="">All discussions</option>
             {data?.projects.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.title}

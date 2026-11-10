@@ -23,6 +23,7 @@ export function ProjectResultLink({
   resultsHref,
   className,
   comments = false,
+  commentsEnabled = true,
   label,
   children,
 }: {
@@ -30,14 +31,24 @@ export function ProjectResultLink({
   resultsHref: string;
   className?: string;
   comments?: boolean;
+  commentsEnabled?: boolean;
   label?: string;
   children: ReactNode;
 }) {
   const navigation = useContext(RegisterContext);
   return (
     <Link
-      href={"/projects/" + slug + (comments ? "#project-comments-title" : "")}
+      href={
+        "/projects/" +
+        slug +
+        (comments
+          ? commentsEnabled
+            ? "#write-comment"
+            : "#project-comments-title"
+          : "")
+      }
       aria-label={label}
+      title={label}
       className={className}
       onNavigate={() => navigation?.remember({ slug, href: resultsHref })}
     >

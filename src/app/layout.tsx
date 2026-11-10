@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { connection } from "next/server";
 import "./globals.css";
@@ -22,6 +22,21 @@ const creato = localFont({
 });
 export function generateMetadata(): Metadata {
   return {
+    applicationName: "Wassa East Projects",
+    appleWebApp: {
+      capable: true,
+      title: "Wassa East",
+      statusBarStyle: "default",
+    },
+    icons: {
+      apple: [
+        {
+          url: "/brand/apple-touch-icon.png",
+          sizes: "180x180",
+          type: "image/png",
+        },
+      ],
+    },
     metadataBase: new URL(
       process.env.BETTER_AUTH_URL ||
         process.env.NEXT_PUBLIC_APP_URL ||
@@ -40,6 +55,11 @@ export function generateMetadata(): Metadata {
       "Explore approved project information, progress and evidence from Wassa East Constituency.",
   };
 }
+export const viewport: Viewport = {
+  themeColor: "#006b3f",
+  width: "device-width",
+  initialScale: 1,
+};
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {

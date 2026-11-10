@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { SiteBrand } from "./site-brand";
+import { InstallTracker } from "./install-tracker";
 const links = [
   ["/", "Home"],
   ["/projects", "Projects"],
@@ -65,6 +66,7 @@ export function SiteHeader() {
   useEffect(() => {
     if (!open) return;
     function outside(event: Event) {
+      if (document.querySelector("[data-install-dialog]")) return;
       if (
         event.target instanceof Node &&
         !header.current?.contains(event.target)
@@ -73,6 +75,7 @@ export function SiteHeader() {
       }
     }
     function escape(event: KeyboardEvent) {
+      if (document.querySelector("[data-install-dialog]")) return;
       if (event.key === "Escape") {
         setOpen(false);
         toggle.current?.focus();
@@ -137,6 +140,7 @@ export function SiteHeader() {
               {label}
             </Link>
           ))}
+          <InstallTracker />
         </nav>
       </div>
     </header>
