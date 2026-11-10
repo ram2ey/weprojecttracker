@@ -433,7 +433,7 @@ test("public navigation stays available on phones and supports dismissal, focus 
       await page.keyboard.press("Tab");
       await expect(menuControls.nth(i)).toBeFocused();
     }
-    await expect(nav.getByRole("button", { name: "Install tracker", exact: true })).toBeFocused();
+    await expect(nav.getByRole("button", { name: "Install App", exact: true })).toBeFocused();
     await page.keyboard.press("Tab");
     await expect(nav).toBeHidden();
     await expect(
@@ -484,7 +484,7 @@ test("public navigation stays available on phones and supports dismissal, focus 
     await expect(toggle).toBeHidden();
     await expect(nav).toBeVisible();
     await expect(nav.getByRole("link")).toHaveCount(5);
-    await expect(nav.getByRole("button", { name: "Install tracker", exact: true })).toBeVisible();
+    await expect(nav.getByRole("button", { name: "Install App", exact: true })).toBeVisible();
   }
 });
 
@@ -3099,9 +3099,9 @@ test("install tracker exposes valid app assets, native prompt outcomes, and iPho
         .getByRole("button", { name: "Open menu", exact: true })
         .click();
     await page
-      .getByRole("button", { name: "Install tracker", exact: true })
+      .getByRole("button", { name: "Install App", exact: true })
       .click();
-    const dialog = page.getByRole("dialog", { name: "Install tracker" });
+    const dialog = page.getByRole("dialog", { name: "Install App" });
     await expect(dialog).toBeVisible();
     await expect(dialog).toContainText("requires an internet connection");
     await expect(dialog.getByRole("status")).toContainText(
@@ -3116,7 +3116,7 @@ test("install tracker exposes valid app assets, native prompt outcomes, and iPho
   }
   await page.evaluate(() => window.dispatchEvent(new Event("appinstalled")));
   await page
-    .getByRole("button", { name: "Install tracker", exact: true })
+    .getByRole("button", { name: "Install App", exact: true })
     .click();
   await expect(page.getByRole("dialog")).toContainText("already installed");
   await page
@@ -3134,7 +3134,7 @@ test("install tracker exposes valid app assets, native prompt outcomes, and iPho
   await phone.goto(origin);
   await phone.getByRole("button", { name: "Open menu", exact: true }).click();
   await phone
-    .getByRole("button", { name: "Install tracker", exact: true })
+    .getByRole("button", { name: "Install App", exact: true })
     .click();
   await expect(phone.getByRole("dialog")).toContainText(
     "Share → Add to Home Screen",
@@ -3153,7 +3153,7 @@ test("install tracker exposes valid app assets, native prompt outcomes, and iPho
     .getByRole("button", { name: "Close", exact: true })
     .click();
   await expect(
-    phone.getByRole("button", { name: "Install tracker", exact: true }),
+    phone.getByRole("button", { name: "Install App", exact: true }),
   ).toBeFocused();
   await iphone.close();
 });
