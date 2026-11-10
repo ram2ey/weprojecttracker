@@ -3,6 +3,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { RetireOffline } from "@/components/retire-offline";
 import { CookieConsent } from "@/components/cookie-consent";
+import { AppDownloads } from "@/components/homepage-sections";
 export const dynamic = "force-dynamic";
 export default function PublicLayout({
   children,
@@ -15,6 +16,7 @@ export default function PublicLayout({
       <RetireOffline />
       <main id="main-content" tabIndex={-1}>
         <ResultsNavigation>{children}</ResultsNavigation>
+        <AppDownloads />
       </main>
       <SiteFooter />
       <CookieConsent />

@@ -1,5 +1,8 @@
 import "server-only";
 import { desc, eq, isNotNull, sql, and } from "drizzle-orm";
+import { cache } from "react";
+import { isDesignPreview } from "@/lib/env";
+import { sampleStories } from "./samples";
 import { z } from "zod";
 import { getDb } from "@/db";
 import {
@@ -55,7 +58,7 @@ export async function storyProjects() {
     .where(livePublication)
     .orderBy(sql`${contentRevision.payload}->>'title'`);
 }
-export async function publishedNews() {
+export async function publishedNews(id?: string) {
   const rows = await getDb()
     .select({
       id: newsStory.id,
@@ -73,9 +76,14 @@ export async function publishedNews() {
         isNotNull(contentRecord.publishedRevisionId),
       ),
     )
-    .where(isNotNull(newsStory.published))
+    .where(
+      and(
+        isNotNull(newsStory.published),
+        id ? eq(newsStory.id, id) : undefined,
+      ),
+    )
     .orderBy(desc(newsStory.publishedAt), newsStory.id)
-    .limit(3);
+    .limit(id ? 1 : 3);
   return rows.map((r) => ({
     ...r.story!,
     id: r.id,
@@ -83,6 +91,14 @@ export async function publishedNews() {
     project: r.project ?? "",
   }));
 }
+export const getPublicStory = cache(async (id: string) => {
+  if (isDesignPreview()) {
+    const sample = sampleStories.find((story) => story.id === id);
+    if (sample) return sample;
+  }
+  if (!z.uuid().safeParse(id).success) return null;
+  return (await publishedNews(id))[0] ?? null;
+});
 export async function newsWorkspace(id?: string) {
   const db = getDb();
   const items = await db

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { publicCommunities } from "@/lib/content/public";
 import { HeroPhotos } from "@/components/hero-photos";
-import { AppDownloads, HomeNews } from "@/components/homepage-sections";
+import { HomeNews } from "@/components/homepage-sections";
 import { FaqSection } from "@/components/faq-section";
 import { pageMetadata } from "@/lib/site";
 export const metadata = pageMetadata(
@@ -103,7 +103,6 @@ export default async function Home() {
         </div>
       </section>
       <FaqSection topic="tracker" />
-      <AppDownloads />
     </>
   );
 }
