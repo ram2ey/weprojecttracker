@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { getDb } from "@/db";
-import { taxonomy, auditLog } from "@/db/schema";
+import { taxonomy, auditLog, contentRevision } from "@/db/schema";
 import { staffApi, jsonBody } from "@/lib/content/api";
 import { ContentError, listTaxonomy } from "@/lib/content/service";
 export function GET(request: Request) {
@@ -32,6 +32,15 @@ export function POST(request: Request) {
             .update(taxonomy)
             .set({ name: input.name, active: input.active })
             .where(eq(taxonomy.id, id));
+          // Public search, filters and the homepage directory read the name
+          // copied into each revision, so a rename must reach every copy.
+          if (old.name !== input.name)
+            await tx
+              .update(contentRevision)
+              .set({
+                payload: sql`jsonb_set(${contentRevision.payload}, '{communityName}', to_jsonb(${input.name}::text))`,
+              })
+              .where(sql`${contentRevision.payload}->>'communityId' = ${id}`);
         } else
           await tx.insert(taxonomy).values({
             id,

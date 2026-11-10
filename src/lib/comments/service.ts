@@ -74,6 +74,10 @@ export async function submitComment(
   browser: string,
   raw: unknown,
   kind: DiscussionKind = "project",
+  address: { key: string; known: boolean } = {
+    key: "address:unknown",
+    known: false,
+  },
 ) {
   const subject = discussion(kind);
   const tx = await getPool().connect();
@@ -121,6 +125,14 @@ export async function submitComment(
       );
     const globalAllowed = await limit(tx, "global", 60, 60);
     const browserAllowed = await limit(tx, "browser:" + browser, 3, 600);
+    // Shared mobile-carrier addresses are common, so this cap is generous; it
+    // stops one source from using the whole global allowance.
+    const addressAllowed = await limit(
+      tx,
+      address.key,
+      address.known ? 30 : 120,
+      3600,
+    );
     // Expired counters contain no raw browser tokens or IP addresses.
     await tx.query(
       "DELETE FROM app_rate_limit WHERE resets_at < NOW() - INTERVAL '1 day'",
@@ -128,12 +140,13 @@ export async function submitComment(
     if (
       !globalAllowed ||
       !browserAllowed ||
+      !addressAllowed ||
       !input.success ||
       input.data.website
     ) {
       // Keep attempt counters even for invalid submissions.
       await tx.query("COMMIT");
-      if (!globalAllowed || !browserAllowed)
+      if (!globalAllowed || !browserAllowed || !addressAllowed)
         throw new ContentError(
           429,
           "Posting limit reached. Please wait before trying again.",

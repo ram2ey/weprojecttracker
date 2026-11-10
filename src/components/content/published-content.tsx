@@ -63,7 +63,7 @@ export async function PublishedContentView({
             description: p.description,
             dateModified: r.publishedAt,
             url: publicUrl,
-          }).replace(/</g, "\u003c"),
+          }).replace(/</g, "\\u003c"),
         }}
       />
       <RegisterReturnLink slug={r.slug} />

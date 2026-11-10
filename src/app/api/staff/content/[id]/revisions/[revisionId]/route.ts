@@ -33,12 +33,24 @@ export async function POST(request: Request, context: Context) {
             lockVersion: z.number().int().min(0),
           })
           .strict(),
-        z.object({
-          action: z.enum(["approve", "return"]),
-          reason: z.string().trim().min(10).max(2000),
-          evidenceReviewed: z.boolean().default(false),
-          lockVersion: z.number().int().min(0),
-        }).strict(),
+        z
+          .object({
+            action: z.literal("approve"),
+            // Optional note; the evidence confirmation is the real gate.
+            reason: z.string().trim().max(2000).default(""),
+            evidenceReviewed: z.boolean().default(false),
+            lockVersion: z.number().int().min(0),
+          })
+          .strict(),
+        z
+          .object({
+            action: z.literal("return"),
+            // The author needs to know what to correct.
+            reason: z.string().trim().min(10).max(2000),
+            evidenceReviewed: z.boolean().default(false),
+            lockVersion: z.number().int().min(0),
+          })
+          .strict(),
       ])
       .parse(await jsonBody(request));
     if (input.action === "submit")
