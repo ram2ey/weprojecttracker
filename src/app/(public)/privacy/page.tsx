@@ -12,7 +12,7 @@ export default function Privacy() {
   return (
     <div className="container section narrow">
       <h1>Privacy &amp; Cookies</h1>
-      <p className="subtle-note">Last updated: 8 November 2026</p>
+      <p className="subtle-note">Last updated: 10 November 2026</p>
       <section className="detail-section">
         <h2>Favourites and phone layout</h2>
         <p>
@@ -47,15 +47,15 @@ export default function Privacy() {
         </p>
       </section>
       <section className="detail-section">
-        <h2>Public project comments</h2>
+        <h2>Public project and news comments</h2>
         <p>
-          When you post a comment, your chosen name, message and posting date
+          When you post a comment on a project or news story, your chosen name, message and posting date
           appear publicly immediately. Names are not verified. Do not include
           private contact details or sensitive information. No public account,
           email address or phone number is required.
         </p>
         <p>
-          Opening a comment form creates the essential wassa_comment_guard
+          Posting a comment creates the essential wassa_comment_guard
           cookie for up to 24 hours. This signed, HttpOnly cookie supports
           posting limits and safe retries. It works independently of optional
           website statistics. Rate-limit keys and submission keys are hashed;

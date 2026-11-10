@@ -18,6 +18,7 @@ async function projectView(r: {
   revisionId: string;
   payload: ContentPayload;
   publishedAt: Date | null;
+  commentsEnabled: boolean;
 }): Promise<PublicContent> {
   const ids = r.payload.attachments
     .filter((a) => a.visibility === "public" && a.purpose !== "financial")
@@ -42,6 +43,7 @@ async function projectView(r: {
     slug: r.slug,
     revisionId: r.revisionId,
     publishedAt: r.publishedAt!.toISOString(),
+    commentsEnabled: r.commentsEnabled,
     payload: launchPayload(r.payload, new Set(files.map((f) => f.id))),
   };
 }
@@ -51,6 +53,7 @@ const selection = {
   revisionId: contentRevision.id,
   payload: contentRevision.payload,
   publishedAt: contentRevision.decidedAt,
+  commentsEnabled: contentRecord.commentsEnabled,
 };
 export async function listPublicContent(filters: Partial<PublicFilters> = {}) {
   const db = getDb(),

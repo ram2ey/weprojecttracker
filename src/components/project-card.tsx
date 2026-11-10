@@ -65,9 +65,14 @@ export function ProjectCard({
             <ProjectResultLink
               className="project-action"
               comments
+              commentsEnabled={r.commentsEnabled}
               resultsHref={resultsHref}
               slug={r.slug}
-              label={"Comments on " + p.title}
+              label={
+                (r.commentsEnabled
+                  ? "Write a comment on "
+                  : "View comments on ") + p.title
+              }
             >
               <MessageCircle aria-hidden="true" />
             </ProjectResultLink>

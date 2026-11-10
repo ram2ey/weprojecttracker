@@ -11,8 +11,14 @@ import {
 import { Button } from "@/components/ui/button";
 import type { CommentPage } from "@/lib/comments/policy";
 
-export function PublicComments({ slug }: { slug: string }) {
-  const endpoint = `/api/public/content/${encodeURIComponent(slug)}/comments`;
+export function PublicComments({
+  slug,
+  kind = "project",
+}: {
+  slug: string;
+  kind?: "project" | "news";
+}) {
+  const endpoint = `/api/public/${kind === "news" ? "news" : "content"}/${encodeURIComponent(slug)}/comments`;
   const [data, setData] = useState<CommentPage | null>(null);
   const [loading, setLoading] = useState(true),
     [loadError, setLoadError] = useState("");
@@ -27,10 +33,17 @@ export function PublicComments({ slug }: { slug: string }) {
     posting = useRef(false),
     loadingRef = useRef(false);
   const messageInput = useRef<HTMLTextAreaElement>(null);
-  const nameInput = useRef<HTMLInputElement>(null);
   useEffect(() => {
-    if (open) nameInput.current?.focus();
-  }, [open]);
+    if (open && !busy && !loading) messageInput.current?.focus();
+  }, [open, busy, loading]);
+  useEffect(() => {
+    function followIntent() {
+      if (data?.enabled && location.hash === "#write-comment") setOpen(true);
+    }
+    followIntent();
+    window.addEventListener("hashchange", followIntent);
+    return () => window.removeEventListener("hashchange", followIntent);
+  }, [data?.enabled]);
   useEffect(() => {
     if (success && !busy) messageInput.current?.focus();
   }, [success, busy]);
@@ -102,25 +115,10 @@ export function PublicComments({ slug }: { slug: string }) {
     if (!response.ok)
       throw new Error(result.message || "Could not open the comment form.");
   }
-  async function start() {
-    if (posting.current) return;
-    posting.current = true;
-    setBusy(true);
+  function start() {
     setError("");
     setSuccess("");
-    try {
-      await session();
-      setOpen(true);
-    } catch (error) {
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Could not open the comment form. Please try again.",
-      );
-    } finally {
-      posting.current = false;
-      setBusy(false);
-    }
+    setOpen(true);
   }
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -229,33 +227,25 @@ export function PublicComments({ slug }: { slug: string }) {
             </nav>
           )}
           {!data.enabled ? (
-            <p>New comments are closed for this project.</p>
+            <p>
+              New comments are closed for this{" "}
+              {kind === "news" ? "story" : "project"}.
+            </p>
           ) : !open ? (
             <Button disabled={busy} onClick={() => void start()}>
-              {busy ? "Opening…" : "Leave a comment"}
+              Write a comment
             </Button>
           ) : (
             <form
               onSubmit={submit}
               className="comment-form"
-              aria-label="Leave a comment"
+              id="write-comment"
+              aria-label="Write a comment"
             >
               <p id="comment-public-notice">
                 Your name and comment will appear publicly immediately. Please
                 do not include private contact details or sensitive information.
               </p>
-              <label htmlFor="comment-name">Name</label>
-              <input
-                ref={nameInput}
-                id="comment-name"
-                required
-                maxLength={80}
-                autoComplete="name"
-                value={name}
-                disabled={busy}
-                onChange={(event) => setName(event.target.value)}
-                aria-describedby="comment-public-notice"
-              />
               <label htmlFor="comment-message">Comment</label>
               <textarea
                 ref={messageInput}
@@ -266,6 +256,18 @@ export function PublicComments({ slug }: { slug: string }) {
                 value={body}
                 disabled={busy}
                 onChange={(event) => setBody(event.target.value)}
+                aria-describedby="comment-public-notice"
+              />
+              <label htmlFor="comment-name">Name</label>
+              <input
+                id="comment-name"
+                required
+                maxLength={80}
+                autoComplete="name"
+                value={name}
+                disabled={busy}
+                onChange={(event) => setName(event.target.value)}
+                aria-describedby="comment-public-notice"
               />
               <div className="comment-trap" aria-hidden="true">
                 <label htmlFor="comment-website">Leave this field empty</label>

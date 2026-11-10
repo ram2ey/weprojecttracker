@@ -1,15 +1,14 @@
-import Link from "next/link";
+import { NotFoundMessage } from "@/components/not-found-message";
+import { CopyrightNotice } from "@/components/site-footer";
 export default function NotFound() {
   return (
-    <main id="main-content" className="container empty-state" tabIndex={-1}>
-      <span className="eyebrow">404</span>
-      <h1>This page could not be found.</h1>
-      <p>
-        The address may have changed or the record is not available publicly.
-      </p>
-      <Link href="/" className="button button-primary">
-        Return home
-      </Link>
-    </main>
+    <>
+      <main id="main-content" className="container empty-state" tabIndex={-1}>
+        <NotFoundMessage />
+      </main>
+      <footer className="site-footer">
+        <CopyrightNotice />
+      </footer>
+    </>
   );
 }

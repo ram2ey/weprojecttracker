@@ -185,6 +185,7 @@ export type AdminRecordSummary = {
   updatedAt: string;
 };
 export type PublicContent = {
+  commentsEnabled: boolean;
   id: string;
   kind: "project";
   slug: string;
