@@ -6,15 +6,15 @@ This is the working checklist for the launch discussed with the user. It is sepa
 
 ## Current status and how to use this file
 
-| Area | Status |
-| --- | --- |
-| Phase 1: feasibility | Completed; real desktop push demonstrated. Physical-phone checks remain open. |
-| Phase 2: notification foundation | Implemented and verified locally; not deployed. |
+| Area                                   | Status                                                                                                                                   |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Phase 1: feasibility                   | Completed; real desktop push demonstrated. Physical-phone checks remain open.                                                            |
+| Phase 2: notification foundation       | Implemented and verified locally; not deployed.                                                                                          |
 | Phase 3: public and reviewer interface | Mostly implemented and verified locally (12 Nov); scope changed to notifications by default. Unchecked items below remain. Not deployed. |
-| Release candidate preparation | Pending production configuration, migration and deployment. |
-| Phase 4: device acceptance | Pending; user has an Android phone. No iPhone tester confirmed. |
-| Public launch | Pending release gates. |
-| Downloadable APK | Optional; must not delay the required website experience. |
+| Release candidate preparation          | Pending production configuration, migration and deployment.                                                                              |
+| Phase 4: device acceptance             | Pending; user has an Android phone. No iPhone tester confirmed.                                                                          |
+| Public launch                          | Pending release gates.                                                                                                                   |
+| Downloadable APK                       | Optional; must not delay the required website experience.                                                                                |
 
 An unchecked box means work or verification is still outstanding. Check a box only when its stated behavior is implemented or its check has passed. Record the date, tested release and evidence when completing a section. Local implementation does not mean deployed or phone-tested. If an item is deferred, record that decision explicitly instead of checking it off.
 
@@ -166,14 +166,15 @@ Website installation and the notification flow take priority. These boxes are no
 
 Add one row as each remaining stage is completed. Do not place credentials or subscription endpoints in this record.
 
-| Stage | Completion date | Release/commit | Evidence or unresolved items |
-| --- | --- | --- | --- |
-| Phase 3 interface | Pending | — | — |
-| Deployed candidate | Pending | — | — |
-| Android acceptance | Pending | — | — |
-| iPhone acceptance / scope decision | Pending | — | — |
-| Public launch | Pending | — | — |
-| Optional APK | Pending | — | — |
+| Stage                              | Completion date           | Release/commit               | Evidence or unresolved items                                                                                                                                                                                                                                                                                                                                                       |
+| ---------------------------------- | ------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Phase 3 interface                  | 12 Nov 2026 (partial)     | `9cd212f` (PR #26)           | Local and CI checks passed; open items listed in §3.4–3.7                                                                                                                                                                                                                                                                                                                          |
+| Deployed candidate                 | 12 Nov 2026, push **off** | `sha-9cd212f…-43184904513-1` | Release run 43184904513 green; `/api/ready` migrated=true (0011 applied), backup=none; live read-only Chrome checks pass at 360px and desktop (one intermittent first-load failure, then 4/4 passes). Still to do: production keys, enable push, Android test, backups                                                                                                             |
+| Off-site backups                   | 12 Nov 2026               | `sha-9cd212f…-43184904513-1` | Cloudflare R2 bucket `wassa-east-backups`, bucket-scoped account token; first snapshot `f6bfe78c` (20 media files); restore check with throwaway database passed (row counts matched); `/api/ready` backup=ok. Recovery password in Coolify and the password manager. GitHub variable `REQUIRE_BACKUP=true` set, so the uptime monitor fails without a backup in the last 36 hours |
+| Android acceptance                 | Pending                   | —                            | —                                                                                                                                                                                                                                                                                                                                                                                  |
+| iPhone acceptance / scope decision | Pending                   | —                            | —                                                                                                                                                                                                                                                                                                                                                                                  |
+| Public launch                      | Pending                   | —                            | —                                                                                                                                                                                                                                                                                                                                                                                  |
+| Optional APK                       | Pending                   | —                            | —                                                                                                                                                                                                                                                                                                                                                                                  |
 
 - [Phase 1: agreed experience and feasibility](FRIDAY_LAUNCH_PHASE_1_FEASIBILITY.md)
 - [Phase 2: implementation, API contract, deployment details and verification](FRIDAY_LAUNCH_PHASE_2_NOTIFICATIONS.md)
