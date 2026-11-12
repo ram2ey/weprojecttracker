@@ -13,6 +13,7 @@ import {
 } from "./policy";
 import {
   deleteDevice,
+  followEverything,
   followTopic,
   inbox,
   markRead,
@@ -24,6 +25,7 @@ import {
 
 const mutation = z.discriminatedUnion("action", [
   z.object({ action: z.literal("follow"), follow: followSchema }).strict(),
+  z.object({ action: z.literal("follow-all") }).strict(),
   z.object({ action: z.literal("unfollow"), follow: followSchema }).strict(),
   z
     .object({
@@ -101,8 +103,11 @@ export async function notificationsApi(request: Request) {
     )
       throw new NotificationError(415, "Send a JSON request.");
     const input = mutation.parse(await smallJson(request));
-    if (input.action === "follow") {
-      const { createdToken } = await followTopic(token, input.follow);
+    if (input.action === "follow" || input.action === "follow-all") {
+      const { createdToken } =
+        input.action === "follow"
+          ? await followTopic(token, input.follow)
+          : await followEverything(token);
       const response = privateJson({ ok: true });
       if (createdToken)
         response.headers.set("Set-Cookie", cookie(createdToken, deviceDays));

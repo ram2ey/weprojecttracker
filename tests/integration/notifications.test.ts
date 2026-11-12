@@ -26,6 +26,7 @@ import { launchPayload } from "../../src/lib/content/validation";
 import { emptyPayload } from "../../src/lib/content/types";
 import {
   followTopic,
+  followEverything,
   saveSubscription,
   inbox,
   markRead,
@@ -315,6 +316,37 @@ test(
           const later = (await followTopic(null, category)).createdToken!;
           assert.equal((await inbox(later, "for-you", 1)).items.length, 0);
           await deleteDevice(later);
+        },
+      );
+      await t.test(
+        "one-tap opt-in follows every category and news idempotently",
+        async () => {
+          const everything = (await followEverything(null)).createdToken!;
+          assert.ok(everything);
+          assert.equal(
+            (await followEverything(everything)).createdToken,
+            undefined,
+          );
+          const follows = (await inbox(everything, "for-you", 1)).follows;
+          assert.equal(follows.length, 6);
+          assert.ok(
+            follows.some((f) => f.kind === "news" && f.target === "all"),
+          );
+          await publish("Everything follower publication", "Ongoing");
+          assert.equal(
+            (
+              await pool.query(
+                "SELECT 1 FROM notification_receipt WHERE event_id=$1 AND device_id=$2",
+                [lastEvent, await deviceFor(everything)],
+              )
+            ).rowCount,
+            1,
+          );
+          await deleteDevice(everything);
+          // Deliver the main test device's job so later claims are unaffected.
+          const leftover = await claimJob();
+          if (leftover) await deliverJob(leftover, async () => ({ status: 201 }));
+          assert.equal(await claimJob(), null);
         },
       );
       await t.test(

@@ -1,6 +1,7 @@
 import { config } from "dotenv";
 import { spawn } from "node:child_process";
 import { cpSync } from "node:fs";
+import { createECDH, randomBytes } from "node:crypto";
 import { resolve, join } from "node:path";
 import pg from "pg";
 import { buildDirectory } from "./build-output.mjs";
@@ -57,8 +58,28 @@ cpSync("public", join(standalone, "public"), { recursive: true });
 cpSync(join(output, "static"), join(standalone, output, "static"), {
   recursive: true,
 });
+// Runtime-only, throwaway push keys so browser tests can exercise the
+// notification opt-in. No dispatcher runs, so nothing is ever sent.
+const vapid = createECDH("prime256v1");
+vapid.generateKeys();
+const push = {
+  ENABLE_BROWSER_PUSH: "true",
+  VAPID_SUBJECT: "https://tracker.example.test",
+  VAPID_PUBLIC_KEY: vapid.getPublicKey().toString("base64url"),
+  VAPID_PRIVATE_KEY: Buffer.concat([
+    Buffer.alloc(32 - vapid.getPrivateKey().length),
+    vapid.getPrivateKey(),
+  ]).toString("base64url"),
+  NOTIFICATION_ENCRYPTION_KEY: randomBytes(32).toString("base64url"),
+};
 const server = spawn(process.execPath, [join(standalone, "server.js")], {
-  env: { ...env, NODE_ENV: "production", HOSTNAME: "127.0.0.1", PORT: "3100" },
+  env: {
+    ...env,
+    ...push,
+    NODE_ENV: "production",
+    HOSTNAME: "127.0.0.1",
+    PORT: "3100",
+  },
   stdio: "inherit",
 });
 server.on("exit", (code) => process.exit(code || 0));

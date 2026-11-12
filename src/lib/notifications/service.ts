@@ -83,45 +83,63 @@ async function validateFollow(client: PoolClient, follow: Follow) {
       "This project or community is unavailable.",
     );
 }
-export async function followTopic(token: string | null, follow: Follow) {
-  return transaction(async (client) => {
-    await validateFollow(client, follow);
-    let id: string | undefined;
-    let createdToken: string | undefined;
-    if (token) {
-      const row = (
-        await client.query<{ id: string }>(
-          "SELECT id FROM notification_device WHERE token_hash=$1 AND expires_at>NOW() FOR UPDATE",
-          [hash(token)],
-        )
-      ).rows[0];
-      id = row?.id;
-    }
-    if (!id) {
-      createdToken = newToken();
-      id = randomUUID();
-      await client.query(
-        "INSERT INTO notification_device(id,token_hash,expires_at) VALUES($1,$2,NOW()+$3*INTERVAL '1 day')",
-        [id, hash(createdToken), deviceDays],
-      );
-    }
-    const count = await client.query<{ count: number }>(
-      "SELECT count(*)::int AS count FROM notification_follow WHERE device_id=$1",
+// Every published project has one of the fixed categories, so these follows
+// together cover all project and news publications.
+export const everythingFollows: Follow[] = [
+  ...fixedCategories.map((c) => ({ kind: "category" as const, target: c.id })),
+  { kind: "news", target: "all" },
+];
+async function deviceOrCreate(client: PoolClient, token: string | null) {
+  if (token) {
+    const row = (
+      await client.query<{ id: string }>(
+        "SELECT id FROM notification_device WHERE token_hash=$1 AND expires_at>NOW() FOR UPDATE",
+        [hash(token)],
+      )
+    ).rows[0];
+    if (row) return { id: row.id, createdToken: undefined };
+  }
+  const createdToken = newToken();
+  const id = randomUUID();
+  await client.query(
+    "INSERT INTO notification_device(id,token_hash,expires_at) VALUES($1,$2,NOW()+$3*INTERVAL '1 day')",
+    [id, hash(createdToken), deviceDays],
+  );
+  return { id, createdToken };
+}
+async function addFollows(client: PoolClient, id: string, follows: Follow[]) {
+  const existing = (
+    await client.query<{ kind: string; target: string }>(
+      "SELECT kind,target FROM notification_follow WHERE device_id=$1",
       [id],
+    )
+  ).rows;
+  const added = follows.filter(
+    (f) => !existing.some((e) => e.kind === f.kind && e.target === f.target),
+  );
+  if (existing.length + added.length > 100)
+    throw new NotificationError(
+      400,
+      "You can follow up to 100 projects and topics.",
     );
-    const existing = await client.query(
-      "SELECT 1 FROM notification_follow WHERE device_id=$1 AND kind=$2 AND target=$3",
-      [id, follow.kind, follow.target],
-    );
-    if (count.rows[0].count >= 100 && !existing.rowCount)
-      throw new NotificationError(
-        400,
-        "You can follow up to 100 projects and topics.",
-      );
+  for (const follow of added)
     await client.query(
       "INSERT INTO notification_follow(device_id,kind,target) VALUES($1,$2,$3) ON CONFLICT DO NOTHING",
       [id, follow.kind, follow.target],
     );
+}
+export async function followTopic(token: string | null, follow: Follow) {
+  return transaction(async (client) => {
+    await validateFollow(client, follow);
+    const { id, createdToken } = await deviceOrCreate(client, token);
+    await addFollows(client, id, [follow]);
+    return { createdToken };
+  });
+}
+export async function followEverything(token: string | null) {
+  return transaction(async (client) => {
+    const { id, createdToken } = await deviceOrCreate(client, token);
+    await addFollows(client, id, everythingFollows);
     return { createdToken };
   });
 }

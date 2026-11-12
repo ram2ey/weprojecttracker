@@ -42,6 +42,9 @@ export function RecordEditor({
     [reason, setReason] = useState(""),
     [withdrawalReason, setWithdrawalReason] = useState(""),
     [reviewed, setReviewed] = useState(false),
+    // Every approved update alerts by default; reviewers opt out for minor
+    // corrections. First publication and status changes always alert.
+    [alertFollowers, setAlertFollowers] = useState(true),
     [showIssues, setShowIssues] = useState(false),
     [recovery, setRecovery] = useState(false),
     form = useRef<HTMLFormElement>(null);
@@ -144,7 +147,15 @@ export function RecordEditor({
       await contentRequest(
         "/api/staff/content/" + record.id + "/revisions/" + revision.id,
         "POST",
-        { action, reason, evidenceReviewed: reviewed, lockVersion },
+        action === "approve"
+          ? {
+              action,
+              reason,
+              evidenceReviewed: reviewed,
+              notifyFollowers: alertFollowers,
+              lockVersion,
+            }
+          : { action, reason, evidenceReviewed: reviewed, lockVersion },
       );
       setLockVersion((v) => v + 1);
       setMessage(
@@ -549,6 +560,36 @@ export function RecordEditor({
                 />
                 I checked the project information and photographs.
               </label>
+              {!publishedRevision ? (
+                <p className="subtle-note">
+                  Approving publishes this project. People with notifications
+                  turned on are alerted automatically.
+                </p>
+              ) : publishedRevision.payload.status !==
+                revision.payload.status ? (
+                <p className="subtle-note">
+                  The status changes from {publishedRevision.payload.status} to{" "}
+                  {revision.payload.status}. People with notifications turned
+                  on are alerted automatically.
+                </p>
+              ) : (
+                <>
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={alertFollowers}
+                      aria-describedby="alert-followers-help"
+                      onChange={(e) => setAlertFollowers(e.target.checked)}
+                    />
+                    Send a notification about this update
+                  </label>
+                  <p id="alert-followers-help" className="subtle-note">
+                    Alerts people with notifications turned on. Untick for small
+                    corrections, such as spelling fixes, that do not need an
+                    alert.
+                  </p>
+                </>
+              )}
               <div className="action-row">
                 <Button
                   disabled={busy || !reviewed}

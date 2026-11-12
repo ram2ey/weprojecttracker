@@ -55,6 +55,7 @@ export default async function Register({
     ] as const
   ).filter(([k]) => filters[k]);
   const panelCount = chips.filter(([key]) => key !== "q").length;
+  const categoryOnly = chips.length === 1 && !!filters.category;
   const resultsHref =
     chips.length || filters.page > 1
       ? "/projects?" + filterQuery(filters)
@@ -147,6 +148,23 @@ export default async function Register({
           )}
         </nav>
       )}
+      {filters.category && result.success && (
+        <div className="category-heading">
+          <h2>{filters.category} projects</h2>
+          <Link
+            className="text-link"
+            href={
+              "/projects" +
+              (chips.length > 1
+                ? "?" +
+                  filterQuery(filters, { category: undefined, page: undefined })
+                : "")
+            }
+          >
+            Show all categories
+          </Link>
+        </div>
+      )}
       <ProjectCollection count={listing.total}>
         {listing.items.map((r) => (
           <ProjectCard key={r.id} project={r} resultsHref={resultsHref} />
@@ -157,16 +175,20 @@ export default async function Register({
           <h2>
             {listing.total
               ? "This page has no projects."
-              : chips.length
-                ? "No projects match your search."
-                : "No published projects yet."}
+              : categoryOnly
+                ? `No ${filters.category} projects have been published yet.`
+                : chips.length
+                  ? "No projects match your search."
+                  : "No published projects yet."}
           </h2>
           <p>
             {listing.total
               ? "Return to the first page of results."
-              : chips.length
-                ? "Try a different keyword or remove a filter."
-                : "Check back for approved projects."}
+              : categoryOnly
+                ? "Projects will appear here once they are approved. Meanwhile, explore projects in other categories."
+                : chips.length
+                  ? "Try a different keyword or remove a filter."
+                  : "Check back for approved projects."}
           </p>
           {(listing.total > 0 || chips.length > 0) && (
             <Link
@@ -179,7 +201,9 @@ export default async function Register({
             >
               {listing.total
                 ? "First page"
-                : panelCount
+                : categoryOnly
+                  ? "View all projects"
+                  : panelCount
                   ? "Clear filters"
                   : "Clear search"}
             </Link>
