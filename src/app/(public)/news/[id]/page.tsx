@@ -11,7 +11,21 @@ export async function generateMetadata({ params }: Props) {
   const { id } = await params;
   const story = await getPublicStory(id);
   if (!story) notFound();
-  return pageMetadata(story.title, story.summary, "/news/" + id);
+  const metadata = pageMetadata(story.title, story.summary, "/news/" + id);
+  // Link previews (WhatsApp, Facebook, X) show the story's own photo.
+  if (!story.photo.startsWith("/")) return metadata;
+  const image = {
+    url: story.photo,
+    width: 640,
+    height: 480,
+    alt: story.caption || story.title,
+    type: "image/webp",
+  };
+  return {
+    ...metadata,
+    openGraph: { ...metadata.openGraph, type: "article", images: [image] },
+    twitter: { ...metadata.twitter, images: [story.photo] },
+  };
 }
 
 export default async function NewsPage({ params }: Props) {

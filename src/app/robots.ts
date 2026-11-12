@@ -7,7 +7,8 @@ export default function robots(): MetadataRoute.Robots {
       process.env.APP_ENV === "production"
         ? {
             userAgent: "*",
-            allow: ["/", "/api/og"],
+            // Link-preview images: the generated card and news photos.
+            allow: ["/", "/api/og", "/api/public/news/*/photo"],
             disallow: ["/admin", "/staff", "/preview", "/api/"],
           }
         : { userAgent: "*", disallow: "/" },

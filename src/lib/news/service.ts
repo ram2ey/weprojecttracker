@@ -1,4 +1,5 @@
 import "server-only";
+import { createHash } from "node:crypto";
 import { desc, eq, ne, isNotNull, sql, and } from "drizzle-orm";
 import { cache } from "react";
 import { isDesignPreview } from "@/lib/env";
@@ -12,7 +13,7 @@ import {
   contentRecord,
   contentRevision,
 } from "@/db/schema";
-import { canSubmit } from "@/lib/security/policy";
+import { canApprove, canSubmit } from "@/lib/security/policy";
 import { ContentError, type Actor } from "@/lib/content/service";
 import { livePublication } from "@/lib/content/public";
 import { processEvidence } from "@/lib/content/media";
@@ -88,10 +89,35 @@ export async function publishedNews(id?: string) {
     .limit(id ? 1 : 3);
   return rows.map((r) => ({
     ...r.story!,
+    photo: photoUrl(r.id, r.story!.photo),
     id: r.id,
     date: r.date!.toISOString().slice(0, 10),
     project: r.project ?? "",
   }));
+}
+// Published photos are stored inline as small WebP data URIs. Pages link to
+// them by address instead of embedding them, so browsers download each photo
+// once and cache it; the content hash in the address changes with the photo.
+const photoPrefix = "data:image/webp;base64,";
+export function photoHash(photo: string) {
+  return createHash("sha256").update(photo).digest("base64url").slice(0, 16);
+}
+function photoUrl(id: string, photo: string) {
+  return photo.startsWith(photoPrefix)
+    ? `/api/public/news/${id}/photo?v=${photoHash(photo)}`
+    : photo;
+}
+export async function publishedPhoto(id: string) {
+  if (!z.uuid().safeParse(id).success) return null;
+  const [row] = await getDb()
+    .select({ photo: sql<string | null>`${newsStory.published}->>'photo'` })
+    .from(newsStory)
+    .where(and(eq(newsStory.id, id), isNotNull(newsStory.published)));
+  if (!row?.photo?.startsWith(photoPrefix)) return null;
+  return {
+    bytes: Buffer.from(row.photo.slice(photoPrefix.length), "base64"),
+    hash: photoHash(row.photo),
+  };
 }
 export const getPublicStory = cache(async (id: string) => {
   if (isDesignPreview()) {
@@ -158,7 +184,7 @@ const isLive = sql<boolean>`${newsStory.published} is not null`;
 export async function changeNews(actor: Actor, raw: unknown, upload?: File) {
   const input = z.union([edit, decision]).parse(raw);
   const editing = "fields" in input;
-  const reviewer = actor.role === "approver" || actor.role === "super_admin";
+  const reviewer = canApprove(actor.role);
   if (editing ? !canSubmit(actor.role) : !reviewer)
     throw new ContentError(403, "This action is not available for your role.");
   let photo: string | undefined;
@@ -214,11 +240,6 @@ export async function changeNews(actor: Actor, raw: unknown, upload?: File) {
         if (old.state !== "pending")
           throw new ContentError(409, "This story is not awaiting approval.");
         if (input.action === "approve") {
-          if (contributors.includes(actor.id))
-            throw new ContentError(
-              403,
-              "A different staff member must approve this revision.",
-            );
           if (draft.project) {
             const [project] = await tx
               .select({ id: contentRecord.id })
