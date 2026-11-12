@@ -16,7 +16,8 @@ type Props = Awaited<ReturnType<typeof newsWorkspace>> & {
 export function NewsEditor({ items, selected, projects, actor, role }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false),
-    [error, setError] = useState("");
+    [error, setError] = useState(""),
+    [alertFollowers, setAlertFollowers] = useState(true);
   const [newId] = useState(() => crypto.randomUUID());
   const story = selected?.draft ?? blankStory;
   const editable = canSubmit(role) && selected?.state !== "pending";
@@ -30,6 +31,7 @@ export function NewsEditor({ items, selected, projects, actor, role }: Props) {
         id: selected?.id ?? newId,
         version: selected?.version ?? 0,
       };
+      if (action === "approve") payload.notifyFollowers = alertFollowers;
       let upload: FormData | undefined;
       if (form) {
         const data = new FormData(form);
@@ -207,6 +209,28 @@ export function NewsEditor({ items, selected, projects, actor, role }: Props) {
           <div className="action-row">
             {selected?.state === "pending" && reviewer && (
               <>
+                {selected.live ? (
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={alertFollowers}
+                      aria-describedby="news-alert-help"
+                      onChange={(e) => setAlertFollowers(e.target.checked)}
+                    />
+                    Send a notification about this update
+                  </label>
+                ) : (
+                  <p className="subtle-note">
+                    People with news notifications turned on are alerted
+                    automatically when this story is first published.
+                  </p>
+                )}
+                {selected.live && (
+                  <p id="news-alert-help" className="subtle-note">
+                    Untick for small corrections, such as spelling fixes, that
+                    do not need an alert.
+                  </p>
+                )}
                 <button
                   className="button button-primary"
                   disabled={busy || selected.contributors.includes(actor)}

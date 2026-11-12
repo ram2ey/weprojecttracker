@@ -3,7 +3,7 @@ import { cache } from "react";
 import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { contentRecord, contentRevision, mediaFile } from "@/db/schema";
-import { launchPayload } from "./validation";
+import { fixedCategories, launchPayload } from "./validation";
 import type { ContentPayload, PublicContent } from "./types";
 import type { PublicFilters } from "./filters";
 export const livePublication = and(
@@ -116,6 +116,23 @@ export const getPublicContent = cache(async (slug: string) => {
     .limit(1);
   return r ? projectView(r) : null;
 });
+// Published-project counts for every fixed category, including empty ones.
+export async function publicCategoryCounts() {
+  const name = sql<string>`${contentRevision.payload}->>'categoryName'`;
+  const rows = await getDb()
+    .select({ name, count: sql<number>`count(*)::int` })
+    .from(contentRecord)
+    .innerJoin(
+      contentRevision,
+      eq(contentRevision.id, contentRecord.publishedRevisionId),
+    )
+    .where(livePublication)
+    .groupBy(name);
+  return fixedCategories.map((c) => ({
+    ...c,
+    count: rows.find((r) => r.name === c.name)?.count ?? 0,
+  }));
+}
 export async function publicCommunities() {
   const name = sql<string>`${contentRevision.payload}->>'communityName'`;
   return getDb()

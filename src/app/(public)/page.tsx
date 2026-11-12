@@ -1,5 +1,14 @@
 import Link from "next/link";
-import { publicCommunities } from "@/lib/content/public";
+import {
+  Droplets,
+  GraduationCap,
+  HeartPulse,
+  LayoutGrid,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
+import { publicCategoryCounts } from "@/lib/content/public";
+import { InstallTracker } from "@/components/install-tracker";
 import { HeroPhotos } from "@/components/hero-photos";
 import { HomeNews } from "@/components/homepage-sections";
 import { FaqSection } from "@/components/faq-section";
@@ -9,16 +18,15 @@ export const metadata = pageMetadata(
   "Meet Wassa East and explore the progress of projects in its communities.",
   "/",
 );
+const categoryIcons: Record<string, LucideIcon> = {
+  "category-education": GraduationCap,
+  "category-health": HeartPulse,
+  "category-general": LayoutGrid,
+  "category-community": Users,
+  "category-social": Droplets,
+};
 export default async function Home() {
-  const communities = await publicCommunities();
-  const communityLinks = communities.map(({ name, count }) => (
-    <li key={name}>
-      <Link href={{ pathname: "/projects", query: { community: name } }}>
-        <strong>{name}</strong>
-        <span>{count} {count === 1 ? "project" : "projects"}</span>
-      </Link>
-    </li>
-  ));
+  const categories = await publicCategoryCounts();
   return (
     <>
       <section className="register-hero" aria-labelledby="register-title">
@@ -59,29 +67,37 @@ export default async function Home() {
               across Wassa East Constituency.
             </p>
             <div className="action-row">
-              <a className="button button-light" href="#communities">
-                Find my community
-              </a>
-              <Link className="button hero-about" href="/projects">
-                Explore all projects
+              <Link className="button button-light" href="/projects">
+                Explore projects
               </Link>
+              <InstallTracker placement="hero" />
             </div>
           </div>
         </div>
       </section>
-      <section id="communities" className="container section community-directory" aria-labelledby="communities-title">
-        <h2 id="communities-title">Browse by community</h2>
-        {communityLinks.length ? (
-          <ul className="community-grid">{communityLinks.slice(0, 6)}</ul>
-        ) : (
-          <p>Communities will appear here as projects are published.</p>
-        )}
-        {communityLinks.length > 6 && (
-          <details>
-            <summary>All communities</summary>
-            <ul className="community-grid">{communityLinks.slice(6)}</ul>
-          </details>
-        )}
+      <section
+        className="container section category-directory"
+        aria-labelledby="categories-title"
+      >
+        <h2 id="categories-title">Browse by category</h2>
+        <ul className="category-grid">
+          {categories.map(({ id, name, count }) => {
+            const Icon = categoryIcons[id] ?? LayoutGrid;
+            return (
+              <li key={id}>
+                <Link
+                  href={{ pathname: "/projects", query: { category: name } }}
+                >
+                  <Icon aria-hidden="true" className="category-icon" />
+                  <strong>{name}</strong>
+                  <span>
+                    {count} {count === 1 ? "project" : "projects"}
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
       </section>
       <HomeNews />
       <section

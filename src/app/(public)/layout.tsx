@@ -3,6 +3,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { RetireOffline } from "@/components/retire-offline";
 import { CookieConsent } from "@/components/cookie-consent";
+import { NotificationInvite } from "@/components/notifications/notification-invite";
 import { AppDownloads } from "@/components/homepage-sections";
 export const dynamic = "force-dynamic";
 export default function PublicLayout({
@@ -20,6 +21,7 @@ export default function PublicLayout({
       </main>
       <SiteFooter />
       <CookieConsent />
+      <NotificationInvite />
     </>
   );
 }

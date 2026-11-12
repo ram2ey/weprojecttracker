@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { SiteBrand } from "./site-brand";
 import { InstallTracker } from "./install-tracker";
+import { UpdatesBell } from "./notifications/updates-bell";
 const links = [
   ["/", "Home"],
   ["/projects", "Projects"],
@@ -108,6 +109,7 @@ export function SiteHeader() {
     >
       <div className="container header-inner">
         <SiteBrand />
+        <UpdatesBell />
         <button
           className="public-menu-toggle"
           ref={toggle}

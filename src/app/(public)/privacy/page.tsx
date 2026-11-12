@@ -26,30 +26,35 @@ export default async function Privacy() {
         </p>
       </section>
       <section className="detail-section">
-        <h2>Following projects and optional phone alerts</h2>
+        <h2>Updates and optional notifications</h2>
         <p>
-          When you choose to follow a project, category, community or news, an
-          essential cookie identifies this browser installation. The server
-          stores a hash of its random token, your follows and which of your
-          updates you have read. No public account or cross-device tracking is
-          required. These preferences expire after 180 days; update history is
-          retained for up to 90 days and removed during scheduled cleanup.
+          Anyone can read the Updates page without turning anything on. This
+          browser remembers on this device which updates you have read and
+          whether you closed the notification invitation; nothing about that is
+          sent to us.
         </p>
         <p>
-          Phone alerts require a separate permission. If enabled, we store
-          encrypted browser subscription details and send approved updates
-          through your browser provider’s push service. That provider processes
-          delivery information under its own terms. The inbox remains available
-          without phone alerts. Subscription details are not used for analytics
-          or advertising.
+          If you turn on notifications, your browser asks for permission first.
+          An essential cookie then identifies this browser installation. The
+          server stores a hash of its random token, the topics you receive
+          (all categories and news unless you untick some), delivery records
+          and encrypted browser subscription details. Approved updates are sent
+          through your browser provider’s push service, which processes delivery
+          information under its own terms. No public account or cross-device
+          tracking is required, and subscription details are not used for
+          analytics or advertising. These settings expire after 180 days;
+          update history is retained for up to 90 days and removed during
+          scheduled cleanup.
         </p>
         <p>
-          You can block phone alerts in your browser settings. Clearing site
-          data removes this browser’s access to its saved preferences, but does
-          not immediately delete server records; those expire as described
-          above. Removing notification data through the service deletes the
-          device’s follows, read state and push subscription. Private recovery
-          copies may retain previous records until those copies expire.
+          You can turn notifications off in Notification settings or block them
+          in your browser settings. Clearing site data removes this browser’s
+          access to its saved settings, but does not immediately delete server
+          records; those expire as described above. Delete notification data in
+          Notification settings removes the device’s topics, delivery records
+          and push subscription from the service and this browser’s read
+          history. Private recovery copies may retain previous records until
+          those copies expire.
         </p>
       </section>
       <section className="detail-section">

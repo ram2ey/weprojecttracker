@@ -92,6 +92,18 @@ async function save(id: string, rid: string, p: object, lockVersion = 0) {
     data: { payload: p, lockVersion },
   });
 }
+// The notification invitation is covered by its own test; keep it out of the
+// way of unrelated layout and accessibility checks.
+test.beforeEach(async ({ page }) => {
+  if (test.info().title.includes("one-tap")) return;
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem("wassa.notify.invite-dismissed", String(Date.now()));
+    } catch {
+      /* Storage-blocked tests do not show the invitation either. */
+    }
+  });
+});
 test.beforeAll(async () => {
   await pool.query("DELETE FROM auth_rate_limit");
   const hash = await hashPassword(password),
@@ -1293,7 +1305,6 @@ test("retired routes and mutations are unavailable; worker only retires app cach
 }) => {
   for (const url of [
     "/following",
-    "/updates",
     "/announcements",
     "/reports",
     "/preview/console",
@@ -1336,23 +1347,53 @@ test("Home introduces Wassa East and leads to the project directory with consent
     await pool.query("INSERT INTO news_story(id,state,contributors,draft,published,published_at) VALUES ($1,'published','[]',$2,$2,now())",[id,story]);
   }
   await page.goto("/");
-  await page.getByRole("link", { name: "Find my community" }).click();
-  const directory = page.getByRole("region", { name: "Browse by community" });
-  const name = "Launch community " + tag;
-  const { rows: [published] } = await pool.query(
+  const directory = page.getByRole("region", { name: "Browse by category" });
+  await expect(directory.getByRole("link")).toHaveCount(5);
+  const { rows: counts } = await pool.query(
+    `SELECT v.payload->>'categoryName' AS name, count(*)::int AS total FROM content_record r
+     JOIN content_revision v ON v.id = r.published_revision_id
+     WHERE r.kind = 'project' AND r.withdrawn_at IS NULL AND v.state = 'approved'
+     GROUP BY 1`,
+  );
+  const total = (name: string) =>
+    counts.find((row) => row.name === name)?.total ?? 0;
+  for (const name of ["Education", "Health", "General", "Community Development", "Social Amenities"]) {
+    const n = total(name);
+    await expect(
+      directory.getByRole("link", { name: `${name} ${n} ${n === 1 ? "project" : "projects"}`, exact: true }),
+    ).toBeVisible();
+  }
+  await directory.getByRole("link", { name: /^Education \d+ projects?$/ }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get("category")).toBe("Education");
+  await expect(page.getByRole("heading", { name: "Education projects", exact: true })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: /^\d+ projects?$/ })).toHaveText(
+    `${total("Education")} ${total("Education") === 1 ? "project" : "projects"}`,
+  );
+  // Category filtering combines with community and status filters.
+  const community = "Launch community " + tag;
+  await page.goto("/projects?" + new URLSearchParams({ category: "Education", community, status: "Ongoing" }));
+  await expect(page.getByRole("heading", { name: "Education projects", exact: true })).toBeVisible();
+  const { rows: [combined] } = await pool.query(
     `SELECT count(*)::int AS total FROM content_record r
      JOIN content_revision v ON v.id = r.published_revision_id
      WHERE r.kind = 'project' AND r.withdrawn_at IS NULL AND v.state = 'approved'
-       AND v.payload->>'communityName' = $1`,
-    [name],
+       AND v.payload->>'categoryName' = 'Education' AND v.payload->>'communityName' = $1
+       AND v.payload->>'status' = 'Ongoing'`,
+    [community],
   );
-  const communityLink = directory.getByRole("link", { name: name + " " + published.total + " projects", exact: true });
-  if (!(await communityLink.isVisible())) {
-    await directory.getByText("All communities", { exact: true }).click();
+  await expect(page.locator(".results-count")).toHaveText(
+    `${combined.total} ${combined.total === 1 ? "project" : "projects"}`,
+  );
+  await page.getByRole("link", { name: "Show all categories" }).click();
+  await expect.poll(() => new URL(page.url()).searchParams.get("category")).toBe(null);
+  await expect.poll(() => new URL(page.url()).searchParams.get("community")).toBe(community);
+  // An empty category explains itself and links back to every project.
+  if (!total("Social Amenities")) {
+    await page.goto("/projects?category=Social+Amenities");
+    await expect(page.getByRole("heading", { name: "No Social Amenities projects have been published yet." })).toBeVisible();
+    await page.getByRole("link", { name: "View all projects" }).click();
+    await expect(page).toHaveURL(origin + "/projects");
   }
-  await communityLink.click();
-  await expect.poll(() => new URL(page.url()).searchParams.get("community")).toBe(name);
-  await expect(page.getByRole("heading", { name: "Projects", exact: true })).toBeVisible();
   for (const viewport of [
     { width: 360, height: 740 },
     { width: 1440, height: 900 },
@@ -1400,8 +1441,8 @@ test("Home introduces Wassa East and leads to the project directory with consent
       document.documentElement.style.fontSize = "200%";
     });
     await expect(
-      page.getByRole("link", { name: "Find my community" }),
-    ).toHaveAttribute("href", "#communities");
+      page.locator(".register-hero").getByRole("link", { name: "Explore projects" }),
+    ).toHaveAttribute("href", "/projects");
     await expect(
       page.getByRole("link", { name: "Contact the office" }),
     ).toHaveAttribute("href", "/contact");
@@ -1410,8 +1451,8 @@ test("Home introduces Wassa East and leads to the project directory with consent
         () => document.documentElement.scrollWidth <= innerWidth + 1,
       ),
     ).toBe(true);
-    await expect(page.locator(".register-hero").getByRole("button")).toHaveCount(0);
-    await page.getByRole("link", { name: "Explore all projects" }).click();
+    await expect(page.locator(".register-hero").getByRole("button")).toHaveText(["Install tracker"]);
+    await page.locator(".register-hero").getByRole("link", { name: "Explore projects" }).click();
     await expect(page).toHaveURL(origin + "/projects");
     await expect(page.locator(".register-hero")).toHaveCount(0);
     await page.evaluate(() => {
@@ -3176,9 +3217,39 @@ test("install tracker exposes valid app assets, native prompt outcomes, and iPho
     );
     await dialog.getByRole("button", { name: "Close", exact: true }).click();
   }
+  // The hero action shares the same captured browser prompt.
+  const closeMenu = page.getByRole("button", { name: "Close menu", exact: true });
+  if (await closeMenu.isVisible()) await closeMenu.click();
+  await page.evaluate(() => {
+    delete document.documentElement.dataset.prompted;
+    const event = new Event("beforeinstallprompt", { cancelable: true });
+    Object.assign(event, {
+      prompt: async () => {
+        document.documentElement.dataset.prompted = "yes";
+      },
+      userChoice: Promise.resolve({ outcome: "dismissed" }),
+    });
+    window.dispatchEvent(event);
+  });
+  await page.locator(".register-hero").getByRole("button", { name: "Install tracker" }).click();
+  await expect(page.getByRole("dialog", { name: "Install App" }).getByRole("status")).toContainText("Installation cancelled");
+  expect(await page.locator("html").getAttribute("data-prompted")).toBe("yes");
+  await page.getByRole("dialog").getByRole("button", { name: "Close", exact: true }).click();
+  // Without a captured prompt, the panel gives manual instructions instead of a dead button.
+  await page.locator(".register-hero").getByRole("button", { name: "Install tracker" }).click();
+  await expect(page.getByRole("dialog")).toContainText("Add to Home screen");
+  await expect(page.getByRole("dialog").getByRole("button", { name: "Install App" })).toHaveCount(0);
+  await page.getByRole("dialog").getByRole("button", { name: "Close", exact: true }).click();
   await page.evaluate(() => window.dispatchEvent(new Event("appinstalled")));
+  await expect(page.locator(".register-hero").getByRole("button")).toHaveCount(0);
+  if (
+    await page
+      .getByRole("button", { name: "Open menu", exact: true })
+      .isVisible()
+  )
+    await page.getByRole("button", { name: "Open menu", exact: true }).click();
   await page
-    .getByRole("button", { name: "Install App", exact: true })
+    .getByRole("button", { name: "App help", exact: true })
     .click();
   await expect(page.getByRole("dialog")).toContainText("already installed");
   await page
@@ -3218,4 +3289,179 @@ test("install tracker exposes valid app assets, native prompt outcomes, and iPho
     phone.getByRole("button", { name: "Install App", exact: true }),
   ).toBeFocused();
   await iphone.close();
+});
+
+test("updates bell, feed, one-tap notifications and settings work without an account", async ({
+  page,
+}) => {
+  // Browsers cannot grant push permission or reach a push service in tests, so
+  // stand in for the permission prompt and PushManager. Everything else —
+  // worker registration, API calls and stored state — is real.
+  await page.addInitScript(() => {
+    const store = sessionStorage;
+    const permission = () => store.getItem("fake-permission") ?? "default";
+    Object.defineProperty(Notification, "permission", { get: permission, configurable: true });
+    Notification.requestPermission = async () => {
+      if (permission() === "default")
+        store.setItem("fake-permission", store.getItem("fake-choice") ?? "granted");
+      return permission() as NotificationPermission;
+    };
+    const b64 = (bytes: Uint8Array) =>
+      btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    const current = () => {
+      const saved = store.getItem("fake-subscription");
+      if (!saved) return null;
+      const { json, key } = JSON.parse(saved);
+      return {
+        endpoint: json.endpoint,
+        options: { applicationServerKey: new Uint8Array(key).buffer },
+        toJSON: () => json,
+        unsubscribe: async () => {
+          store.removeItem("fake-subscription");
+          return true;
+        },
+      };
+    };
+    PushManager.prototype.getSubscription = async () => current() as unknown as PushSubscription;
+    PushManager.prototype.subscribe = async (options?: PushSubscriptionOptionsInit) => {
+      const p256dh = crypto.getRandomValues(new Uint8Array(65));
+      p256dh[0] = 4;
+      const json = {
+        endpoint: "https://fcm.googleapis.com/fcm/send/" + crypto.randomUUID(),
+        expirationTime: null,
+        keys: { p256dh: b64(p256dh), auth: b64(crypto.getRandomValues(new Uint8Array(16))) },
+      };
+      const key = [...new Uint8Array(options!.applicationServerKey as Uint8Array)];
+      store.setItem("fake-subscription", JSON.stringify({ json, key }));
+      return current() as unknown as PushSubscription;
+    };
+  });
+  await page.goto("/");
+  const invite = page.getByRole("region", { name: "Get notified about project updates" });
+  // Never stacked on top of the cookie banner, and never a browser prompt on load.
+  await page.waitForTimeout(3000);
+  await expect(invite).toHaveCount(0);
+  expect(await page.evaluate(() => sessionStorage.getItem("fake-permission"))).toBe(null);
+  await page.getByRole("region", { name: "Cookie preferences" }).getByRole("button", { name: "Deny" }).click();
+  await expect(invite).toBeVisible({ timeout: 10000 });
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
+  ).toBe(true);
+
+  // New publications after the first visit are unread; earlier ones are not.
+  const titles = ["Bell update " + tag + " A", "Bell update " + tag + " B"];
+  const { rows: [live] } = await pool.query(
+    `SELECT r.id FROM content_record r JOIN content_revision v ON v.id=r.published_revision_id
+     WHERE r.kind='project' AND r.withdrawn_at IS NULL AND v.state='approved' LIMIT 1`,
+  );
+  for (const title of titles)
+    await pool.query(
+      "INSERT INTO notification_event(id,dedupe_key,record_id,kind,title,category_id,created_at) VALUES($1,$2,$3,'project-updated',$4,'category-education',now()+interval '1 second')",
+      [randomUUID(), "test:" + randomUUID(), live.id, title],
+    );
+  await invite.getByRole("button", { name: "Turn on notifications" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Notifications are on" })).toBeVisible();
+  const { rows: [device] } = await pool.query(
+    `SELECT (SELECT count(*)::int FROM notification_follow f WHERE f.device_id=s.device_id) AS follows
+     FROM notification_subscription s ORDER BY s.created_at DESC LIMIT 1`,
+  );
+  expect(device.follows).toBe(6);
+
+  await page.reload();
+  const bell = page.getByRole("link", { name: /^Updates/ });
+  await expect(bell).toHaveAccessibleName("Updates, 2 unread");
+  await bell.click();
+  await expect(page).toHaveURL(origin + "/updates");
+  await expect(page.getByRole("heading", { name: "Updates", exact: true })).toBeVisible();
+  await expect(page.getByText("Notifications are on for this device.")).toBeVisible();
+  for (const title of titles)
+    await expect(page.getByRole("link", { name: title + " (unread)" })).toBeVisible();
+  await expect(page.locator(".results-count")).toHaveText("2 unread");
+  await page.getByRole("link", { name: titles[0] + " (unread)" }).click();
+  await expect(page).toHaveURL(new RegExp("/projects/"));
+  await page.goBack();
+  await expect(page.locator(".results-count")).toHaveText("1 unread");
+  await page.getByRole("button", { name: "Mark all as read" }).click();
+  await expect(page.locator(".results-count")).toHaveText("You’re up to date.");
+  await page.reload();
+  await expect(page.getByRole("link", { name: /^Updates/ })).toHaveAccessibleName("Updates");
+  await expect(page.locator(".results-count")).toHaveText("You’re up to date.");
+  expect(
+    (await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations.map((v) => v.id),
+  ).toEqual([]);
+
+  // Settings: topics persist, notifications turn off and back on, data deletes.
+  await page.getByRole("link", { name: "Notification settings" }).click();
+  const topics = page.getByRole("group", { name: "Notification topics" });
+  await expect(topics.getByRole("checkbox")).toHaveCount(6);
+  await expect(topics.getByRole("checkbox", { checked: true })).toHaveCount(6);
+  await topics.getByRole("checkbox", { name: "News & Features" }).uncheck();
+  await expect(topics.getByRole("checkbox", { name: "News & Features" })).not.toBeChecked();
+  await expect(topics).toBeEnabled();
+  await page.reload();
+  await expect(topics.getByRole("checkbox", { name: "News & Features" })).not.toBeChecked();
+  await expect(topics.getByRole("checkbox", { name: "Education projects" })).toBeChecked();
+  await page.getByRole("button", { name: "Turn off notifications" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Notifications turned off" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Turn on notifications" })).toBeVisible();
+  expect(await page.evaluate(() => sessionStorage.getItem("fake-subscription"))).toBe(null);
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Turn on notifications" })).toBeVisible();
+  await expect(topics.getByRole("checkbox", { name: "Education projects" })).toBeChecked();
+  expect(
+    (await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations.map((v) => v.id),
+  ).toEqual([]);
+  await page.getByRole("button", { name: "Delete notification data" }).click();
+  const confirm = page.getByRole("dialog", { name: "Delete notification data?" });
+  await expect(confirm).toBeVisible();
+  await confirm.getByRole("button", { name: "Delete", exact: true }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Notification data deleted" })).toBeVisible();
+  await expect(page.getByText("Turning on notifications includes everything")).toBeVisible();
+  expect((await page.context().cookies()).some((c) => c.name === "wassa_notifications")).toBe(false);
+
+  // Blocked permission gives recovery guidance and keeps the feed usable.
+  await page.evaluate(() => sessionStorage.setItem("fake-permission", "denied"));
+  await page.goto("/updates");
+  await expect(page.getByText("Notifications are blocked for this website.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Turn on notifications" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: titles[1] })).toBeVisible();
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = "200%";
+  });
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
+  ).toBe(true);
+});
+
+test("a declined permission keeps updates available and the invitation stays dismissed (one-tap)", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const store = sessionStorage;
+    Object.defineProperty(Notification, "permission", {
+      get: () => store.getItem("fake-permission") ?? "default",
+      configurable: true,
+    });
+    Notification.requestPermission = async () => {
+      store.setItem("fake-permission", "denied");
+      return "denied";
+    };
+  });
+  const { rows: [{ started }] } = await pool.query("SELECT now()::timestamp::text AS started");
+  await page.goto("/");
+  await page.getByRole("region", { name: "Cookie preferences" }).getByRole("button", { name: "Deny" }).click();
+  const invite = page.getByRole("region", { name: "Get notified about project updates" });
+  await expect(invite).toBeVisible({ timeout: 10000 });
+  await invite.getByRole("button", { name: "Not now" }).click();
+  await expect(invite).toHaveCount(0);
+  await page.reload();
+  await page.waitForTimeout(3000);
+  await expect(invite).toHaveCount(0);
+  await page.goto("/updates");
+  await page.getByRole("button", { name: "Turn on notifications" }).click();
+  await expect(page.getByText("Notifications are blocked for this website.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Turn on notifications" })).toHaveCount(0);
+  expect(
+    (await pool.query("SELECT 1 FROM notification_device WHERE created_at >= $1::timestamp", [started])).rowCount,
+  ).toBe(0);
 });
