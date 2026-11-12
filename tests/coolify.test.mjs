@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
+import { parse, stringify } from "yaml";
 import {
   deploy,
   deploymentConfig,
@@ -20,7 +21,10 @@ const env = {
 };
 const compose = readFileSync("compose.coolify.yaml", "utf8");
 const healthy = {
-  applications: [{ name: "web", status: "running:healthy" }],
+  applications: [
+    { name: "web", status: "running:healthy" },
+    { name: "notifications", status: "running:healthy" },
+  ],
   databases: [{ name: "database", status: "running:healthy" }],
 };
 function publicResponse(url, release = env.IMAGE_TAG, migrated = true) {
@@ -202,6 +206,68 @@ test("legacy worker, missing migration dependency and renamed media volume block
       validateServiceCompose(compose.replace("  web:", "  worker: {}\n  web:")),
     /retired worker/,
   );
+});
+test("backup service may only read media through the tools image", () => {
+  // Windows checkouts may use CRLF; the replacements below use LF.
+  const compose = readFileSync("compose.coolify.yaml", "utf8").replace(
+    /\r\n/g,
+    "\n",
+  );
+  assert.match(compose, /\n {2}backup:\n/);
+  validateServiceCompose(compose);
+  validateServiceCompose(readFileSync("compose.coolify-demo.yaml", "utf8"));
+  // The backup service is optional.
+  const withoutBackup = parse(compose);
+  delete withoutBackup.services.backup;
+  validateServiceCompose(stringify(withoutBackup));
+  for (const unsafe of [
+    compose.replace("media:/data/media:ro", "media:/data/media"),
+    compose.replace(
+      "    command: [node, scripts/backup.mjs, schedule]",
+      '    command: [node, scripts/backup.mjs, schedule]\n    ports: ["9999:9999"]',
+    ),
+    compose.replace(
+      "      BACKUP_TIME:",
+      "      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}\n      BACKUP_TIME:",
+    ),
+    compose.replace(
+      "    command: [node, scripts/backup.mjs, schedule]\n    volumes:\n      - media:/data/media:ro",
+      "    command: [node, scripts/backup.mjs, schedule]\n    volumes:\n      - media:/data/media:ro\n      - postgres:/var/lib/postgresql/data",
+    ),
+  ])
+    assert.throws(() => validateServiceCompose(unsafe), /backup service/);
+});
+
+test("notification dispatcher is required, isolated, and checked for health", async () => {
+  const missing = parse(compose);
+  delete missing.services.notifications;
+  assert.throws(
+    () => validateServiceCompose(stringify(missing)),
+    /notifications/,
+  );
+  for (const field of ["ports", "volumes"]) {
+    const unsafe = parse(compose);
+    unsafe.services.notifications[field] = ["unsafe"];
+    assert.throws(
+      () => validateServiceCompose(stringify(unsafe)),
+      /notification dispatcher/,
+    );
+  }
+  const mock = harness([
+    preflight,
+    { body: [] },
+    accepted,
+    {
+      body: {
+        ...healthy,
+        applications: [
+          { name: "web", status: "running:healthy" },
+          { name: "notifications", status: "running:unhealthy" },
+        ],
+      },
+    },
+  ]);
+  await assert.rejects(deploy(env, mock.options), /Timed out/);
 });
 test("configuration rejects missing settings, unsafe origins and invalid release before requests", async () => {
   for (const input of [

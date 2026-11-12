@@ -53,6 +53,11 @@ services:
       CONTACT_TO_EMAIL: ${CONTACT_TO_EMAIL:-}
       GOOGLE_PLAY_URL: ${GOOGLE_PLAY_URL:-}
       APP_STORE_URL: ${APP_STORE_URL:-}
+      ENABLE_BROWSER_PUSH: ${ENABLE_BROWSER_PUSH:-false}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-}
+      NOTIFICATION_ENCRYPTION_KEY: ${NOTIFICATION_ENCRYPTION_KEY:-}
     command: [npm, run, db:migrate]
     mem_limit: 512m
     cpus: 0.5
@@ -88,6 +93,61 @@ services:
       retries: 3
     mem_limit: 1536m
     cpus: 1
+  # Nightly encrypted off-site backup of the database and media (see
+  # docs/BACKUPS.md). Idles harmlessly until the BACKUP_* settings exist.
+  backup:
+    image: ${TOOLS_IMAGE:?}
+    restart: unless-stopped
+    init: true
+    logging: *bounded-logging
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    depends_on:
+      database:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      NODE_ENV: production
+      APP_ENV: production
+      PGHOST: database
+      PGPORT: "5432"
+      PGDATABASE: wassa
+      PGUSER: wassa
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      MEDIA_ROOT: /data/media
+      BACKUP_TIME: "02:00"
+      RESTIC_REPOSITORY: ${BACKUP_REPOSITORY:-}
+      RESTIC_PASSWORD: ${BACKUP_PASSWORD:-}
+      AWS_ACCESS_KEY_ID: ${BACKUP_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${BACKUP_APPLICATION_KEY:-}
+    command: [node, scripts/backup.mjs, schedule]
+    volumes:
+      - media:/data/media:ro
+    mem_limit: 512m
+    cpus: 0.5
+  notifications:
+    image: ${TOOLS_IMAGE:?}
+    restart: unless-stopped
+    init: true
+    logging: *bounded-logging
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    depends_on:
+      database:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment: *runtime
+    command: [node, --import, tsx, scripts/notification-worker.ts]
+    healthcheck:
+      test: [CMD, node, --import, tsx, scripts/notification-worker.ts, --health]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    mem_limit: 256m
+    cpus: 0.5
 volumes:
   postgres:
   media:

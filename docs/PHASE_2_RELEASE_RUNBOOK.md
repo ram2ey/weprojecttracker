@@ -6,7 +6,7 @@ Prepared 6 November 2026. This is the Google Play infrastructure work, separate 
 
 The office's IT administrator owns deployment and incident triage. On 6 November the user selected GitHub Actions failure notifications to their own GitHub account. Project Personnel prepare records; the Project Lead independently approves them. Confirm the account's Actions notification preferences before relying on delivery; no notification email or third-party messaging service was added.
 
-Backblaze B2 setup and restore testing are explicitly deferred by the user. No recoverable backup is known. The migration rehearsal below uses synthetic fixtures, not a restored production backup. It does not close the backup/restore gate. Recovery-point/time targets remain proposals in [the recovery plan](PHASE_2_BACKUP_AND_RECOVERY_PLAN.md).
+Update 10 November 2026: nightly encrypted backups are implemented as the `backup` Compose service; see [BACKUPS.md](BACKUPS.md). They start only once the office adds its Backblaze B2 settings; until then no off-site copy exists. The paragraph below records the earlier position. Backblaze B2 setup and restore testing are explicitly deferred by the user. No recoverable backup is known. The migration rehearsal below uses synthetic fixtures, not a restored production backup. It does not close the backup/restore gate. Recovery-point/time targets remain proposals in [the recovery plan](PHASE_2_BACKUP_AND_RECOVERY_PLAN.md).
 
 ## Release configuration
 

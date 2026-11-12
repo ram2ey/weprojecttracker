@@ -39,6 +39,7 @@ export async function POST(request: Request, context: Context) {
             // Optional note; the evidence confirmation is the real gate.
             reason: z.string().trim().max(2000).default(""),
             evidenceReviewed: z.boolean().default(false),
+            notifyFollowers: z.boolean().default(false),
             lockVersion: z.number().int().min(0),
           })
           .strict(),

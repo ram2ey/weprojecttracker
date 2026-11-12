@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse } from "dotenv";
+import { pushConfiguration } from "../src/lib/notifications/policy";
 
 // Pure validation: never opens a database, loads development secrets, or prints values.
 export function checkDeployment(env: Record<string, string | undefined>) {
@@ -61,9 +62,21 @@ export function checkDeployment(env: Record<string, string | undefined>) {
     errors.push("Database and authentication secrets must be different.");
   if (env.APP_ENV && env.APP_ENV !== "production")
     errors.push("APP_ENV cannot override the production environment.");
-  for (const key of ["ENABLE_DESIGN_PREVIEW", "ENABLE_BROWSER_PUSH"])
+  for (const key of ["ENABLE_DESIGN_PREVIEW"])
     if (env[key] && env[key] !== "false")
       errors.push(`${key} must stay disabled in this deployment.`);
+  if (
+    env.ENABLE_BROWSER_PUSH &&
+    !["true", "false"].includes(env.ENABLE_BROWSER_PUSH)
+  )
+    errors.push("ENABLE_BROWSER_PUSH must be true or false.");
+  try {
+    pushConfiguration(env);
+  } catch {
+    errors.push(
+      "Enabled push requires valid VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT and NOTIFICATION_ENCRYPTION_KEY.",
+    );
+  }
   return { errors, warnings };
 }
 

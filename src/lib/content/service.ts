@@ -1,5 +1,7 @@
 import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { getDb } from "@/db";
+import { publishEvent, retireEvents } from "@/lib/notifications/events";
+import { projectEventKind } from "@/lib/notifications/policy";
 import {
   auditLog,
   contentRecord,
@@ -50,15 +52,13 @@ async function audit(
   id: string,
   details: Record<string, string> = {},
 ) {
-  await tx
-    .insert(auditLog)
-    .values({
-      id: crypto.randomUUID(),
-      actorId: a.id,
-      action,
-      subjectId: id,
-      details,
-    });
+  await tx.insert(auditLog).values({
+    id: crypto.randomUUID(),
+    actorId: a.id,
+    action,
+    subjectId: id,
+    details,
+  });
 }
 async function lockedRecord(tx: Tx, id: string) {
   const [r] = await tx
@@ -158,26 +158,22 @@ export async function createRecord(
           .replace(/[^a-z0-9]+/g, "-")
           .replace(/^-|-$/g, "")
           .slice(0, 70) || "project";
-    await tx
-      .insert(contentRecord)
-      .values({
-        id,
-        kind: "project",
-        slug: stem + "-" + id.slice(0, 8),
-        createdBy: actor.id,
-      });
-    await tx
-      .insert(contentRevision)
-      .values({
-        id: revisionId,
-        recordId: id,
-        number: 1,
-        baseVersion: 0,
-        authorId: actor.id,
-        contributors: [actor.id],
-        payload: { ...emptyPayload, title },
-        financials: emptyFinancials,
-      });
+    await tx.insert(contentRecord).values({
+      id,
+      kind: "project",
+      slug: stem + "-" + id.slice(0, 8),
+      createdBy: actor.id,
+    });
+    await tx.insert(contentRevision).values({
+      id: revisionId,
+      recordId: id,
+      number: 1,
+      baseVersion: 0,
+      authorId: actor.id,
+      contributors: [actor.id],
+      payload: { ...emptyPayload, title },
+      financials: emptyFinancials,
+    });
     await audit(tx, actor, "content.created", id);
     return { recordId: id, revisionId };
   });
@@ -214,26 +210,24 @@ export async function createRevision(
         ),
       );
     const allowed = new Set(available.map((f) => f.id));
-    await tx
-      .insert(contentRevision)
-      .values({
-        id: revisionId,
-        recordId: id,
-        number: revisions[0].number + 1,
-        baseVersion: record.version,
-        authorId: actor.id,
-        contributors: [actor.id],
-        payload: {
-          ...source.payload,
-          attachments: source.payload.attachments.filter(
-            (a) =>
-              allowed.has(a.id) &&
-              a.visibility === "public" &&
-              a.purpose !== "financial",
-          ),
-        },
-        financials: source.financials,
-      });
+    await tx.insert(contentRevision).values({
+      id: revisionId,
+      recordId: id,
+      number: revisions[0].number + 1,
+      baseVersion: record.version,
+      authorId: actor.id,
+      contributors: [actor.id],
+      payload: {
+        ...source.payload,
+        attachments: source.payload.attachments.filter(
+          (a) =>
+            allowed.has(a.id) &&
+            a.visibility === "public" &&
+            a.purpose !== "financial",
+        ),
+      },
+      financials: source.financials,
+    });
     await audit(tx, actor, "content.revision_created", id);
     return { recordId: id, revisionId };
   });
@@ -330,6 +324,7 @@ export async function decideRevision(
     action: "approve" | "return";
     reason: string;
     evidenceReviewed: boolean;
+    notifyFollowers?: boolean;
     lockVersion: number;
   },
 ) {
@@ -360,6 +355,23 @@ export async function decideRevision(
           "Publication changed. Return this submission for a fresh draft.",
         );
       await validate(tx, id, r.payload, true);
+      const previous = record.publishedRevisionId
+        ? await revisionFor(tx, id, record.publishedRevisionId)
+        : undefined;
+      const eventKind = projectEventKind(
+        previous?.payload.status,
+        r.payload.status,
+        input.notifyFollowers === true,
+      );
+      if (eventKind)
+        await publishEvent(tx, {
+          dedupeKey: "project:" + rid,
+          recordId: id,
+          kind: eventKind,
+          title: r.payload.title,
+          categoryId: r.payload.categoryId,
+          communityId: r.payload.communityId,
+        });
       await tx
         .update(contentRecord)
         .set({
@@ -383,7 +395,10 @@ export async function decideRevision(
         lockVersion: r.lockVersion + 1,
       })
       .where(eq(contentRevision.id, rid));
-    await audit(tx, actor, "content." + state, id, { reason: input.reason });
+    await audit(tx, actor, "content." + state, id, {
+      reason: input.reason,
+      notifyFollowers: String(input.notifyFollowers === true),
+    });
     return { state };
   });
 }
@@ -393,6 +408,7 @@ export async function withdrawRecord(actor: Actor, id: string, reason: string) {
     const r = await lockedRecord(tx, id);
     if (!r.publishedRevisionId || r.withdrawnAt)
       throw new ContentError(409, "This project is not published.");
+    await retireEvents(tx, "project", id);
     await tx
       .update(contentRecord)
       .set({

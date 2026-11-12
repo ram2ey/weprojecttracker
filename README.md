@@ -46,7 +46,9 @@ The public **Install App** button offers the browser's install prompt, or home-s
 
 Approving a submission requires the evidence confirmation; the decision note is optional. Returning a submission needs a reason of at least 10 characters. Withdrawing a photograph always takes effect immediately. If that leaves a published Completed project without a photograph, the staff editor shows a warning and the audit log records it; prepare a replacement revision.
 
-The retired guest-discussion system, following, notifications, maps, offline reading, announcements, reports/exports, Google login, MFA and dark mode remain inactive. Their database tables and historical data are retained. New comments use a separate table. No background worker is required. The temporary /sw.js retirement worker clears only this app's old offline caches and unregisters itself.
+The retired guest-discussion system, maps, offline reading, announcements, reports/exports, Google login, MFA and dark mode remain inactive. Their database tables and historical data are retained. New comments use a separate table. The temporary /sw.js retirement worker clears only this app's old offline caches and unregisters itself.
+
+The Friday launch notification foundation uses new tables and fresh device opt-ins; historical guest/push subscriptions and jobs stay inactive. Apply migration `0011_notification_foundation` and run the `notifications` Compose service to build inboxes. Phone delivery defaults off until valid runtime keys and explicit browser permission are present. `/api/public/notifications` and `/notification-sw.js` are ready for the Phase 3 interface; the existing navigation does not register that worker yet. See [the Phase 2 implementation and deployment notes](docs/FRIDAY_LAUNCH_PHASE_2_NOTIFICATIONS.md). `npm run test:notifications` exercises the foundation in a disposable local database.
 
 ## Homepage publishing and public integrations
 
@@ -76,4 +78,6 @@ Push-to-Coolify releases are configured in [docs/AUTOMATIC_DEPLOYMENT.md](docs/A
 
 The active roadmap is the [web delivery plan](docs/WEB_DELIVERY_PLAN.md): finish the website, obtain client acceptance and receive payment before Android work. The [Google Play roadmap](docs/GOOGLE_PLAY_SUBMISSION_PLAN.md) is deferred until after payment. Publisher decisions are in [docs/PHASE_0_DECISIONS.md](docs/PHASE_0_DECISIONS.md), and earlier web-readiness changes/evidence are in [docs/PHASE_1_WEB_READINESS.md](docs/PHASE_1_WEB_READINESS.md).
 
-Phase 2 adds disposable PostgreSQL/Chromium acceptance in GitHub Actions, a synthetic legacy migration rehearsal, Linux migration-failure/startup checks, exact-release deployment verification and basic external uptime checks. Operational steps and remaining live gates are in [the Phase 2 runbook](docs/PHASE_2_RELEASE_RUNBOOK.md). Backups and restore testing remain explicitly deferred.
+Phase 2 adds disposable PostgreSQL/Chromium acceptance in GitHub Actions, a synthetic legacy migration rehearsal, Linux migration-failure/startup checks, exact-release deployment verification and basic external uptime checks. Operational steps and remaining live gates are in [the Phase 2 runbook](docs/PHASE_2_RELEASE_RUNBOOK.md).
+
+Nightly encrypted backups of the database and photos run from the `backup` Compose service (restic to Backblaze B2, 02:00 GMT, 14 daily / 8 weekly / 6 monthly). Every release's CI container check runs a real backup and verified restore. The service stays idle until the office adds its Backblaze settings; see [backups](docs/BACKUPS.md) for setup, restore checks and disaster recovery.

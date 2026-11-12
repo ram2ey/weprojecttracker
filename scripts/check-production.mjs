@@ -71,10 +71,31 @@ try {
     "/api/ready",
     "/api/og",
     "/sw.js",
+    "/notification-sw.js",
+    "/api/public/notifications",
   ]) {
     const r = await fetch("http://127.0.0.1:3200" + path);
     assert.equal(r.status, 200, path);
   }
+  const notifications = await fetch(
+    "http://127.0.0.1:3200/api/public/notifications",
+  );
+  assert.match(notifications.headers.get("cache-control"), /no-store/);
+  assert.equal(notifications.headers.get("set-cookie"), null);
+  assert.equal((await notifications.json()).deviceRegistered, false);
+  assert.equal(
+    (
+      await fetch("http://127.0.0.1:3200/api/public/notifications", {
+        method: "POST",
+        headers: {
+          Origin: "https://untrusted.invalid",
+          "Content-Type": "application/json",
+        },
+        body: '{"action":"unsubscribe"}',
+      })
+    ).status,
+    403,
+  );
   for (const path of [
     "/following",
     "/reports",

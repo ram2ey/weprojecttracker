@@ -19,6 +19,98 @@ import { sql } from "drizzle-orm";
 import type { Story } from "../lib/news/types";
 import type { ContentPayload, Financials } from "../lib/content/types";
 
+// Fresh opt-ins only. Legacy guest/push tables below remain untouched.
+export const notificationDevice = pgTable("notification_device", {
+  id: text("id").primaryKey(),
+  tokenHash: text("token_hash").notNull().unique(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  expiresAt: timestamp("expires_at").notNull(),
+});
+export const notificationFollow = pgTable(
+  "notification_follow",
+  {
+    deviceId: text("device_id")
+      .notNull()
+      .references(() => notificationDevice.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(),
+    target: text("target").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.deviceId, t.kind, t.target] }),
+    index("notification_follow_target_idx").on(t.kind, t.target),
+    check(
+      "notification_follow_kind",
+      sql`${t.kind} in ('project','category','community','news')`,
+    ),
+  ],
+);
+export const notificationSubscription = pgTable("notification_subscription", {
+  deviceId: text("device_id")
+    .primaryKey()
+    .references(() => notificationDevice.id, { onDelete: "cascade" }),
+  endpointHash: text("endpoint_hash").notNull().unique(),
+  credentials: text("credentials").notNull(),
+  generation: text("generation").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+export const notificationEvent = pgTable(
+  "notification_event",
+  {
+    id: text("id").primaryKey(),
+    dedupeKey: text("dedupe_key").notNull().unique(),
+    recordId: text("record_id").references(() => contentRecord.id, {
+      onDelete: "cascade",
+    }),
+    storyId: text("story_id").references(() => newsStory.id, {
+      onDelete: "cascade",
+    }),
+    kind: text("kind").notNull(),
+    title: text("title").notNull(),
+    categoryId: text("category_id"),
+    communityId: text("community_id"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    retiredAt: timestamp("retired_at"),
+    fanoutAt: timestamp("fanout_at"),
+  },
+  (t) => [
+    check(
+      "notification_event_subject",
+      sql`(${t.recordId} is null) <> (${t.storyId} is null)`,
+    ),
+    index("notification_event_time_idx").on(t.createdAt),
+    index("notification_event_fanout_idx").on(t.fanoutAt, t.createdAt),
+  ],
+);
+export const notificationReceipt = pgTable(
+  "notification_receipt",
+  {
+    eventId: text("event_id")
+      .notNull()
+      .references(() => notificationEvent.id, { onDelete: "cascade" }),
+    deviceId: text("device_id")
+      .notNull()
+      .references(() => notificationDevice.id, { onDelete: "cascade" }),
+    readAt: timestamp("read_at"),
+    state: text("state").notNull().default("pending"),
+    generation: text("generation"),
+    attempts: integer("attempts").notNull().default(0),
+    nextAttemptAt: timestamp("next_attempt_at").notNull().defaultNow(),
+    leaseUntil: timestamp("lease_until"),
+    claimToken: text("claim_token"),
+    lastStatus: integer("last_status"),
+  },
+  (t) => [
+    primaryKey({ columns: [t.eventId, t.deviceId] }),
+    index("notification_receipt_inbox_idx").on(t.deviceId, t.readAt),
+    index("notification_receipt_dispatch_idx").on(t.state, t.nextAttemptAt),
+    check(
+      "notification_receipt_state",
+      sql`${t.state} in ('pending','sending','retry','sent','skipped','cancelled','failed')`,
+    ),
+  ],
+);
+
 // Aggregate counts only: no visitor, session, IP, referrer or query-string data.
 export const analyticsDaily = pgTable(
   "analytics_daily",

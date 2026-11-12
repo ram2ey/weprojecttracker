@@ -5,6 +5,7 @@ import { isDesignPreview } from "@/lib/env";
 import { sampleStories } from "./samples";
 import { z } from "zod";
 import { getDb } from "@/db";
+import { publishEvent, retireEvents } from "@/lib/notifications/events";
 import {
   auditLog,
   newsStory,
@@ -41,6 +42,7 @@ const decision = z
     action: z.enum(["approve", "return", "withdraw"]),
     id: z.uuid(),
     version: z.int().positive(),
+    notifyFollowers: z.boolean().default(false),
   })
   .strict();
 
@@ -260,12 +262,28 @@ export async function changeNews(actor: Actor, raw: unknown, upload?: File) {
       if (!inserted.length)
         throw new ContentError(409, "Story already saved. Reload it.");
     }
+    if (
+      input.action === "approve" &&
+      (!old?.published || input.notifyFollowers)
+    )
+      await publishEvent(tx, {
+        dedupeKey: `news:${input.id}:${values.version}`,
+        storyId: input.id,
+        kind: old?.published ? "news-updated" : "news-published",
+        title: draft.title,
+      });
+    if (input.action === "withdraw") await retireEvents(tx, "news", input.id);
     await tx.insert(auditLog).values({
       id: crypto.randomUUID(),
       actorId: actor.id,
       action: "news." + input.action,
       subjectId: input.id,
-      details: { version: String(values.version) },
+      details: {
+        version: String(values.version),
+        notifyFollowers: String(
+          "notifyFollowers" in input && input.notifyFollowers,
+        ),
+      },
     });
     return { id: input.id, version: values.version };
   });

@@ -60,8 +60,37 @@ try {
     "-e",
     "const fs=require('node:fs');if(process.getuid()!==1001)process.exit(1);fs.writeFileSync('/data/media/.permission-check','ok');fs.unlinkSync('/data/media/.permission-check')",
   ]);
+  // Backup rehearsal: a real nightly backup into a container-local restic
+  // repository, then a full restore check including a scratch database whose
+  // row counts must match. Proves the shipped tools image can back up and
+  // restore, not just that a backup command exits successfully.
+  docker([
+    "exec",
+    "-T",
+    "web",
+    "node",
+    "-e",
+    "require('node:fs').mkdirSync('/data/media/ci-probe',{recursive:true});require('node:fs').writeFileSync('/data/media/ci-probe/photo.webp','probe')",
+  ]);
+  docker([
+    "run",
+    "--rm",
+    "--no-deps",
+    "-e",
+    "RESTIC_REPOSITORY=/tmp/ci-restic",
+    "-e",
+    "RESTIC_PASSWORD=disposable-ci-backup-password",
+    "-e",
+    "RESTORE_CHECK_DATABASE=1",
+    "backup",
+    "sh",
+    "-c",
+    "node scripts/backup.mjs once && node scripts/backup.mjs restore-check",
+  ]);
+  const ready = await (await fetch("http://127.0.0.1:3210/api/ready")).json();
+  assert.equal(ready.backup, "ok", "A completed backup must be reported.");
   console.log(
-    "Container rollout passed: failed migration blocks web; successful migration, exact release, public smoke and non-root persistent media access.",
+    "Container rollout passed: failed migration blocks web; successful migration, exact release, public smoke, non-root persistent media access, and encrypted backup with verified database/media restore.",
   );
 } finally {
   docker(["down", "--volumes", "--remove-orphans"]);

@@ -1,5 +1,7 @@
 # Phase 2 backup and recovery plan
 
+**Implementation update — 10 November 2026:** the user chose nightly encrypted backups through a `backup` Compose service (restic to Backblaze B2) at 02:00 GMT, keeping 14 daily, 8 weekly and 6 monthly copies, with the recovery password held in Coolify and the office password manager. Code, CI restore rehearsal, monitoring and the operator guide are in [BACKUPS.md](BACKUPS.md). Activation still needs the office's Backblaze account, bucket, key and Coolify settings (steps there). Until then the service waits idle and no off-site copy exists.
+
 Web-delivery update — **7 November 2026**: the user separately authorized a one-time **server plus downloaded** pre-release copy. The database dump, empty media archive and recovery notes were created and downloaded with matching checksums; see [the safety-copy record](WEB_RELEASE_SAFETY_COPY_2026-11-07.md). This supersedes earlier statements that no recovery copy is known. A full restore is still untested, and ongoing paid backup setup remains deferred until deployment and client payment. No B2 purchase or scheduled backup was activated.
 
 Prepared **6 November 2026** from the [live read-only audit](PHASE_2_INFRASTRUCTURE_AUDIT_2026-11-06.md). **Deferred by the user on 6 November 2026.** Backblaze B2 remains the selected provider for later setup; account handoff, backup configuration and restore testing are postponed. No paid subscription or data transfer is authorized by recording this plan.

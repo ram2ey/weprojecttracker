@@ -23,6 +23,7 @@ for (const name of [
   "VAPID_PUBLIC_KEY",
   "VAPID_PRIVATE_KEY",
   "VAPID_SUBJECT",
+  "NOTIFICATION_ENCRYPTION_KEY",
   "ENABLE_BROWSER_PUSH",
 ])
   env[name] = "";
