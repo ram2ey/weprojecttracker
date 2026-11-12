@@ -66,9 +66,9 @@ export default function About() {
       <section className="detail-section about-reading">
         <h2>How project updates are reviewed</h2>
         <p>
-          Staff prepare project records. A separate approver reviews each
-          publication and update. The previous approved version remains public
-          while changes are reviewed.
+          Authorised constituency office staff prepare, check and approve
+          project records before they are published. The previous approved
+          version remains public while changes are prepared.
         </p>
         <p>
           Completed projects require a completion date, summary and photograph.

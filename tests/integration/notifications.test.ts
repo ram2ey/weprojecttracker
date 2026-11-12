@@ -74,8 +74,8 @@ test(
       created = true;
       await migrate(drizzle(getPool()), { migrationsFolder: "drizzle" });
       const pool = getPool();
-      const author: Actor = { id: randomUUID(), role: "officer" };
-      const reviewer: Actor = { id: randomUUID(), role: "approver" };
+      const author: Actor = { id: randomUUID(), role: "super_admin" };
+      const reviewer: Actor = { id: randomUUID(), role: "super_admin" };
       for (const actor of [author, reviewer])
         await pool.query('INSERT INTO "user"(id,name,email) VALUES($1,$1,$2)', [
           actor.id,
@@ -159,7 +159,7 @@ test(
         return r;
       }
       await t.test(
-        "only independent committed approvals create events and overlapping follows deduplicate",
+        "only committed approvals create events and overlapping follows deduplicate",
         async () => {
           const r = await prepareRevision(
             "First notification project",
@@ -171,16 +171,9 @@ test(
             (await pool.query("SELECT 1 FROM notification_event")).rowCount,
             0,
           );
-          await assert.rejects(() =>
-            decideRevision(author, r.recordId, r.revisionId, {
-              action: "approve",
-              evidenceReviewed: true,
-              reason: "",
-              lockVersion: r.lockVersion,
-            }),
-          );
           await followTopic(token, { kind: "community", target: community });
-          await decideRevision(reviewer, r.recordId, r.revisionId, {
+          // Single Admin role: the author may approve their own submission.
+          await decideRevision(author, r.recordId, r.revisionId, {
             action: "approve",
             evidenceReviewed: true,
             reason: "",
@@ -345,7 +338,8 @@ test(
           await deleteDevice(everything);
           // Deliver the main test device's job so later claims are unaffected.
           const leftover = await claimJob();
-          if (leftover) await deliverJob(leftover, async () => ({ status: 201 }));
+          if (leftover)
+            await deliverJob(leftover, async () => ({ status: 201 }));
           assert.equal(await claimJob(), null);
         },
       );
@@ -413,15 +407,13 @@ test(
           const before = (
             await pool.query("SELECT count(*) FROM notification_event")
           ).rows[0].count;
-          await assert.rejects(() =>
-            changeNews(author, { action: "approve", id, version: 1 }),
-          );
           assert.equal(
             (await pool.query("SELECT count(*) FROM notification_event"))
               .rows[0].count,
             before,
           );
-          await changeNews(reviewer, { action: "approve", id, version: 1 });
+          // The author may approve their own story (single Admin role).
+          await changeNews(author, { action: "approve", id, version: 1 });
           await fanoutEvents();
           assert.equal((await inbox(token, "for-you", 1)).items.length, 1);
           const job = (await claimJob())!;

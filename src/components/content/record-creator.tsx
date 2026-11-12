@@ -27,7 +27,7 @@ export function RecordCreator() {
   return (
     <>
       <h1>New project</h1>
-      <p>Drafts remain private until a separate approver publishes them.</p>
+      <p>Drafts remain private until they are submitted and approved.</p>
       <form className="form-section form-stack" onSubmit={submit}>
         <label>
           Title

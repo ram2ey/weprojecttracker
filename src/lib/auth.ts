@@ -45,7 +45,7 @@ function createAuth() {
         create: {
           before: async () => {
             throw new APIError("FORBIDDEN", {
-              message: "An operator must create staff accounts.",
+              message: "An admin must create staff accounts.",
             });
           },
         },
@@ -63,7 +63,7 @@ function createAuth() {
             if (temporaryPasswordExpired(person))
               throw new APIError("FORBIDDEN", {
                 message:
-                  "Temporary password expired. Ask an operator to reset it.",
+                  "Temporary password expired. Ask another admin to reset it.",
               });
             return { data: record };
           },

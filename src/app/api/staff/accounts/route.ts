@@ -10,7 +10,7 @@ import { consumeLimit } from "@/lib/security/rate-limit";
 export function GET(request: Request) {
   return staffApi(request, async (actor) => {
     if (actor.role !== "super_admin")
-      throw new ContentError(403, "Operator access required.");
+      throw new ContentError(403, "Admin access required.");
     return getDb()
       .select({
         id: user.id,
@@ -28,7 +28,7 @@ export function GET(request: Request) {
 export function POST(request: Request) {
   return staffApi(request, async (actor) => {
     if (actor.role !== "super_admin")
-      throw new ContentError(403, "Operator access required.");
+      throw new ContentError(403, "Admin access required.");
     if (!(await consumeLimit("accounts:" + actor.id, 30, 3600)))
       throw new ContentError(429, "Too many account changes. Try again later.");
     const input = z
@@ -38,7 +38,9 @@ export function POST(request: Request) {
             action: z.literal("create"),
             username: usernameSchema,
             name: z.string().trim().min(2).max(100),
-            role: z.enum(["officer", "approver"]),
+            // Retired: every account is an Admin. Ignored if an open, older
+            // page still sends it.
+            role: z.string().max(20).optional(),
           })
           .strict(),
         z
@@ -50,7 +52,7 @@ export function POST(request: Request) {
       ])
       .parse(await jsonBody(request));
     return input.action === "create"
-      ? createStaff(actor, input)
+      ? createStaff(actor, { username: input.username, name: input.name })
       : manageStaff(actor, input.id, input.action);
   });
 }

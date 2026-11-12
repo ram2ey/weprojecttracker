@@ -131,7 +131,8 @@ async function main() {
       const result: Record<string, unknown> = {};
       for (const table of tables) {
         assert.match(table, /^[a-z_]+$/);
-        if (["user", "staff", "session"].includes(table)) continue;
+        // audit_log gains the 0012 role-change entries, checked below.
+        if (["user", "staff", "session", "audit_log"].includes(table)) continue;
         result[table] = (
           await pool.query(`SELECT * FROM "${table}" ORDER BY 1`)
         ).rows;
@@ -150,6 +151,27 @@ async function main() {
       ["day", "path", "views"],
     );
     assert.deepEqual(await snapshot(), before);
+    // 0012: every account becomes an Admin, each change audited exactly once
+    // even though the migrations ran twice.
+    assert.deepEqual(
+      (await pool.query("SELECT DISTINCT role FROM staff")).rows,
+      [{ role: "super_admin" }],
+    );
+    assert.deepEqual(
+      (
+        await pool.query(
+          "SELECT subject_id, details->>'from' AS from FROM audit_log WHERE action='staff.role_changed' ORDER BY subject_id",
+        )
+      ).rows,
+      [
+        { subject_id: "fixture-1", from: "officer" },
+        { subject_id: "fixture-2", from: "officer" },
+      ],
+    );
+    assert.equal(
+      (await pool.query("SELECT count(*)::int AS n FROM audit_log")).rows[0].n,
+      2,
+    );
     assert.equal(
       (await pool.query("SELECT count(*)::int AS n FROM project_comment"))
         .rows[0].n,

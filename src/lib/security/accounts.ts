@@ -14,11 +14,11 @@ export async function createStaff(
   input: {
     username: string;
     name: string;
-    role: "officer" | "approver" | "super_admin";
   },
 ) {
   if (actor && actor.role !== "super_admin")
-    throw new ContentError(403, "Operator access required.");
+    throw new ContentError(403, "Admin access required.");
+  const role = "super_admin" as const;
   const username = usernameSchema.parse(input.username),
     id = crypto.randomUUID(),
     temporaryPassword = randomBytes(18).toString("base64url"),
@@ -33,7 +33,7 @@ export async function createStaff(
           .from(staff)
           .where(eq(staff.role, "super_admin"));
         if (existing.length)
-          throw new ContentError(409, "An operator already exists.");
+          throw new ContentError(409, "An admin already exists.");
       }
       await tx.insert(user).values({
         id,
@@ -44,7 +44,7 @@ export async function createStaff(
       });
       await tx.insert(staff).values({
         userId: id,
-        role: input.role,
+        role,
         mustChangePassword: true,
         temporaryPasswordExpiresAt,
       });
@@ -60,7 +60,7 @@ export async function createStaff(
         actorId: actor?.id ?? id,
         subjectId: id,
         action: "staff.created",
-        details: { username, role: input.role },
+        details: { username, role },
       });
     });
   } catch (e) {
@@ -77,7 +77,7 @@ export async function manageStaff(
   action: "reset" | "deactivate" | "reactivate" | "revoke",
 ) {
   if (actor.role !== "super_admin")
-    throw new ContentError(403, "Operator access required.");
+    throw new ContentError(403, "Admin access required.");
   const temporaryPassword =
     action === "reset" ? randomBytes(18).toString("base64url") : undefined;
   const password = temporaryPassword
@@ -101,7 +101,7 @@ export async function manageStaff(
       if (operators.length <= 1)
         throw new ContentError(
           409,
-          "The last active operator cannot be deactivated.",
+          "The last active admin cannot be deactivated.",
         );
     }
     if (action === "reset") {
@@ -182,7 +182,7 @@ export async function changeStaffPassword(
     if (temporaryPasswordExpired(person))
       throw new ContentError(
         403,
-        "Temporary password expired. Ask an operator to reset it.",
+        "Temporary password expired. Ask another admin to reset it.",
       );
     if (
       !credential?.password ||

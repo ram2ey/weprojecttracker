@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import type { AdminRecordSummary } from "@/lib/content/types";
-import type { Role } from "@/lib/security/policy";
+import { canSubmit, type Role } from "@/lib/security/policy";
 export function RecordList({
   items,
   view,
@@ -22,7 +22,7 @@ export function RecordList({
     <>
       <div className="console-heading">
         <h1>{view === "review" ? "Review queue" : "Project register"}</h1>
-        {role !== "approver" && (
+        {canSubmit(role) && (
           <Link href="/admin?view=new" className="button button-primary">
             New project
           </Link>

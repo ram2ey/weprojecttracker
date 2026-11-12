@@ -10,7 +10,7 @@ export function GET(request: Request) {
 export function POST(request: Request) {
   return staffApi(request, async (actor) => {
     if (actor.role !== "super_admin")
-      throw new ContentError(403, "Operator access required.");
+      throw new ContentError(403, "Admin access required.");
     const input = z
       .object({
         id: z.string().max(100).optional(),

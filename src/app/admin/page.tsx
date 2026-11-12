@@ -44,8 +44,6 @@ export default async function Admin({
     identity.staff.role !== "super_admin"
   )
     redirect("/admin");
-  if (view === "new" && identity.staff.role === "approver")
-    redirect("/admin?view=review");
   let children: React.ReactNode;
   if (view === "news") {
     const [workspace, projects] = await Promise.all([
@@ -62,7 +60,6 @@ export default async function Admin({
         }
         {...workspace}
         projects={projects}
-        actor={identity.user.id}
         role={identity.staff.role}
       />
     );

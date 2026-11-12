@@ -101,13 +101,13 @@ export default async function Privacy() {
           contain IP addresses.
         </p>
         <p>
-          The platform operator can close new comments and hide or restore
-          comments. Hidden names and messages remain private and recoverable;
-          hiding is not deletion. Comments have no automatic expiry in this
-          version. To request removal or raise a concern, contact the office.
-          Without verified visitor accounts, the office cannot automatically
-          verify authorship. Public and hidden comments may be included in
-          private recovery copies.
+          Office staff can close new comments and hide or restore comments.
+          Hidden names and messages remain private and recoverable; hiding is
+          not deletion. Comments have no automatic expiry in this version. To
+          request removal or raise a concern, contact the office. Without
+          verified visitor accounts, the office cannot automatically verify
+          authorship. Public and hidden comments may be included in private
+          recovery copies.
         </p>
       </section>
       <section className="detail-section">
@@ -143,11 +143,11 @@ export default async function Privacy() {
           does not store visitor IDs, IP addresses, browser details, referrers,
           search text or filter choices, and authenticated staff sessions are
           excluded. Statistics show page views and popular pages, not unique
-          visitors. Only platform operators can view the statistics.
+          visitors. Only signed-in office staff can view the statistics.
         </p>
         <p>
           Daily statistics cover up to 90 days. Expired aggregates are removed
-          on the next collection or operator dashboard visit. Withdrawing
+          on the next collection or statistics page visit. Withdrawing
           permission stops future counting. Previously collected totals are
           anonymous and cannot be linked back to you. No analytics data is sent
           to an external analytics provider.
