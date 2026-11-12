@@ -105,11 +105,11 @@ Done when: the full interface passes its checks. Phase 2's earlier passing tests
 
 ## Release candidate — make the completed flows available for phone testing
 
-- [ ] Prepare matching web and tools images containing the reviewed Phase 2 and Phase 3 changes; record the release identifier.
-- [ ] Generate and securely store stable production VAPID keys, contact subject and notification encryption key. Supply matching runtime settings to web and worker; keep secrets out of Git and build output.
-- [ ] Update the saved Coolify Compose definition to include the notifications worker and required health/dependency configuration.
-- [ ] Confirm the current database backup/recovery position before applying the additive notification migration; preserve existing historical tables and inactive legacy subscriptions.
-- [ ] Apply the migration with the deployment's migration job and confirm web, database and worker readiness. Start with phone push disabled while checking inbox operation.
+- [x] Prepare matching web and tools images containing the reviewed Phase 2 and Phase 3 changes; record the release identifier. (`sha-9cd212f…-43184904513-1`)
+- [x] Generate and securely store stable production VAPID keys, contact subject and notification encryption key. Supply matching runtime settings to web and worker; keep secrets out of Git and build output. (12 Nov; see completion table)
+- [x] Update the saved Coolify Compose definition to include the notifications worker and required health/dependency configuration. (The deploy uploads the reviewed Compose file; notifications service healthy.)
+- [ ] Confirm the current database backup/recovery position before applying the additive notification migration; preserve existing historical tables and inactive legacy subscriptions. **Not met in order:** migration 0011 (additive only) was applied on 12 Nov before off-site backups existed; the first backup and a passing restore check followed the same day. Future migrations are covered by nightly backups.
+- [x] Apply the migration with the deployment's migration job and confirm web, database and worker readiness. Start with phone push disabled while checking inbox operation.
 - [ ] Verify server outbound push connectivity, runtime key validation, worker heartbeat and safe operational logs; enable push for the acceptance candidate when ready.
 - [ ] Exercise approval-to-inbox-to-phone delivery with designated test recipients. Do not notify existing audiences merely to test the deployment.
 - [ ] Check worker restart recovery, transient failure handling, expired subscription handling and the ability to disable phone delivery while keeping the inbox usable.

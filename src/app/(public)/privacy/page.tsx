@@ -36,15 +36,15 @@ export default async function Privacy() {
         <p>
           If you turn on notifications, your browser asks for permission first.
           An essential cookie then identifies this browser installation. The
-          server stores a hash of its random token, the topics you receive
-          (all categories and news unless you untick some), delivery records
-          and encrypted browser subscription details. Approved updates are sent
+          server stores a hash of its random token, the topics you receive (all
+          categories and news unless you untick some), delivery records and
+          encrypted browser subscription details. Approved updates are sent
           through your browser provider’s push service, which processes delivery
           information under its own terms. No public account or cross-device
           tracking is required, and subscription details are not used for
-          analytics or advertising. These settings expire after 180 days;
-          update history is retained for up to 90 days and removed during
-          scheduled cleanup.
+          analytics or advertising. These settings expire after 180 days; update
+          history is retained for up to 90 days and removed during scheduled
+          cleanup.
         </p>
         <p>
           You can turn notifications off in Notification settings or block them
@@ -165,13 +165,13 @@ export default async function Privacy() {
         {backupsActive ? (
           <p>
             Private database and file copies are kept for recovery. Each night
-            the website makes an encrypted copy, which is stored with Backblaze,
-            a cloud storage provider. The encryption happens before upload, so
-            Backblaze cannot read the copies. Copies are kept for up to six
-            months (daily for two weeks, then weekly and monthly) and then
-            deleted automatically. They can contain staff account data, private
-            project history and public comments, including hidden ones, and are
-            not publicly available.
+            the website makes an encrypted copy, which is stored with
+            Cloudflare, a cloud storage provider. The encryption happens before
+            upload, so Cloudflare cannot read the copies. Copies are kept for up
+            to six months (daily for two weeks, then weekly and monthly) and
+            then deleted automatically. They can contain staff account data,
+            private project history and public comments, including hidden ones,
+            and are not publicly available.
           </p>
         ) : (
           <p>

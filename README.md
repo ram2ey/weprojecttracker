@@ -6,13 +6,13 @@ A minimal public register for up to 200 constituency projects and roughly 2–5 
 
 Use Node.js 22.12 or newer and the isolated local PostgreSQL cluster:
 
-~~~text
+```text
 npm ci
 npm run db:local
 npm run db:migrate
 npm run staff:bootstrap -- operator "Platform operator"
 npm run dev
-~~~
+```
 
 The bootstrap command creates the first operator only, displays a temporary password and its 24-hour deadline once, and requires a password change at first sign-in. Expired temporary credentials need an operator reset (or the maintenance command for an operator). Open http://localhost:3000 for the register and /staff/login for staff access. No default password is installed.
 
@@ -58,7 +58,7 @@ Set `GOOGLE_PLAY_URL` and `APP_STORE_URL` independently when each listing is ava
 
 ## Verification
 
-~~~text
+```text
 npm run typecheck
 npm run lint
 npm test
@@ -66,7 +66,7 @@ npm run test:acceptance
 npm run test:migrations
 node scripts/build-production.mjs
 node scripts/check-production.mjs
-~~~
+```
 
 Acceptance tests build a standalone production server at port 3100 against the isolated wassa_test database. They cover 200-project browsing, phone/desktop accessibility, publishing, account restrictions, migration preservation and removed features. They never use the development operator.
 
@@ -80,4 +80,4 @@ The active roadmap is the [web delivery plan](docs/WEB_DELIVERY_PLAN.md): finish
 
 Phase 2 adds disposable PostgreSQL/Chromium acceptance in GitHub Actions, a synthetic legacy migration rehearsal, Linux migration-failure/startup checks, exact-release deployment verification and basic external uptime checks. Operational steps and remaining live gates are in [the Phase 2 runbook](docs/PHASE_2_RELEASE_RUNBOOK.md).
 
-Nightly encrypted backups of the database and photos run from the `backup` Compose service (restic to Backblaze B2, 02:00 GMT, 14 daily / 8 weekly / 6 monthly). Every release's CI container check runs a real backup and verified restore. The service stays idle until the office adds its Backblaze settings; see [backups](docs/BACKUPS.md) for setup, restore checks and disaster recovery.
+Nightly encrypted backups of the database and photos run from the `backup` Compose service (restic to Cloudflare R2 over the S3 API, 02:00 GMT, 14 daily / 8 weekly / 6 monthly). Every release's CI container check runs a real backup and verified restore. The service stays idle until the four `BACKUP_*` settings are present (configured in production since 12 November 2026); see [backups](docs/BACKUPS.md) for setup, restore checks and disaster recovery.
