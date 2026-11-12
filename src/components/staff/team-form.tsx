@@ -2,6 +2,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { contentRequest, errorMessage } from "@/components/content/client-api";
+import { roleLabel } from "@/lib/security/policy";
 type Person = {
   id: string;
   username: string;
@@ -70,7 +71,6 @@ export function TeamForm() {
           action: "create",
           username,
           name: f.get("name"),
-          role: f.get("role"),
         },
         username,
       )
@@ -81,9 +81,11 @@ export function TeamForm() {
     <>
       <h1>Staff</h1>
       <p>
-        Create individual accounts. Share temporary passwords privately; staff
-        must change them within 24 hours before accessing projects. Expired
-        passwords need an operator reset.
+        Create individual accounts. Every account is an Admin: it can create,
+        approve and publish projects and news, and manage staff, comments,
+        communities and statistics. Share temporary passwords privately; staff
+        must change them within 24 hours before accessing projects. Another
+        admin can reset an expired password.
       </p>
       <form className="form-section form-stack" onSubmit={create}>
         <h2>Add staff member</h2>
@@ -102,13 +104,6 @@ export function TeamForm() {
               autoComplete="off"
               required
             />
-          </label>
-          <label>
-            Role
-            <select name="role" aria-label="Role">
-              <option value="officer">Editor</option>
-              <option value="approver">Approver</option>
-            </select>
           </label>
         </div>
         <Button type="submit" disabled={busy}>
@@ -150,13 +145,7 @@ export function TeamForm() {
           <article className="form-section" key={p.id}>
             <h2>{p.name}</h2>
             <p>
-              {p.username} ·{" "}
-              {p.role === "super_admin"
-                ? "Operator"
-                : p.role === "officer"
-                  ? "Editor"
-                  : "Approver"}{" "}
-              · {p.active ? "Active" : "Inactive"}
+              {p.username} · {roleLabel} · {p.active ? "Active" : "Inactive"}
               {p.mustChangePassword ? " · Password change required" : ""}
             </p>
             <div className="action-row">

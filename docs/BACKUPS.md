@@ -1,13 +1,15 @@
 # Nightly backups — Wassa East project register
 
-Decided **10 November 2026**: nightly encrypted off-site backups of the database and all photographs, using a `backup` service in the Compose definition, [restic](https://restic.readthedocs.io/) and **Backblaze B2**.
+Decided **10 November 2026**: nightly encrypted off-site backups of the database and all photographs, using a `backup` service in the Compose definition, [restic](https://restic.readthedocs.io/) and S3-compatible object storage.
+
+**In use since 12 November 2026: Cloudflare R2**, bucket `wassa-east-backups`, on the free tier (10 GB-month; downloads for restores are free). The scripts use the standard S3 interface, so any S3-compatible provider (for example Backblaze B2, the original plan) works by changing only the four `BACKUP_*` settings.
 
 | Setting    | Value                                                                                                                                                                   |
 | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Time       | 02:00 GMT (UTC) every night; one automatic retry 30 minutes after a failure                                                                                             |
 | Contents   | `pg_dump` of the `wassa` database (custom format) plus the whole media volume, and a manifest                                                                           |
 | Retention  | 14 daily, 8 weekly and 6 monthly copies; older copies are deleted automatically                                                                                         |
-| Encryption | Client-side by restic before upload. Backblaze stores only encrypted data                                                                                               |
+| Encryption | Client-side by restic before upload. The storage provider holds only encrypted data                                                                                     |
 | Storage    | Only changed data is uploaded each night (deduplicated), so photos are not re-sent                                                                                      |
 | Integrity  | Each dump is checked with `pg_restore --list` before upload; `restic check` runs every Sunday                                                                           |
 | Status     | Each success or failure is written to the audit log (`backup.completed` / `backup.failed`), visible to operators under **Audit**. `/api/ready` reports only `backup: ok | stale | none` |
@@ -29,20 +31,19 @@ Generate it once, at least 32 random characters. Never put it in Git, chat, emai
 
 These steps involve creating an account, accepting terms, billing choices and secret values, so the account owner does them personally.
 
-1. **Backblaze account.** Sign up at backblaze.com with an office-controlled email, turn on two-factor sign-in, and choose a region. The first 10 GB are free. Under **Caps & Alerts**, set a small daily cap and an alert email so a mistake cannot run up charges.
-2. **Bucket.** Create a bucket, for example `wassa-east-backups-<random>`: **Private**, encryption **Enabled (SSE-B2)**, Object Lock off. Under **Lifecycle settings**, choose _Keep only the last version of the file_; restic manages its own history.
-3. **Application key.** Under **Application Keys → Add a New Application Key**: allow access to **this bucket only**, type **Read and Write**, no expiry. Copy the _keyID_ and _applicationKey_ straight into step 5. Backblaze shows the application key only once.
-4. **Endpoint.** On the bucket's page, note the S3 endpoint, for example `s3.eu-central-003.backblazeb2.com`.
-5. **Coolify.** In the service's environment variables, add (as secrets where offered):
+1. **Cloudflare account.** Use the office Cloudflare account (the one serving the site), with two-factor sign-in on. R2's free tier covers 10 GB-month; set a billing notification so a mistake cannot run up charges unnoticed.
+2. **Bucket.** **R2 → Create bucket**, for example `wassa-east-backups`. R2 buckets are private by default; do not enable public access. restic manages its own history, so no lifecycle rules are needed.
+3. **API token.** **R2 → Manage API tokens → Create Account API token** (an account token keeps working if a person's access changes): permission **Object Read & Write**, **Apply to specific buckets only** → this bucket, TTL **Forever**. The result page shows the **Access Key ID** (32 characters), **Secret Access Key** (64 characters) and the S3 endpoint `https://<account-id>.r2.cloudflarestorage.com` **only once**. The "Token value" is not used.
+4. **Coolify.** In the service's environment variables, add (marked as secrets):
 
-   | Variable                 | Value                                                            |
-   | ------------------------ | ---------------------------------------------------------------- |
-   | `BACKUP_REPOSITORY`      | `s3:https://<endpoint>/<bucket>/wassa-east`                      |
-   | `BACKUP_PASSWORD`        | the recovery password, also saved in the office password manager |
-   | `BACKUP_KEY_ID`          | the key's _keyID_                                                |
-   | `BACKUP_APPLICATION_KEY` | the key's _applicationKey_                                       |
+   | Variable                 | Value                                                                                     |
+   | ------------------------ | ----------------------------------------------------------------------------------------- |
+   | `BACKUP_REPOSITORY`      | `s3:https://<account-id>.r2.cloudflarestorage.com/<bucket>/wassa-east`                    |
+   | `BACKUP_PASSWORD`        | the recovery password, also saved in the office password manager                          |
+   | `BACKUP_KEY_ID`          | the **Access Key ID** (32 characters; restic reports the length if a wrong value is used) |
+   | `BACKUP_APPLICATION_KEY` | the **Secret Access Key**                                                                 |
 
-   Then redeploy, or restart only the `backup` container.
+5. **Apply.** Redeploy the resource so the `backup` container is recreated with the new values (a plain restart may keep old values).
 
 6. **First backup now.** In Coolify, open a terminal in the `backup` container and run:
 
@@ -99,7 +100,7 @@ What is **not** in the backups: Coolify settings and secrets (`BETTER_AUTH_SECRE
 
 ## Changing the password or key
 
-- **Application key:** create a new bucket-only key in Backblaze, update `BACKUP_KEY_ID` / `BACKUP_APPLICATION_KEY`, restart `backup`, run `node scripts/backup.mjs once`, then delete the old key.
+- **Storage key:** create a new bucket-only R2 Account API token, update `BACKUP_KEY_ID` / `BACKUP_APPLICATION_KEY`, restart `backup`, run `node scripts/backup.mjs once`, then delete the old key.
 - **Recovery password:** restic supports several passwords per repository. From the backup container run `restic key add`, enter the new password, update `BACKUP_PASSWORD` and the office copy, verify with a restore check, then remove the old one with `restic key list` and `restic key remove <id>`.
 
 ## Restoring from your own computer

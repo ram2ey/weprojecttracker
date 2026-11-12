@@ -5,15 +5,14 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { blankStory } from "@/lib/news/types";
 import type { newsWorkspace, storyProjects } from "@/lib/news/service";
-import { canSubmit, type Role } from "@/lib/security/policy";
+import { canApprove, canSubmit, type Role } from "@/lib/security/policy";
 import { contentRequest, errorMessage } from "@/components/content/client-api";
 
 type Props = Awaited<ReturnType<typeof newsWorkspace>> & {
   projects: Awaited<ReturnType<typeof storyProjects>>;
-  actor: string;
   role: Role;
 };
-export function NewsEditor({ items, selected, projects, actor, role }: Props) {
+export function NewsEditor({ items, selected, projects, role }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
@@ -21,7 +20,7 @@ export function NewsEditor({ items, selected, projects, actor, role }: Props) {
   const [newId] = useState(() => crypto.randomUUID());
   const story = selected?.draft ?? blankStory;
   const editable = canSubmit(role) && selected?.state !== "pending";
-  const reviewer = role === "approver" || role === "super_admin";
+  const reviewer = canApprove(role);
   async function send(action: string, form?: HTMLFormElement) {
     setBusy(true);
     setError("");
@@ -132,7 +131,11 @@ export function NewsEditor({ items, selected, projects, actor, role }: Props) {
                 </label>
                 <label>
                   Related project
-                  <select aria-label="Related project" name="project" defaultValue={story.project}>
+                  <select
+                    aria-label="Related project"
+                    name="project"
+                    defaultValue={story.project}
+                  >
                     <option value="">None</option>
                     {projects.map((p) => (
                       <option key={p.slug} value={p.slug}>
@@ -233,7 +236,7 @@ export function NewsEditor({ items, selected, projects, actor, role }: Props) {
                 )}
                 <button
                   className="button button-primary"
-                  disabled={busy || selected.contributors.includes(actor)}
+                  disabled={busy}
                   onClick={() => send("approve")}
                 >
                   Approve and publish

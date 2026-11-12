@@ -29,7 +29,7 @@ export function commentPageNumber(value: string | null) {
 }
 function operator(actor: Actor) {
   if (actor.role !== "super_admin")
-    throw new ContentError(403, "Operator access required.");
+    throw new ContentError(403, "Admin access required.");
 }
 export async function listComments(
   slug: string,
@@ -153,7 +153,7 @@ export async function submitComment(
         );
       throw new ContentError(
         400,
-        "Enter a name (1–80 characters) and comment (1–2,000 characters). Leave the website field empty.",
+        "Enter a name (1â€“80 characters) and comment (1â€“2,000 characters). Leave the website field empty.",
       );
     }
     const id = crypto.randomUUID();

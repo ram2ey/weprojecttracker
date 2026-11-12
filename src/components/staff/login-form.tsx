@@ -72,7 +72,7 @@ export function LoginForm({ configured }: { configured: boolean }) {
         </Button>
       </form>
       <p className="subtle-note">
-        Contact your operator for access or a password reset.
+        Contact an admin for access or a password reset.
       </p>
     </>
   );

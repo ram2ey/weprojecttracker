@@ -48,7 +48,6 @@ export default async function ProjectEditor({
         record={record}
         revisionId={selected}
         terms={terms}
-        actorId={identity.user.id}
         role={identity.staff.role}
       />
     </Console>

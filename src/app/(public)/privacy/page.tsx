@@ -36,15 +36,15 @@ export default async function Privacy() {
         <p>
           If you turn on notifications, your browser asks for permission first.
           An essential cookie then identifies this browser installation. The
-          server stores a hash of its random token, the topics you receive
-          (all categories and news unless you untick some), delivery records
-          and encrypted browser subscription details. Approved updates are sent
+          server stores a hash of its random token, the topics you receive (all
+          categories and news unless you untick some), delivery records and
+          encrypted browser subscription details. Approved updates are sent
           through your browser provider’s push service, which processes delivery
           information under its own terms. No public account or cross-device
           tracking is required, and subscription details are not used for
-          analytics or advertising. These settings expire after 180 days;
-          update history is retained for up to 90 days and removed during
-          scheduled cleanup.
+          analytics or advertising. These settings expire after 180 days; update
+          history is retained for up to 90 days and removed during scheduled
+          cleanup.
         </p>
         <p>
           You can turn notifications off in Notification settings or block them
@@ -101,13 +101,13 @@ export default async function Privacy() {
           contain IP addresses.
         </p>
         <p>
-          The platform operator can close new comments and hide or restore
-          comments. Hidden names and messages remain private and recoverable;
-          hiding is not deletion. Comments have no automatic expiry in this
-          version. To request removal or raise a concern, contact the office.
-          Without verified visitor accounts, the office cannot automatically
-          verify authorship. Public and hidden comments may be included in
-          private recovery copies.
+          Office staff can close new comments and hide or restore comments.
+          Hidden names and messages remain private and recoverable; hiding is
+          not deletion. Comments have no automatic expiry in this version. To
+          request removal or raise a concern, contact the office. Without
+          verified visitor accounts, the office cannot automatically verify
+          authorship. Public and hidden comments may be included in private
+          recovery copies.
         </p>
       </section>
       <section className="detail-section">
@@ -143,11 +143,11 @@ export default async function Privacy() {
           does not store visitor IDs, IP addresses, browser details, referrers,
           search text or filter choices, and authenticated staff sessions are
           excluded. Statistics show page views and popular pages, not unique
-          visitors. Only platform operators can view the statistics.
+          visitors. Only signed-in office staff can view the statistics.
         </p>
         <p>
           Daily statistics cover up to 90 days. Expired aggregates are removed
-          on the next collection or operator dashboard visit. Withdrawing
+          on the next collection or statistics page visit. Withdrawing
           permission stops future counting. Previously collected totals are
           anonymous and cannot be linked back to you. No analytics data is sent
           to an external analytics provider.
@@ -165,13 +165,13 @@ export default async function Privacy() {
         {backupsActive ? (
           <p>
             Private database and file copies are kept for recovery. Each night
-            the website makes an encrypted copy, which is stored with Backblaze,
-            a cloud storage provider. The encryption happens before upload, so
-            Backblaze cannot read the copies. Copies are kept for up to six
-            months (daily for two weeks, then weekly and monthly) and then
-            deleted automatically. They can contain staff account data, private
-            project history and public comments, including hidden ones, and are
-            not publicly available.
+            the website makes an encrypted copy, which is stored with
+            Cloudflare, a cloud storage provider. The encryption happens before
+            upload, so Cloudflare cannot read the copies. Copies are kept for up
+            to six months (daily for two weeks, then weekly and monthly) and
+            then deleted automatically. They can contain staff account data,
+            private project history and public comments, including hidden ones,
+            and are not publicly available.
           </p>
         ) : (
           <p>

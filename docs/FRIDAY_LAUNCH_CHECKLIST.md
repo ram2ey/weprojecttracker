@@ -6,15 +6,15 @@ This is the working checklist for the launch discussed with the user. It is sepa
 
 ## Current status and how to use this file
 
-| Area | Status |
-| --- | --- |
-| Phase 1: feasibility | Completed; real desktop push demonstrated. Physical-phone checks remain open. |
-| Phase 2: notification foundation | Implemented and verified locally; not deployed. |
+| Area                                   | Status                                                                                                                                   |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Phase 1: feasibility                   | Completed; real desktop push demonstrated. Physical-phone checks remain open.                                                            |
+| Phase 2: notification foundation       | Implemented and verified locally; not deployed.                                                                                          |
 | Phase 3: public and reviewer interface | Mostly implemented and verified locally (12 Nov); scope changed to notifications by default. Unchecked items below remain. Not deployed. |
-| Release candidate preparation | Pending production configuration, migration and deployment. |
-| Phase 4: device acceptance | Pending; user has an Android phone. No iPhone tester confirmed. |
-| Public launch | Pending release gates. |
-| Downloadable APK | Optional; must not delay the required website experience. |
+| Release candidate preparation          | Pending production configuration, migration and deployment.                                                                              |
+| Phase 4: device acceptance             | Pending; user has an Android phone. No iPhone tester confirmed.                                                                          |
+| Public launch                          | Pending release gates.                                                                                                                   |
+| Downloadable APK                       | Optional; must not delay the required website experience.                                                                                |
 
 An unchecked box means work or verification is still outstanding. Check a box only when its stated behavior is implemented or its check has passed. Record the date, tested release and evidence when completing a section. Local implementation does not mean deployed or phone-tested. If an item is deferred, record that decision explicitly instead of checking it off.
 
@@ -105,11 +105,11 @@ Done when: the full interface passes its checks. Phase 2's earlier passing tests
 
 ## Release candidate — make the completed flows available for phone testing
 
-- [ ] Prepare matching web and tools images containing the reviewed Phase 2 and Phase 3 changes; record the release identifier.
-- [ ] Generate and securely store stable production VAPID keys, contact subject and notification encryption key. Supply matching runtime settings to web and worker; keep secrets out of Git and build output.
-- [ ] Update the saved Coolify Compose definition to include the notifications worker and required health/dependency configuration.
-- [ ] Confirm the current database backup/recovery position before applying the additive notification migration; preserve existing historical tables and inactive legacy subscriptions.
-- [ ] Apply the migration with the deployment's migration job and confirm web, database and worker readiness. Start with phone push disabled while checking inbox operation.
+- [x] Prepare matching web and tools images containing the reviewed Phase 2 and Phase 3 changes; record the release identifier. (`sha-9cd212f…-43184904513-1`)
+- [x] Generate and securely store stable production VAPID keys, contact subject and notification encryption key. Supply matching runtime settings to web and worker; keep secrets out of Git and build output. (12 Nov; see completion table)
+- [x] Update the saved Coolify Compose definition to include the notifications worker and required health/dependency configuration. (The deploy uploads the reviewed Compose file; notifications service healthy.)
+- [ ] Confirm the current database backup/recovery position before applying the additive notification migration; preserve existing historical tables and inactive legacy subscriptions. **Not met in order:** migration 0011 (additive only) was applied on 12 Nov before off-site backups existed; the first backup and a passing restore check followed the same day. Future migrations are covered by nightly backups.
+- [x] Apply the migration with the deployment's migration job and confirm web, database and worker readiness. Start with phone push disabled while checking inbox operation.
 - [ ] Verify server outbound push connectivity, runtime key validation, worker heartbeat and safe operational logs; enable push for the acceptance candidate when ready.
 - [ ] Exercise approval-to-inbox-to-phone delivery with designated test recipients. Do not notify existing audiences merely to test the deployment.
 - [ ] Check worker restart recovery, transient failure handling, expired subscription handling and the ability to disable phone delivery while keeping the inbox usable.
@@ -138,7 +138,7 @@ Done when: the user reports results for these checks, failures are resolved or e
 
 ### 4.2 iPhone — acceptance gap until a tester is available
 
-- [ ] Confirm access to an iPhone tester and record device/browser/OS details.
+- [ ] Confirm access to an iPhone tester and record device/browser/OS details. **12 Nov 2026:** the user reports having tested on an iPhone; device, iOS version and which checks below passed are still to be recorded.
 - [ ] Verify home-screen installation, permission from the installed app, background notification display, notification taps and opt-out.
 - [ ] If no tester is available before launch, document iPhone notification support as unverified and avoid claiming it has passed acceptance. Record the launch scope decision explicitly.
 
@@ -166,14 +166,18 @@ Website installation and the notification flow take priority. These boxes are no
 
 Add one row as each remaining stage is completed. Do not place credentials or subscription endpoints in this record.
 
-| Stage | Completion date | Release/commit | Evidence or unresolved items |
-| --- | --- | --- | --- |
-| Phase 3 interface | Pending | — | — |
-| Deployed candidate | Pending | — | — |
-| Android acceptance | Pending | — | — |
-| iPhone acceptance / scope decision | Pending | — | — |
-| Public launch | Pending | — | — |
-| Optional APK | Pending | — | — |
+| Stage                              | Completion date                        | Release/commit                     | Evidence or unresolved items                                                                                                                                                                                                                                                                                                                                                       |
+| ---------------------------------- | -------------------------------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Phase 3 interface                  | 12 Nov 2026 (partial)                  | `9cd212f` (PR #26)                 | Local and CI checks passed; open items listed in §3.4–3.7                                                                                                                                                                                                                                                                                                                          |
+| Deployed candidate                 | 12 Nov 2026, push **off**              | `sha-9cd212f…-43184904513-1`       | Release run 43184904513 green; `/api/ready` migrated=true (0011 applied), backup=none; live read-only Chrome checks pass at 360px and desktop (one intermittent first-load failure, then 4/4 passes). Still to do: production keys, enable push, Android test, backups                                                                                                             |
+| Off-site backups                   | 12 Nov 2026                            | `sha-9cd212f…-43184904513-1`       | Cloudflare R2 bucket `wassa-east-backups`, bucket-scoped account token; first snapshot `f6bfe78c` (20 media files); restore check with throwaway database passed (row counts matched); `/api/ready` backup=ok. Recovery password in Coolify and the password manager. GitHub variable `REQUIRE_BACKUP=true` set, so the uptime monitor fails without a backup in the last 36 hours |
+| Push enabled                       | 12 Nov 2026                            | `sha-9cd212f…-43184904513-1`       | Production VAPID pair and notification encryption key generated locally, stored in Coolify secrets and the password manager (never displayed); `ENABLE_BROWSER_PUSH=true`; `/api/public/notifications` reports push enabled with the new public key; service worker served; `/api/ready` ready, backup=ok                                                                          |
+| Android acceptance                 | Pending                                | —                                  | —                                                                                                                                                                                                                                                                                                                                                                                  |
+| iPhone acceptance / scope decision | Pending                                | —                                  | —                                                                                                                                                                                                                                                                                                                                                                                  |
+| Public launch                      | Pending                                | —                                  | —                                                                                                                                                                                                                                                                                                                                                                                  |
+| Single Admin role (scope change)   | 12 Nov 2026 (PR #27, not yet deployed) | migration `0012_single_admin_role` | User decision: one Admin role with every permission; admins may publish their own work. Existing editor/approver accounts converted and audited; About/FAQ no longer promise a separate approver. Integration (15/15), migration rehearsal and browser tests updated and passing                                                                                                   |
+| Lighter pages and news previews    | 12 Nov 2026 (PR #27, not yet deployed) | —                                  | News photos served from `/api/public/news/<id>/photo` with year-long caching instead of being embedded twice per page; news link previews use the story photo. Optional APK deferred by the user                                                                                                                                                                                   |
+| Optional APK                       | Deferred                               | —                                  | —                                                                                                                                                                                                                                                                                                                                                                                  |
 
 - [Phase 1: agreed experience and feasibility](FRIDAY_LAUNCH_PHASE_1_FEASIBILITY.md)
 - [Phase 2: implementation, API contract, deployment details and verification](FRIDAY_LAUNCH_PHASE_2_NOTIFICATIONS.md)

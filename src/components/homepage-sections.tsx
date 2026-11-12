@@ -31,6 +31,7 @@ export async function HomeNews() {
                   alt={story.caption}
                   width={640}
                   height={480}
+                  loading="lazy"
                   unoptimized
                 />
               )}

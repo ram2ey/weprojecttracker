@@ -10,7 +10,7 @@ import {
   contentRevision,
   auditLog,
 } from "@/db/schema";
-import { canSubmit } from "@/lib/security/policy";
+import { canApprove, canSubmit } from "@/lib/security/policy";
 import { ContentError, type Actor } from "./service";
 
 export function mediaPath(key: string) {
@@ -99,10 +99,7 @@ export async function storeEvidence(
   internalOnly: boolean,
 ) {
   if (!canSubmit(actor.role))
-    throw new ContentError(
-      403,
-      "Only officers and operators can upload evidence.",
-    );
+    throw new ContentError(403, "Admin access required.");
   if (internalOnly)
     throw new ContentError(400, "Only project photographs are supported.");
   const db = getDb();
@@ -179,7 +176,7 @@ export async function storeEvidence(
       if (count[0].count >= 100)
         throw new ContentError(
           400,
-          "This record has reached its 100-file upload limit. Contact the operator.",
+          "This record has reached its 100-file upload limit.",
         );
       await tx.insert(mediaFile).values({
         id,
@@ -281,8 +278,8 @@ export async function withdrawEvidence(
   id: string,
   reason: string,
 ) {
-  if (!["approver", "super_admin"].includes(actor.role))
-    throw new ContentError(403, "Approver access required.");
+  if (!canApprove(actor.role))
+    throw new ContentError(403, "Admin access required.");
   return getDb().transaction(async (tx) => {
     const [file] = await tx
       .select()

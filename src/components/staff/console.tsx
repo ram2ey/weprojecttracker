@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { SiteBrand } from "../site-brand";
 import { Button } from "../ui/button";
-import type { Role } from "@/lib/security/policy";
+import { roleLabel, type Role } from "@/lib/security/policy";
 import { signOut, signOutErrorMessage } from "./sign-out";
 export function Console({
   view,
@@ -70,13 +70,7 @@ export function Console({
           <p>
             {name}
             <br />
-            <small>
-              {role === "super_admin"
-                ? "Operator"
-                : role === "officer"
-                  ? "Editor"
-                  : "Approver"}
-            </small>
+            <small>{roleLabel}</small>
           </p>
           <Link href="/staff/password">Change password</Link>
           <Link href="/projects">Public register ↗</Link>

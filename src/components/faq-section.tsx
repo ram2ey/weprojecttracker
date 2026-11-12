@@ -12,7 +12,7 @@ const trackerQuestions = [
   ],
   [
     "Who reviews project updates?",
-    "A staff member prepares the update and a separate approver reviews it. The last approved version stays visible while the review is underway.",
+    "Authorised constituency office staff prepare and approve each update before it is published. The last approved version stays visible until the new one is published.",
   ],
   [
     "What does “Completed” mean?",

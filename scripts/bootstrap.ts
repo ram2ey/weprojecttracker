@@ -6,18 +6,12 @@ import { validateRuntime } from "../src/lib/env";
 async function main() {
   validateRuntime();
   const username = process.argv[2],
-    name = process.argv[3] ?? "Platform operator";
+    name = process.argv[3] ?? "Platform admin";
   if (!username)
-    throw new Error(
-      'Usage: npm run staff:bootstrap -- operator "Operator name"',
-    );
-  const result = await createStaff(null, {
-    username,
-    name,
-    role: "super_admin",
-  });
+    throw new Error('Usage: npm run staff:bootstrap -- admin "Admin name"');
+  const result = await createStaff(null, { username, name });
   console.log(
-    "Operator username: " +
+    "Admin username: " +
       result.username +
       "\nTemporary password (shown once): " +
       result.temporaryPassword +

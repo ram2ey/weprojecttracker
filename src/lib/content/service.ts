@@ -9,7 +9,7 @@ import {
   mediaFile,
   taxonomy,
 } from "@/db/schema";
-import { canSubmit, type Role } from "@/lib/security/policy";
+import { canApprove, canSubmit, type Role } from "@/lib/security/policy";
 import {
   emptyPayload,
   emptyFinancials,
@@ -38,12 +38,11 @@ export function recordCode(_kind: ContentKind, number: number) {
   return "WE-P" + String(number).padStart(5, "0");
 }
 function editor(a: Actor) {
-  if (!canSubmit(a.role))
-    throw new ContentError(403, "Editor access required.");
+  if (!canSubmit(a.role)) throw new ContentError(403, "Admin access required.");
 }
 function reviewer(a: Actor) {
-  if (!["approver", "super_admin"].includes(a.role))
-    throw new ContentError(403, "Approver access required.");
+  if (!canApprove(a.role))
+    throw new ContentError(403, "Admin access required.");
 }
 async function audit(
   tx: Tx,
@@ -332,15 +331,7 @@ export async function decideRevision(
   return getDb().transaction(async (tx) => {
     const record = await lockedRecord(tx, id),
       r = await revisionFor(tx, id, rid);
-    if (
-      r.authorId === actor.id ||
-      r.contributors.includes(actor.id) ||
-      r.submittedBy === actor.id
-    )
-      throw new ContentError(
-        403,
-        "A separate person must review this revision.",
-      );
+    // Admins may approve their own work (single-role decision, 12 Nov 2026).
     if (r.state !== "pending" || r.lockVersion !== input.lockVersion)
       throw new ContentError(409, "This submission changed. Reload it.");
     if (input.action === "approve") {

@@ -200,7 +200,8 @@ export const staff = pgTable("staff", {
     .primaryKey()
     .references(() => user.id, { onDelete: "cascade" }),
   role: text("role", {
-    enum: ["super_admin", "officer", "approver"],
+    // "officer" and "approver" were retired by migration 0012.
+    enum: ["super_admin"],
   }).notNull(),
   active: boolean("active").notNull().default(true),
   mustChangePassword: boolean("must_change_password").notNull().default(true),

@@ -6,7 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { canSubmit, type Role } from "@/lib/security/policy";
+import { canApprove, canSubmit, type Role } from "@/lib/security/policy";
 import {
   projectStatuses,
   type AdminRecord,
@@ -20,13 +20,11 @@ import { publicationFieldErrors } from "@/lib/content/validation";
 export function RecordEditor({
   record,
   revisionId,
-  actorId,
   role,
   terms,
 }: {
   record: AdminRecord;
   revisionId: string;
-  actorId: string;
   role: Role;
   terms: Taxonomy[];
 }) {
@@ -63,11 +61,7 @@ export function RecordEditor({
   const dirty = JSON.stringify(payload) !== baseline,
     canLeave = useUnsavedChanges(dirty),
     editable = revision.state === "draft" && canSubmit(role),
-    reviewer = role !== "officer",
-    independent =
-      revision.authorId !== actorId &&
-      !revision.contributors.includes(actorId) &&
-      revision.submittedBy !== actorId;
+    reviewer = canApprove(role);
   const issues = showIssues && editable ? publicationFieldErrors(payload) : {};
   function fieldProps(key: keyof LaunchPayload, hint?: string) {
     return {
@@ -137,7 +131,7 @@ export function RecordEditor({
           { action: "submit", lockVersion: result.lockVersion },
         );
         setLockVersion(result.lockVersion + 1);
-        setMessage("Submitted for independent review.");
+        setMessage("Submitted for review. Approve it below to publish.");
       } else setMessage("Draft saved privately.");
       router.refresh();
     });
@@ -215,8 +209,8 @@ export function RecordEditor({
           <p>
             <strong>The published project has no photograph.</strong> It is
             marked Completed, but its photographs have been withdrawn, so the
-            public page shows none. Create a new draft, add a current
-            photograph and send it for review.
+            public page shows none. Create a new draft, add a current photograph
+            and send it for review.
           </p>
         </div>
       )}
@@ -550,67 +544,60 @@ export function RecordEditor({
             characters explaining what to correct; leading and trailing spaces
             do not count.
           </p>
-          {independent ? (
-            <>
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={reviewed}
-                  onChange={(e) => setReviewed(e.target.checked)}
-                />
-                I checked the project information and photographs.
-              </label>
-              {!publishedRevision ? (
-                <p className="subtle-note">
-                  Approving publishes this project. People with notifications
-                  turned on are alerted automatically.
+          <>
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={reviewed}
+                onChange={(e) => setReviewed(e.target.checked)}
+              />
+              I checked the project information and photographs.
+            </label>
+            {!publishedRevision ? (
+              <p className="subtle-note">
+                Approving publishes this project. People with notifications
+                turned on are alerted automatically.
+              </p>
+            ) : publishedRevision.payload.status !== revision.payload.status ? (
+              <p className="subtle-note">
+                The status changes from {publishedRevision.payload.status} to{" "}
+                {revision.payload.status}. People with notifications turned on
+                are alerted automatically.
+              </p>
+            ) : (
+              <>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={alertFollowers}
+                    aria-describedby="alert-followers-help"
+                    onChange={(e) => setAlertFollowers(e.target.checked)}
+                  />
+                  Send a notification about this update
+                </label>
+                <p id="alert-followers-help" className="subtle-note">
+                  Alerts people with notifications turned on. Untick for small
+                  corrections, such as spelling fixes, that do not need an
+                  alert.
                 </p>
-              ) : publishedRevision.payload.status !==
-                revision.payload.status ? (
-                <p className="subtle-note">
-                  The status changes from {publishedRevision.payload.status} to{" "}
-                  {revision.payload.status}. People with notifications turned
-                  on are alerted automatically.
-                </p>
-              ) : (
-                <>
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={alertFollowers}
-                      aria-describedby="alert-followers-help"
-                      onChange={(e) => setAlertFollowers(e.target.checked)}
-                    />
-                    Send a notification about this update
-                  </label>
-                  <p id="alert-followers-help" className="subtle-note">
-                    Alerts people with notifications turned on. Untick for small
-                    corrections, such as spelling fixes, that do not need an
-                    alert.
-                  </p>
-                </>
-              )}
-              <div className="action-row">
-                <Button
-                  disabled={busy || !reviewed}
-                  onClick={() => decision("approve")}
-                >
-                  Approve & publish
-                </Button>
-                <Button
-                  variant="outline"
-                  disabled={busy || reason.trim().length < 10}
-                  onClick={() => decision("return")}
-                >
-                  Return for correction
-                </Button>
-              </div>
-            </>
-          ) : (
-            <p>
-              You helped prepare this revision. Another approver must review it.
-            </p>
-          )}
+              </>
+            )}
+            <div className="action-row">
+              <Button
+                disabled={busy || !reviewed}
+                onClick={() => decision("approve")}
+              >
+                Approve & publish
+              </Button>
+              <Button
+                variant="outline"
+                disabled={busy || reason.trim().length < 10}
+                onClick={() => decision("return")}
+              >
+                Return for correction
+              </Button>
+            </div>
+          </>
         </section>
       )}
       {reviewer && publishedRevision && !record.withdrawnAt && (
