@@ -17,12 +17,59 @@ export function validateServiceCompose(raw) {
     !services?.web ||
     !services?.migrate ||
     !services?.database ||
+    !services?.notifications ||
     Object.keys(services).some(
-      (name) => !["web", "migrate", "database"].includes(name),
+      (name) =>
+        !["web", "migrate", "database", "backup", "notifications"].includes(
+          name,
+        ),
     )
   )
     throw new Error(
-      "Saved Compose must contain web/migrate/database and no retired worker.",
+      "Saved Compose must contain web/migrate/database/notifications (plus optional backup) and no retired worker.",
+    );
+  // The backup service only reads data: tools image, read-only media, no
+  // published ports, and no secrets or release identity beyond its own.
+  const backup = services.backup;
+  const notifications = services.notifications;
+  if (
+    notifications &&
+    (notifications.image !== "${TOOLS_IMAGE:?}" ||
+      notifications.ports?.length ||
+      notifications.volumes?.length ||
+      notifications.depends_on?.migrate?.condition !==
+        "service_completed_successfully" ||
+      JSON.stringify(notifications.command) !==
+        JSON.stringify([
+          "node",
+          "--import",
+          "tsx",
+          "scripts/notification-worker.ts",
+        ]) ||
+      !notifications.environment ||
+      "RELEASE_ID" in notifications.environment ||
+      notifications.healthcheck?.test?.at(-1) !== "--health")
+  )
+    throw new Error(
+      "Saved Compose notification dispatcher must use the tools image, migration gate, health check, and no ports or volumes.",
+    );
+  if (
+    backup &&
+    (backup.image !== "${TOOLS_IMAGE:?}" ||
+      backup.ports?.length ||
+      backup.depends_on?.migrate?.condition !==
+        "service_completed_successfully" ||
+      !backup.volumes?.length ||
+      backup.volumes.some((volume) => volume !== "media:/data/media:ro") ||
+      !backup.environment ||
+      typeof backup.environment !== "object" ||
+      Array.isArray(backup.environment) ||
+      ["RELEASE_ID", "BETTER_AUTH_SECRET"].some(
+        (key) => key in backup.environment,
+      ))
+  )
+    throw new Error(
+      "Saved Compose backup service must use the tools image with read-only media and no ports.",
     );
   if (
     services.web.image !== "${WEB_IMAGE:?}" ||
@@ -58,6 +105,9 @@ export function serviceHealthy(service) {
     /^running(?::|\s*\()healthy\)?$/i.test(value || "");
   return (
     healthy(service.applications?.find((app) => app.name === "web")?.status) &&
+    healthy(
+      service.applications?.find((app) => app.name === "notifications")?.status,
+    ) &&
     healthy(service.databases?.find((db) => db.name === "database")?.status)
   );
 }

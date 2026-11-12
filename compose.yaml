@@ -54,6 +54,11 @@ services:
       CONTACT_TO_EMAIL: ${CONTACT_TO_EMAIL:-}
       GOOGLE_PLAY_URL: ${GOOGLE_PLAY_URL:-}
       APP_STORE_URL: ${APP_STORE_URL:-}
+      ENABLE_BROWSER_PUSH: ${ENABLE_BROWSER_PUSH:-false}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-}
+      NOTIFICATION_ENCRYPTION_KEY: ${NOTIFICATION_ENCRYPTION_KEY:-}
     expose: ["3000"]
     volumes:
       - media:/data/media
@@ -75,6 +80,27 @@ services:
         condition: service_healthy
     environment: *runtime
     command: [npm, run, db:migrate]
+  notifications:
+    image: ${TOOLS_IMAGE:-wassa-tools:local}
+    profiles: [notifications]
+    restart: unless-stopped
+    init: true
+    logging: *bounded-logging
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    depends_on:
+      database:
+        condition: service_healthy
+    environment: *runtime
+    command: [node, --import, tsx, scripts/notification-worker.ts]
+    healthcheck:
+      test: [CMD, node, --import, tsx, scripts/notification-worker.ts, --health]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    mem_limit: 256m
+    cpus: 0.5
 volumes:
   postgres:
   media:

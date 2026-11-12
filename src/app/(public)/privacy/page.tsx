@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { contactDelivery } from "@/lib/contact-delivery";
 import { pageMetadata } from "@/lib/site";
+import { backupStatus } from "@/lib/backup-status";
 
 export const metadata = pageMetadata(
   "Privacy & Cookies",
@@ -8,17 +9,47 @@ export const metadata = pageMetadata(
   "/privacy",
 );
 
-export default function Privacy() {
+export default async function Privacy() {
+  // Describe off-site copies only once a nightly backup has really completed.
+  const backupsActive =
+    (await backupStatus().catch(() => "none" as const)) !== "none";
   return (
     <div className="container section narrow">
       <h1>Privacy &amp; Cookies</h1>
-      <p className="subtle-note">Last updated: 10 November 2026</p>
+      <p className="subtle-note">Last updated: 12 November 2026</p>
       <section className="detail-section">
         <h2>Favourites and phone layout</h2>
         <p>
           When you save a project or choose a phone layout, this browser
           remembers your selection on this device. Clearing site data removes
           your favourites and layout preference.
+        </p>
+      </section>
+      <section className="detail-section">
+        <h2>Following projects and optional phone alerts</h2>
+        <p>
+          When you choose to follow a project, category, community or news, an
+          essential cookie identifies this browser installation. The server
+          stores a hash of its random token, your follows and which of your
+          updates you have read. No public account or cross-device tracking is
+          required. These preferences expire after 180 days; update history is
+          retained for up to 90 days and removed during scheduled cleanup.
+        </p>
+        <p>
+          Phone alerts require a separate permission. If enabled, we store
+          encrypted browser subscription details and send approved updates
+          through your browser provider’s push service. That provider processes
+          delivery information under its own terms. The inbox remains available
+          without phone alerts. Subscription details are not used for analytics
+          or advertising.
+        </p>
+        <p>
+          You can block phone alerts in your browser settings. Clearing site
+          data removes this browser’s access to its saved preferences, but does
+          not immediately delete server records; those expire as described
+          above. Removing notification data through the service deletes the
+          device’s follows, read state and push subscription. Private recovery
+          copies may retain previous records until those copies expire.
         </p>
       </section>
       <section className="detail-section">
@@ -41,28 +72,28 @@ export default function Privacy() {
         <p>
           With your permission, the website counts public page views using its
           own server. It does not use third-party analytics, advertising
-          trackers or embedded social widgets. It
-          does not save a separate history of phone or WhatsApp enquiries in its
-          database.
+          trackers or embedded social widgets. It does not save a separate
+          history of phone or WhatsApp enquiries in its database.
         </p>
       </section>
       <section className="detail-section">
         <h2>Public project and news comments</h2>
         <p>
-          When you post a comment on a project or news story, your chosen name, message and posting date
-          appear publicly immediately. Names are not verified. Do not include
-          private contact details or sensitive information. No public account,
-          email address or phone number is required.
+          When you post a comment on a project or news story, your chosen name,
+          message and posting date appear publicly immediately. Names are not
+          verified. Do not include private contact details or sensitive
+          information. No public account, email address or phone number is
+          required.
         </p>
         <p>
-          Posting a comment creates the essential wassa_comment_guard
-          cookie for up to 24 hours. This signed, HttpOnly cookie supports
-          posting limits and safe retries. It works independently of optional
-          website statistics. Posting limits also count requests per network
-          address; the address is stored only as a one-way hash inside a
-          short-lived counter. Rate-limit keys and submission keys are hashed;
-          comment records do not store your IP address. Hosting security logs
-          may still contain IP addresses.
+          Posting a comment creates the essential wassa_comment_guard cookie for
+          up to 24 hours. This signed, HttpOnly cookie supports posting limits
+          and safe retries. It works independently of optional website
+          statistics. Posting limits also count requests per network address;
+          the address is stored only as a one-way hash inside a short-lived
+          counter. Rate-limit keys and submission keys are hashed; comment
+          records do not store your IP address. Hosting security logs may still
+          contain IP addresses.
         </p>
         <p>
           The platform operator can close new comments and hide or restore
@@ -126,12 +157,25 @@ export default function Privacy() {
           records is restricted to authorised personnel and the service
           providers needed to run the website.
         </p>
-        <p>
-          Private database and file copies may be retained for recovery. A
-          one-time release safety copy exists; ongoing scheduled backups are not
-          currently active. Copies can contain staff account data and private
-          project history and are not publicly available.
-        </p>
+        {backupsActive ? (
+          <p>
+            Private database and file copies are kept for recovery. Each night
+            the website makes an encrypted copy, which is stored with Backblaze,
+            a cloud storage provider. The encryption happens before upload, so
+            Backblaze cannot read the copies. Copies are kept for up to six
+            months (daily for two weeks, then weekly and monthly) and then
+            deleted automatically. They can contain staff account data, private
+            project history and public comments, including hidden ones, and are
+            not publicly available.
+          </p>
+        ) : (
+          <p>
+            Private database and file copies may be retained for recovery. A
+            one-time release safety copy exists; ongoing scheduled backups are
+            not currently active. Copies can contain staff account data and
+            private project history and are not publicly available.
+          </p>
+        )}
         <p>
           Information is kept for operational, security and recovery needs and
           reviewed when no longer needed. This website does not currently
@@ -149,9 +193,11 @@ export default function Privacy() {
           on this website.
         </p>
         <p>
-          {contactDelivery() ? "When you use the enquiry form, Resend processes your name, email, subject and message for delivery to the office. The website keeps no separate copy of the message. Hashed rate-limit keys, including a one-way hash of your network address, help prevent abuse.": "Website email enquiries are not currently enabled."} The office plans to delete email
-          enquiries 90 days after closure as a mailbox-handling policy; this is
-          not automated by the website.
+          {contactDelivery()
+            ? "When you use the enquiry form, Resend processes your name, email, subject and message for delivery to the office. The website keeps no separate copy of the message. Hashed rate-limit keys, including a one-way hash of your network address, help prevent abuse."
+            : "Website email enquiries are not currently enabled."}{" "}
+          The office plans to delete email enquiries 90 days after closure as a
+          mailbox-handling policy; this is not automated by the website.
         </p>
       </section>
       <section className="detail-section">

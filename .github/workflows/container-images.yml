@@ -84,6 +84,7 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npx playwright install --with-deps chromium
       - run: npm run test:migrations
+      - run: npm run test:notifications
       - run: npm run test:acceptance
       - name: Retain failed acceptance evidence (synthetic data only)
         if: failure()

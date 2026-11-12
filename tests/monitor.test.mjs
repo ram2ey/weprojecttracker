@@ -18,6 +18,12 @@ test("external monitor process detects outage, migration mismatch, and recovery"
         ready: true,
         migrated: mode !== "unmigrated",
         release: `sha-${"b".repeat(40)}-1-1`,
+        backup:
+          mode === "stale-backup"
+            ? "stale"
+            : mode.startsWith("no-backup")
+              ? "none"
+              : "ok",
       }),
     );
   });
@@ -25,15 +31,23 @@ test("external monitor process detects outage, migration mismatch, and recovery"
   await once(server, "listening");
   const origin = `http://127.0.0.1:${server.address().port}`;
   try {
-    for (const [state, expected] of [
+    for (const [state, expected, requireBackup = "false"] of [
       ["healthy", 0],
       ["outage", 1],
       ["unmigrated", 1],
-      ["healthy", 0],
+      ["stale-backup", 1],
+      // Before backups are configured, "none" passes unless required.
+      ["no-backup", 0],
+      ["no-backup-required", 1, "true"],
+      ["healthy", 0, "true"],
     ]) {
       mode = state;
       const child = spawn(process.execPath, ["scripts/monitor.mjs"], {
-        env: { ...process.env, PUBLIC_APP_URL: origin },
+        env: {
+          ...process.env,
+          PUBLIC_APP_URL: origin,
+          REQUIRE_BACKUP: requireBackup,
+        },
         stdio: ["ignore", "pipe", "pipe"],
       });
       let diagnostic = "";

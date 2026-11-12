@@ -1,4 +1,5 @@
 import { getPool } from "@/db";
+import { backupStatus } from "@/lib/backup-status";
 export const dynamic = "force-dynamic";
 export async function GET() {
   try {
@@ -12,10 +13,12 @@ export async function GET() {
       );
       migrated = result.rowCount === 1;
     }
+    // Freshness only: no snapshot IDs, sizes or storage details are public.
+    const backup = await backupStatus();
     const ready =
       migrated || (release === "local" && process.env.APP_ENV !== "production");
     return Response.json(
-      { ready, release, migrated },
+      { ready, release, migrated, backup },
       { status: ready ? 200 : 503, headers: { "Cache-Control": "no-store" } },
     );
   } catch {
