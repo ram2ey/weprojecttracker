@@ -20,6 +20,7 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!api(?:/|$)|_next/|brand/|(?:notification-)?sw\\.js$|favicon\\.ico$|robots\\.txt$|sitemap\\.xml$).*)",
+    // .well-known/assetlinks.json must reach Google's verifier as plain JSON.
+    "/((?!api(?:/|$)|_next/|brand/|\\.well-known/|(?:notification-)?sw\\.js$|offline\\.html$|favicon\\.ico$|robots\\.txt$|sitemap\\.xml$).*)",
   ],
 };

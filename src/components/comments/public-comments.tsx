@@ -10,6 +10,7 @@ import {
 } from "react";
 import { Button } from "@/components/ui/button";
 import type { CommentPage } from "@/lib/comments/policy";
+import { ReportComment } from "./report-comment";
 
 export function PublicComments({
   slug,
@@ -204,6 +205,7 @@ export function PublicComments({
                   </time>
                 </div>
                 <p className="preserve-lines">{comment.body}</p>
+                <ReportComment id={comment.id} author={comment.displayName} />
               </li>
             ))}
           </ul>
@@ -302,7 +304,8 @@ export function PublicComments({
       )}
       {success && <p role="status">{success}</p>}
       <p className="subtle-note">
-        To request removal or flag a concern,{" "}
+        Use Report on a comment that breaks the rules. To request removal or
+        raise another concern,{" "}
         <Link href="/contact" className="text-link">
           contact the office
         </Link>

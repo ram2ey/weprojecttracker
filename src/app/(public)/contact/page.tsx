@@ -105,7 +105,9 @@ export default function Contact() {
           </section>
         </div>
       </div>
-      <FaqSection topic="contact" />
+      <div className="web-only">
+        <FaqSection topic="contact" />
+      </div>
     </>
   );
 }

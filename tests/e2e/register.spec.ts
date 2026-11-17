@@ -3767,3 +3767,362 @@ test("a declined permission keeps updates available and the invitation stays dis
     ).rowCount,
   ).toBe(0);
 });
+
+test("the Android app view swaps the website menu for a tab bar, in its own tab only", async ({
+  page,
+  context,
+}) => {
+  await page.goto("/?app=android");
+  // The app has no homepage: it opens on News.
+  await expect(page).toHaveURL(origin + "/news");
+  const tabs = page.getByRole("navigation", { name: "App", exact: true });
+  await expect(tabs).toBeVisible();
+  await expect(
+    tabs.getByRole("link", { name: "News", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
+  await expect(
+    page.getByRole("heading", { name: "News & Features", level: 1 }),
+  ).toBeVisible();
+  await expect(page.locator("footer")).toBeHidden();
+  await expect(page.locator(".mobile-app-section")).toBeHidden();
+  await expect(page.locator("#public-navigation")).toBeHidden();
+  await expect(page.locator(".public-menu-toggle")).toBeHidden();
+  await expect(page.getByRole("link", { name: /^Updates/ })).toBeVisible();
+  await tabs.getByRole("link", { name: "Projects", exact: true }).click();
+  await expect(page).toHaveURL(origin + "/projects");
+  await expect(
+    tabs.getByRole("link", { name: "Projects", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
+  await tabs.getByRole("link", { name: "More", exact: true }).click();
+  await expect(page).toHaveURL(origin + "/more");
+  for (const name of [
+    "All updates",
+    "Notification settings",
+    "Contact details",
+    "Privacy & Cookies",
+  ])
+    await expect(
+      page.locator("main").getByRole("link", { name, exact: true }),
+    ).toBeVisible();
+  await expect(
+    page
+      .locator("main")
+      .getByRole("button", { name: "Cookie settings", exact: true }),
+  ).toBeVisible();
+  // Links to the homepage stay inside the app.
+  await page.locator(".site-header .constituency-brand").click();
+  await expect(page).toHaveURL(origin + "/news");
+  // A full page load in the same tab stays in app mode; the FAQ is website-only.
+  await page.goto("/contact");
+  await expect(tabs).toBeVisible();
+  await expect(
+    tabs.getByRole("link", { name: "More", exact: true }),
+  ).toHaveAttribute("aria-current", "location");
+  await expect(page.locator("#faq")).toBeHidden();
+  // Bottom panels sit above the tab bar instead of covering it.
+  const banner = page.locator(".cookie-banner");
+  if (await banner.isVisible()) {
+    const [bar, panel] = await Promise.all([
+      tabs.boundingBox(),
+      banner.boundingBox(),
+    ]);
+    expect(panel!.y + panel!.height).toBeLessThanOrEqual(bar!.y + 1);
+  }
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth + 1,
+    ),
+  ).toBe(true);
+  expect(
+    (
+      await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
+        .analyze()
+    ).violations,
+  ).toEqual([]);
+  await page.screenshot({
+    path: ".local/app-mode-" + test.info().project.name + ".png",
+    fullPage: false,
+  });
+  // Chrome tabs share cookies with the app, but never its app mode.
+  const web = await context.newPage();
+  await web.goto("/projects");
+  await expect(web.getByRole("navigation", { name: "App" })).toBeHidden();
+  await expect(web.locator("footer")).toBeVisible();
+  await web.goto("/");
+  await expect(web).toHaveURL(origin + "/");
+  await web.close();
+});
+
+test("News & Features lists every published story, newest first, across pages", async ({
+  page,
+  request,
+}) => {
+  const titles: string[] = [];
+  for (let i = 0; i < 13; i++) {
+    const id = randomUUID();
+    storyIds.push(id);
+    const title = `Archive story ${tag} ${String(i).padStart(2, "0")}`;
+    titles.push(title);
+    await pool.query(
+      // Dated after every other fixture (some use 2099) so these are newest.
+      "INSERT INTO news_story(id,state,contributors,draft,published,published_at) VALUES ($1,'published','[]',$2,$2,TIMESTAMP '2100-01-01'+$3*INTERVAL '1 minute')",
+      [
+        id,
+        {
+          kind: "News",
+          title,
+          summary: "An archived test story.",
+          detail: "",
+          photo: "",
+          caption: "",
+          project: "",
+        },
+        100 - i,
+      ],
+    );
+  }
+  await page.goto("/news");
+  await expect(
+    page.getByRole("heading", { name: "News & Features", level: 1 }),
+  ).toBeVisible();
+  // The website menu does not link to this page; the app's tab bar does.
+  await expect(page.locator('#public-navigation a[href="/news"]')).toHaveCount(
+    0,
+  );
+  const articles = page.locator(".news-index article");
+  await expect(articles).toHaveCount(12);
+  await expect(articles.first().getByRole("heading", { level: 2 })).toHaveText(
+    titles[0],
+  );
+  await page.getByRole("link", { name: "Older stories", exact: true }).click();
+  await expect(page).toHaveURL(origin + "/news?page=2");
+  await expect(articles.first().getByRole("heading", { level: 2 })).toHaveText(
+    titles[12],
+  );
+  await page.getByRole("link", { name: "Newer stories", exact: true }).click();
+  await expect(page).toHaveURL(origin + "/news");
+  for (const query of ["?page=0", "?page=abc", "?page=999"])
+    expect((await request.get("/news" + query)).status(), query).toBe(404);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth + 1,
+    ),
+  ).toBe(true);
+  expect(
+    (
+      await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
+        .analyze()
+    ).violations,
+  ).toEqual([]);
+});
+
+test("assetlinks.json and the offline page are served as plain static responses", async ({
+  request,
+}) => {
+  const links = await request.get("/.well-known/assetlinks.json");
+  expect(links.status()).toBe(200);
+  expect(links.headers()["content-type"]).toContain("application/json");
+  expect(links.headers()["content-security-policy"]).toBeUndefined();
+  expect(await links.json()).toEqual([
+    {
+      relation: ["delegate_permission/common.handle_all_urls"],
+      target: {
+        namespace: "android_app",
+        package_name: "com.example.wassaeast.test",
+        sha256_cert_fingerprints: [
+          Array.from({ length: 32 }, () => "AB").join(":"),
+        ],
+      },
+    },
+  ]);
+  const offline = await request.get("/offline.html");
+  expect(offline.status()).toBe(200);
+  const csp = offline.headers()["content-security-policy"];
+  expect(csp).toContain("script-src 'sha256-");
+  expect(csp).not.toContain("nonce");
+  expect(await offline.text()).toContain("You’re offline");
+});
+
+test("a failed page load shows the offline page, which reloads when back online", async ({
+  page,
+  context,
+}) => {
+  await page.goto("/projects");
+  await expect
+    .poll(() =>
+      page.evaluate(async () => {
+        const registration = await navigator.serviceWorker.getRegistration("/");
+        return registration?.active?.scriptURL ?? null;
+      }),
+    )
+    .toBe(origin + "/notification-sw.js");
+  // Only the offline page and its logo are stored; never content.
+  await expect
+    .poll(() =>
+      page.evaluate(async () => {
+        const stored: Record<string, string[]> = {};
+        for (const key of await caches.keys())
+          if (key.startsWith("wassa-"))
+            stored[key] = (await (await caches.open(key)).keys())
+              .map((request) => new URL(request.url).pathname)
+              .sort();
+        return stored;
+      }),
+    )
+    .toEqual({ "wassa-offline-v1": ["/brand/icon-192.png", "/offline.html"] });
+  await page.reload(); // Let the worker control the page.
+  const blocked: string[] = [];
+  page.on("console", (message) => {
+    if (/Content Security Policy/i.test(message.text()))
+      blocked.push(message.text());
+  });
+  await context.setOffline(true);
+  await page.goto("/projects/" + firstSlug).catch(() => {});
+  await expect(
+    page.getByRole("heading", { name: "You’re offline", exact: true }),
+  ).toBeVisible();
+  await expect(page).toHaveURL(origin + "/projects/" + firstSlug);
+  await expect(page.getByRole("link", { name: "Try again" })).toBeVisible();
+  // Coming back online reloads the page the visitor asked for.
+  await context.setOffline(false);
+  await expect(
+    page.getByRole("heading", { name: prefix + " 001", level: 1 }),
+  ).toBeVisible();
+  expect(blocked).toEqual([]);
+});
+
+test("visitors report a comment once and anonymously; admins keep or hide it", async ({
+  page,
+  context,
+  request,
+}) => {
+  // Earlier comment tests share this suite's hourly guard allowance.
+  await pool.query("DELETE FROM app_rate_limit");
+  const fixture = await commentFixture(172),
+    visitor = await commentVisitor(fixture.endpoint);
+  try {
+    const posted = await (
+      await visitor.post(fixture.endpoint, {
+        data: { ...commentBody(), displayName: "Reported visitor" },
+      })
+    ).json();
+    const report = `/api/public/comments/${posted.id}/report`;
+    await page.goto("/projects/" + fixture.slug);
+    const card = page
+      .getByRole("list", { name: "Visitor comments", exact: true })
+      .locator("li")
+      .filter({ hasText: "Reported visitor" });
+    await card
+      .getByRole("button", { name: "Report comment by Reported visitor" })
+      .click();
+    await card.getByRole("radio", { name: "Spam or advertising" }).check();
+    await card.getByRole("button", { name: "Send report", exact: true }).click();
+    await expect(
+      card.getByText("Thank you. The office will review this comment.", {
+        exact: true,
+      }),
+    ).toBeVisible();
+    // Reporting never hides the comment by itself.
+    await expect(card).toContainText("A public project comment.");
+    await page.reload();
+    await expect(
+      card.getByText("You reported this comment.", { exact: true }),
+    ).toBeVisible();
+    // A repeat from the same browser is ignored; another visitor counts.
+    expect(
+      (await page.request.post(report, { headers, data: { reason: "abuse" } }))
+        .status(),
+    ).toBe(200);
+    expect((await visitor.post(report, { data: {} })).status()).toBe(200);
+    const stored = await pool.query(
+      "SELECT reason,reporter_key FROM comment_report WHERE comment_id=$1 ORDER BY created_at",
+      [posted.id],
+    );
+    expect(stored.rows.map((row) => row.reason)).toEqual(["spam", null]);
+    const guard = (await context.cookies())
+      .find((cookie) => cookie.name === commentCookie)!
+      .value.split(".")[0];
+    expect(JSON.stringify(stored.rows)).not.toContain(guard);
+    // Origin, input and subject checks.
+    expect((await request.post(report, { data: {} })).status()).toBe(403);
+    expect(
+      (await visitor.post(report, { data: { reason: "boring" } })).status(),
+    ).toBe(400);
+    expect(
+      (
+        await visitor.post(`/api/public/comments/${randomUUID()}/report`, {
+          data: {},
+        })
+      ).status(),
+    ).toBe(404);
+    expect(
+      (await visitor.post("/api/public/comments/not-a-uuid/report", { data: {} }))
+        .status(),
+    ).toBe(404);
+    // Admins see reported comments and can keep them.
+    await context.addCookies((await operator.storageState()).cookies);
+    await page.goto("/admin?view=comments");
+    await page
+      .getByRole("button", { name: "Review reported comments", exact: true })
+      .click();
+    const managed = page.getByRole("list", { name: "Manage comments" });
+    const item = managed.locator("li").filter({ hasText: "Reported visitor" });
+    await expect(item).toContainText("Reported 2 times");
+    await expect(item).toContainText("Spam or advertising");
+    await expect(item).toContainText("No reason given");
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+    await item
+      .getByRole("button", { name: "Keep comment (dismiss reports)" })
+      .click();
+    await expect(
+      page.getByText("Reports dismissed. The comment stays public.", {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(item).toHaveCount(0);
+    expect((await (await request.get(fixture.endpoint)).json()).items).toHaveLength(
+      1,
+    );
+    // A later report reopens review; hiding the comment answers it.
+    const another = await commentVisitor(fixture.endpoint);
+    expect(
+      (await another.post(report, { data: { reason: "private" } })).status(),
+    ).toBe(200);
+    await another.dispose();
+    expect(
+      (
+        await operator.patch("/api/staff/comments", {
+          data: { action: "hide", id: posted.id, version: 0 },
+        })
+      ).status(),
+    ).toBe(200);
+    expect(
+      (
+        await pool.query(
+          "SELECT count(*)::int AS n FROM comment_report WHERE comment_id=$1 AND resolved_at IS NULL",
+          [posted.id],
+        )
+      ).rows[0].n,
+    ).toBe(0);
+    // Hidden comments cannot be reported.
+    expect((await visitor.post(report, { data: {} })).status()).toBe(404);
+    const logs = await pool.query(
+      "SELECT action,details FROM audit_log WHERE subject_id=$1",
+      [posted.id],
+    );
+    expect(logs.rows.map((row) => row.action)).toEqual(
+      expect.arrayContaining(["comment.reports_dismissed", "comment.hidden"]),
+    );
+    expect(JSON.stringify(logs.rows)).not.toContain("A public project comment.");
+  } finally {
+    await visitor.dispose();
+  }
+});

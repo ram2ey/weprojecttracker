@@ -1961,3 +1961,213 @@ td:first-child {
     animation: none;
   }
 }
+
+/* Android app (Trusted Web Activity) ---------------------------------------
+   The public layout's inline script sets <html data-app="android"> inside the
+   app. Both chromes are rendered; CSS picks one so nothing flashes. */
+:root {
+  --app-tabbar-height: 64px;
+}
+.app-only {
+  display: none;
+}
+[data-app="android"] .web-only,
+[data-app="android"] .public-menu-toggle,
+[data-app="android"] .site-header #public-navigation {
+  display: none !important;
+}
+[data-app="android"] body {
+  padding-bottom: calc(var(--app-tabbar-height) + env(safe-area-inset-bottom));
+}
+[data-app="android"] .header-inner {
+  min-height: 64px;
+  padding-block: 8px;
+}
+[data-app="android"] .constituency-logo {
+  width: 160px;
+}
+[data-app="android"] .constituency-brand-label {
+  display: none;
+}
+[data-app="android"] .updates-bell {
+  margin-left: auto;
+}
+[data-app="android"] .app-tabbar {
+  position: fixed;
+  z-index: 40;
+  inset: auto 0 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding-bottom: env(safe-area-inset-bottom);
+  border-top: 1px solid var(--border);
+  background: var(--card);
+  box-shadow: 0 -2px 12px rgb(0 0 0 / 6%);
+}
+.app-tabbar a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: var(--app-tabbar-height);
+  padding: 6px 4px;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+}
+.app-tabbar svg {
+  width: 24px;
+  height: 24px;
+}
+.app-tabbar a[aria-current] {
+  color: var(--primary);
+}
+.app-tabbar a[aria-current] svg {
+  stroke-width: 2.5;
+}
+.app-tabbar a:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: -3px;
+}
+/* Bottom panels sit above the tab bar. */
+[data-app="android"] .cookie-banner,
+[data-app="android"] .notify-invite {
+  bottom: calc(var(--app-tabbar-height) + env(safe-area-inset-bottom));
+}
+[data-app="android"] html {
+  scroll-padding-bottom: calc(
+    var(--consent-banner-height, 0px) + var(--app-tabbar-height)
+  );
+}
+
+.more-page section {
+  margin-top: 28px;
+}
+.more-page h2 {
+  font-size: 1rem;
+  color: var(--muted-foreground);
+  margin-bottom: 8px;
+}
+.more-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+.more-list li + li {
+  border-top: 1px solid var(--border);
+}
+.more-list a,
+.more-list .cookie-settings-button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 12px 16px;
+  border-radius: 0;
+  color: var(--foreground);
+  font: inherit;
+  font-weight: 500;
+  text-decoration: none;
+}
+.more-list .cookie-settings-button {
+  padding-left: 50px;
+  cursor: pointer;
+}
+.more-list svg {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  color: var(--primary);
+}
+.more-list a:hover,
+.more-list .cookie-settings-button:hover {
+  background: var(--muted);
+}
+.more-page .footer-copyright {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+
+.news-pages {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 32px;
+}
+
+/* Comment reports */
+.comment-report-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 48px;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted-foreground);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+.comment-report-button svg {
+  width: 16px;
+  height: 16px;
+}
+.comment-report-button:hover {
+  color: var(--danger);
+}
+.comment-card .comment-report-note {
+  margin-bottom: 0;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+.comment-report-form {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.comment-report-form fieldset {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.comment-report-form legend {
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+.comment-report-form .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+}
+.comment-report-form input[type="radio"] {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  accent-color: var(--primary);
+}
+.comment-card .comment-report-summary {
+  color: var(--danger);
+  font-size: 0.9375rem;
+}
+.comment-reported-alert {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 8px 16px;
+  border: 1px solid var(--danger);
+  border-radius: var(--radius);
+  background: #fdf3f3;
+}

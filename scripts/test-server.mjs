@@ -33,6 +33,9 @@ const env = {
   VAPID_PUBLIC_KEY: "",
   VAPID_PRIVATE_KEY: "",
   MEDIA_ROOT: resolve(".local/test-media"),
+  // Throwaway Android identity so /.well-known/assetlinks.json is exercised.
+  ANDROID_PACKAGE_NAME: "com.example.wassaeast.test",
+  ANDROID_CERT_FINGERPRINTS: Array.from({ length: 32 }, () => "AB").join(":"),
 };
 const migrate = spawn(
   process.execPath,

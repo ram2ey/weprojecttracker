@@ -414,6 +414,33 @@ export const projectComment = pgTable(
   ],
 );
 
+// Visitor reports flag a comment for an Admin; they never hide it by themselves.
+// reporter_key is an HMAC of the comment guard, so one browser reports a comment once.
+export const commentReport = pgTable(
+  "comment_report",
+  {
+    id: text("id").primaryKey(),
+    commentId: text("comment_id")
+      .notNull()
+      .references(() => projectComment.id, { onDelete: "cascade" }),
+    reporterKey: text("reporter_key").notNull(),
+    reason: text("reason"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    resolvedAt: timestamp("resolved_at"),
+    resolvedBy: text("resolved_by").references(() => user.id, {
+      onDelete: "set null",
+    }),
+  },
+  (t) => [
+    uniqueIndex("comment_report_reporter_idx").on(t.commentId, t.reporterKey),
+    index("comment_report_open_idx").on(t.commentId, t.resolvedAt),
+    check(
+      "comment_report_reason",
+      sql`${t.reason} IS NULL OR ${t.reason} IN ('spam','abuse','private','other')`,
+    ),
+  ],
+);
+
 export const guestDevice = pgTable("guest_device", {
   id: text("id").primaryKey(),
   tokenHash: text("token_hash").notNull().unique(),

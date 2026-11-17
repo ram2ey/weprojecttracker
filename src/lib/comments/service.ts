@@ -4,7 +4,12 @@ import type { PoolClient } from "pg";
 import { getPool } from "@/db";
 import { ContentError, type Actor } from "@/lib/content/service";
 import { commentHash } from "./guard";
-import { commentInput, type CommentPage, type ManagedPage } from "./policy";
+import {
+  commentInput,
+  reportInput,
+  type CommentPage,
+  type ManagedPage,
+} from "./policy";
 
 const live = `r.kind='project' AND r.withdrawn_at IS NULL AND v.state='approved' AND v.record_id=r.id`;
 const joined = `content_record r JOIN content_revision v ON v.id=r.published_revision_id`;
@@ -170,22 +175,63 @@ export async function submitComment(
     tx.release();
   }
 }
+// A visitor flags a visible comment for review. The comment stays public until
+// an Admin hides it; a browser's repeat report of the same comment is a no-op.
+export async function reportComment(
+  commentId: string,
+  browser: string,
+  raw: unknown,
+) {
+  const { reason } = reportInput.parse(raw ?? {});
+  const reporter = commentHash("report:" + browser);
+  const result = await getPool().query(
+    `INSERT INTO comment_report (id,comment_id,reporter_key,reason)
+     SELECT $1,c.id,$3,$4 FROM project_comment c
+     LEFT JOIN content_record r ON r.id=c.record_id
+     LEFT JOIN content_revision v ON v.id=r.published_revision_id
+     LEFT JOIN news_story n ON n.id=c.story_id
+     WHERE c.id=$2 AND c.hidden_at IS NULL AND (
+       (c.record_id IS NOT NULL AND ${live}) OR
+       (c.story_id IS NOT NULL AND n.published IS NOT NULL))
+     ON CONFLICT (comment_id,reporter_key) DO NOTHING RETURNING id`,
+    [crypto.randomUUID(), commentId, reporter, reason],
+  );
+  if (!result.rowCount) {
+    // Either already reported by this browser (fine), or no longer reportable.
+    const previous = await getPool().query(
+      `SELECT 1 FROM comment_report o JOIN project_comment c ON c.id=o.comment_id
+       WHERE o.comment_id=$1 AND o.reporter_key=$2 AND c.hidden_at IS NULL`,
+      [commentId, reporter],
+    );
+    if (!previous.rowCount)
+      throw new ContentError(404, "This comment is no longer available.");
+  }
+  return { reported: true };
+}
 export async function managedComments(
   actor: Actor,
   project: string | null,
-  hidden: boolean,
+  state: "visible" | "hidden" | "reported",
   page: number,
 ): Promise<ManagedPage> {
   operator(actor);
-  const [comments, projects] = await Promise.all([
+  const [comments, projects, reported] = await Promise.all([
     getPool().query(
       `SELECT c.id,COALESCE(c.record_id,'news:'||c.story_id) AS "recordId",c.display_name AS "displayName",c.body,c.created_at AS "createdAt",c.hidden_at AS "hiddenAt",c.version,
-      COALESCE(v.payload->>'title',r.slug,n.published->>'title',n.draft->>'title') AS "projectTitle" FROM project_comment c LEFT JOIN content_record r ON r.id=c.record_id
+      COALESCE(v.payload->>'title',r.slug,n.published->>'title',n.draft->>'title') AS "projectTitle",
+      COALESCE(o.count,0)::int AS reports,COALESCE(o.reasons,'[]'::jsonb) AS "reportReasons"
+      FROM project_comment c LEFT JOIN content_record r ON r.id=c.record_id
       LEFT JOIN news_story n ON n.id=c.story_id
       LEFT JOIN content_revision v ON v.id=r.published_revision_id
-      WHERE ($1::text IS NULL OR COALESCE(c.record_id,'news:'||c.story_id)=$1) AND (c.hidden_at IS NOT NULL)=$2
-      ORDER BY c.created_at DESC,c.id DESC LIMIT 21 OFFSET $3`,
-      [project, hidden, (page - 1) * 20],
+      LEFT JOIN LATERAL (SELECT count(*) AS count,max(created_at) AS latest,
+        jsonb_agg(DISTINCT COALESCE(reason,'unspecified')) AS reasons
+        FROM comment_report WHERE comment_id=c.id AND resolved_at IS NULL) o ON true
+      WHERE ($1::text IS NULL OR COALESCE(c.record_id,'news:'||c.story_id)=$1)
+        AND CASE $2::text WHEN 'hidden' THEN c.hidden_at IS NOT NULL
+          WHEN 'reported' THEN c.hidden_at IS NULL AND o.count>0
+          ELSE c.hidden_at IS NULL END
+      ORDER BY CASE WHEN $2::text='reported' THEN o.latest END DESC NULLS LAST,c.created_at DESC,c.id DESC LIMIT 21 OFFSET $3`,
+      [project, state, (page - 1) * 20],
     ),
     getPool()
       .query(`SELECT r.id,COALESCE(v.payload->>'title',r.slug) AS title,r.comments_enabled AS enabled,r.engagement_version AS version
@@ -193,13 +239,60 @@ export async function managedComments(
       UNION ALL SELECT 'news:'||n.id,COALESCE(n.published->>'title',n.draft->>'title')||' (News)',n.comments_enabled,n.engagement_version
       FROM news_story n WHERE n.published IS NOT NULL OR EXISTS (SELECT 1 FROM project_comment c WHERE c.story_id=n.id)
       ORDER BY title,id`),
+    getPool().query<{ count: number }>(
+      `SELECT count(DISTINCT c.id)::int AS count FROM comment_report o JOIN project_comment c ON c.id=o.comment_id
+       WHERE o.resolved_at IS NULL AND c.hidden_at IS NULL`,
+    ),
   ]);
   return {
     items: comments.rows.slice(0, 20),
     projects: projects.rows,
     page,
     hasMore: comments.rows.length > 20,
+    reported: reported.rows[0].count,
   };
+}
+// Keeps the comment public and closes its open reports.
+export async function dismissReports(
+  actor: Actor,
+  id: string,
+  version: number,
+) {
+  operator(actor);
+  const tx = await getPool().connect();
+  try {
+    await tx.query("BEGIN");
+    const comment = await tx.query(
+      "SELECT 1 FROM project_comment WHERE id=$1 AND version=$2 FOR UPDATE",
+      [id, version],
+    );
+    if (!comment.rowCount)
+      throw new ContentError(
+        409,
+        "This comment changed. Reload the list before trying again.",
+      );
+    const closed = await tx.query(
+      "UPDATE comment_report SET resolved_at=NOW(),resolved_by=$2 WHERE comment_id=$1 AND resolved_at IS NULL",
+      [id, actor.id],
+    );
+    await tx.query(
+      "INSERT INTO audit_log (id,actor_id,action,subject_id,details) VALUES ($1,$2,$3,$4,$5)",
+      [
+        crypto.randomUUID(),
+        actor.id,
+        "comment.reports_dismissed",
+        id,
+        { reports: closed.rowCount },
+      ],
+    );
+    await tx.query("COMMIT");
+    return { id };
+  } catch (error) {
+    await tx.query("ROLLBACK");
+    throw error;
+  } finally {
+    tx.release();
+  }
 }
 export async function moderateComment(
   actor: Actor,
@@ -219,6 +312,12 @@ export async function moderateComment(
       throw new ContentError(
         409,
         "This comment changed. Reload the list before trying again.",
+      );
+    // Hiding answers any open reports.
+    if (hidden)
+      await tx.query(
+        "UPDATE comment_report SET resolved_at=NOW(),resolved_by=$2 WHERE comment_id=$1 AND resolved_at IS NULL",
+        [id, actor.id],
       );
     await tx.query(
       "INSERT INTO audit_log (id,actor_id,action,subject_id) VALUES ($1,$2,$3,$4)",

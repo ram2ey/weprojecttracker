@@ -12,7 +12,7 @@ export function CopyrightNotice() {
 }
 export function SiteFooter() {
   return (
-    <footer className="site-footer">
+    <footer className="site-footer web-only">
       <div className="container footer-inner">
         <div className="footer-identity">
           <SiteBrand />

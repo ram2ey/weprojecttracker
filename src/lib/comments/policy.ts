@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { reportReasons, type ReportReason } from "./reasons";
 
 export const commentInput = z
   .object({
@@ -22,6 +23,15 @@ export const commentInput = z
   })
   .strict();
 
+export const reportInput = z
+  .object({
+    reason: z
+      .enum(reportReasons.map(([value]) => value) as [ReportReason])
+      .nullable()
+      .default(null),
+  })
+  .strict();
+
 export type CommentItem = {
   id: string;
   displayName: string;
@@ -39,6 +49,8 @@ export type ManagedComment = CommentItem & {
   projectTitle: string;
   hiddenAt: string | null;
   version: number;
+  reports: number;
+  reportReasons: (ReportReason | "unspecified")[];
 };
 export type CommentProject = {
   id: string;
@@ -51,4 +63,6 @@ export type ManagedPage = {
   projects: CommentProject[];
   page: number;
   hasMore: boolean;
+  /** Visible comments with open reports, across all discussions. */
+  reported: number;
 };

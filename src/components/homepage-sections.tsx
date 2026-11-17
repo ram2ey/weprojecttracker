@@ -10,58 +10,82 @@ export async function HomeNews() {
   const published = await publishedNews();
   const sample = !published.length && isDesignPreview();
   const stories = sample ? sampleStories : published;
+  return (
+    <section className="home-news" aria-labelledby="news-title">
+      <div className="container section">
+        <h2 id="news-title">News &amp; Features</h2>
+        <NewsGrid stories={stories} sample={sample} />
+      </div>
+    </section>
+  );
+}
+
+type NewsCard = {
+  id: string;
+  kind: string;
+  date: string;
+  title: string;
+  summary: string;
+  photo: string;
+  caption: string;
+  project: string;
+};
+export function NewsGrid({
+  stories,
+  sample = false,
+  as: Heading = "h3",
+}: {
+  stories: NewsCard[];
+  sample?: boolean;
+  as?: "h2" | "h3";
+}) {
   const dateFormat = new Intl.DateTimeFormat("en-GB", {
     dateStyle: "long",
     timeZone: "UTC",
   });
   return (
-    <section className="home-news" aria-labelledby="news-title">
-      <div className="container section">
-        <h2 id="news-title">News &amp; Features</h2>
-        <div className="home-news-grid">
-          {!stories.length && (
-            <p>Updates will appear here as they are published.</p>
+    <div className="home-news-grid">
+      {!stories.length && (
+        <p>Updates will appear here as they are published.</p>
+      )}
+      {stories.map((story) => (
+        <article key={story.id}>
+          {story.photo && (
+            <Image
+              className="news-photo"
+              src={story.photo}
+              alt={story.caption}
+              width={640}
+              height={480}
+              loading="lazy"
+              unoptimized
+            />
           )}
-          {stories.map((story) => (
-            <article key={story.id}>
-              {story.photo && (
-                <Image
-                  className="news-photo"
-                  src={story.photo}
-                  alt={story.caption}
-                  width={640}
-                  height={480}
-                  loading="lazy"
-                  unoptimized
-                />
-              )}
-              <div className="story-meta">
-                <span>
-                  {sample ? "Sample " + story.kind.toLowerCase() : story.kind}
-                </span>
-                <time dateTime={story.date}>
-                  {dateFormat.format(new Date(story.date))}
-                </time>
-              </div>
-              <h3>{story.title}</h3>
-              <p>{story.summary}</p>
-              <Link
-                className="text-link"
-                href={"/news/" + story.id}
-                aria-label={"Read more about " + story.title}
-              >
-                Read more
-              </Link>
-              {story.project && (
-                <Link className="text-link" href={"/projects/" + story.project}>
-                  View project
-                </Link>
-              )}
-            </article>
-          ))}
-        </div>
-      </div>
-    </section>
+          <div className="story-meta">
+            <span>
+              {sample ? "Sample " + story.kind.toLowerCase() : story.kind}
+            </span>
+            <time dateTime={story.date}>
+              {dateFormat.format(new Date(story.date))}
+            </time>
+          </div>
+          <Heading>{story.title}</Heading>
+          <p>{story.summary}</p>
+          <Link
+            className="text-link"
+            href={"/news/" + story.id}
+            aria-label={"Read more about " + story.title}
+          >
+            Read more
+          </Link>
+          {story.project && (
+            <Link className="text-link" href={"/projects/" + story.project}>
+              View project
+            </Link>
+          )}
+        </article>
+      ))}
+    </div>
   );
 }
 
