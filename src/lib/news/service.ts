@@ -61,7 +61,22 @@ export async function storyProjects() {
     .where(livePublication)
     .orderBy(sql`${contentRevision.payload}->>'title'`);
 }
-export async function publishedNews(id?: string) {
+export const newsPageSize = 12;
+// One page of the full News & Features list, newest first.
+export async function newsPage(page: number) {
+  const rows = await publishedNews(undefined, {
+    limit: newsPageSize + 1,
+    offset: (page - 1) * newsPageSize,
+  });
+  return {
+    stories: rows.slice(0, newsPageSize),
+    hasMore: rows.length > newsPageSize,
+  };
+}
+export async function publishedNews(
+  id?: string,
+  { limit = 3, offset = 0 }: { limit?: number; offset?: number } = {},
+) {
   const rows = await getDb()
     .select({
       id: newsStory.id,
@@ -86,7 +101,8 @@ export async function publishedNews(id?: string) {
       ),
     )
     .orderBy(desc(newsStory.publishedAt), newsStory.id)
-    .limit(id ? 1 : 3);
+    .limit(id ? 1 : limit)
+    .offset(id ? 0 : offset);
   return rows.map((r) => ({
     ...r.story!,
     photo: photoUrl(r.id, r.story!.photo),

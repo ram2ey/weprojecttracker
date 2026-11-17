@@ -35,8 +35,11 @@ export default async function NewsPage({ params }: Props) {
   const related = await moreNews(story);
   return (
     <article className="container section narrow news-article">
-      <Link className="text-link" href="/#news-title">
+      <Link className="text-link web-only" href="/#news-title">
         Back to News &amp; Features
+      </Link>
+      <Link className="text-link app-only" href="/news">
+        All News &amp; Features
       </Link>
       <div className="story-meta">
         <span>

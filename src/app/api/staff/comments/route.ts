@@ -3,6 +3,7 @@ import { staffApi } from "@/lib/content/api";
 import {
   changeCommenting,
   commentPageNumber,
+  dismissReports,
   managedComments,
   moderateComment,
 } from "@/lib/comments/service";
@@ -12,13 +13,13 @@ export function GET(request: Request) {
   return staffApi(request, async (actor) => {
     const params = new URL(request.url).searchParams;
     const state = z
-      .enum(["visible", "hidden"])
+      .enum(["visible", "hidden", "reported"])
       .parse(params.get("state") ?? "visible");
     const project = z.string().max(100).nullable().parse(params.get("project"));
     return managedComments(
       actor,
       project,
-      state === "hidden",
+      state,
       commentPageNumber(params.get("page")),
     );
   });
@@ -29,7 +30,7 @@ export function PATCH(request: Request) {
       .discriminatedUnion("action", [
         z
           .object({
-            action: z.enum(["hide", "restore"]),
+            action: z.enum(["hide", "restore", "dismiss-reports"]),
             id: z.uuid(),
             version: z.number().int().nonnegative(),
           })
@@ -44,6 +45,8 @@ export function PATCH(request: Request) {
           .strict(),
       ])
       .parse(await smallJson(request, 2048));
+    if (input.action === "dismiss-reports")
+      return dismissReports(actor, input.id, input.version);
     return input.action === "set-enabled"
       ? changeCommenting(actor, input.id, input.enabled, input.version)
       : moderateComment(

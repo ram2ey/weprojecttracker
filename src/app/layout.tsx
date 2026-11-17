@@ -66,7 +66,8 @@ export default async function RootLayout({
   // A new CSP nonce is required on every HTML response, including sign-in/errors.
   await connection();
   return (
-    <html lang="en" className={creato.variable}>
+    // The public layout's app-mode script may add data-app before hydration.
+    <html lang="en" className={creato.variable} suppressHydrationWarning>
       <body>
         <a href="#main-content" className="skip-link">
           Skip to content

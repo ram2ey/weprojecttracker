@@ -104,10 +104,19 @@ export default async function Privacy() {
           Office staff can close new comments and hide or restore comments.
           Hidden names and messages remain private and recoverable; hiding is
           not deletion. Comments have no automatic expiry in this version. To
-          request removal or raise a concern, contact the office. Without
-          verified visitor accounts, the office cannot automatically verify
-          authorship. Public and hidden comments may be included in private
-          recovery copies.
+          request removal or raise a concern, use Report on the comment or
+          contact the office. Without verified visitor accounts, the office
+          cannot automatically verify authorship. Public and hidden comments may
+          be included in private recovery copies.
+        </p>
+        <p>
+          Reporting a comment sends the office the comment and the reason you
+          choose, if any. Reports are anonymous: the website stores a one-way
+          hash of your browser’s wassa_comment_guard cookie only to ignore a
+          repeat report of the same comment, and no IP address. Reporting also
+          counts towards hashed, short-lived rate limits. The comment stays
+          visible until office staff review it. Your browser also remembers
+          which comments you reported so the Report button can say so.
         </p>
       </section>
       <section className="detail-section">
@@ -134,9 +143,9 @@ export default async function Privacy() {
         <p>
           Analytics stays off until you select Accept or enable it in Cookie
           settings. Rejecting has no effect on access to the website or staff
-          authentication. You can change your choice using Cookie settings in
-          the footer at any time. We also respect your browser’s Global Privacy
-          Control signal.
+          authentication. You can change your choice at any time using Cookie
+          settings in the footer, or under More in the Android app. We also
+          respect your browser’s Global Privacy Control signal.
         </p>
         <p>
           We store only a daily date, a public page path and a count. Analytics
@@ -151,6 +160,23 @@ export default async function Privacy() {
           permission stops future counting. Previously collected totals are
           anonymous and cannot be linked back to you. No analytics data is sent
           to an external analytics provider.
+        </p>
+      </section>
+      <section className="detail-section">
+        <h2>Android app and offline page</h2>
+        <p>
+          The Wassa East Android app shows this same website without a browser
+          address bar, using Google Chrome on your phone. It collects nothing
+          beyond what this page describes for the website and contains no
+          advertising or analytics code of its own. Because it uses Chrome, it
+          shares this website’s saved favourites, notification choices and
+          cookie preferences with Chrome on the same phone.
+        </p>
+        <p>
+          The website installs a small background script in your browser (a
+          service worker). It delivers notifications you turn on and stores one
+          offline page with the logo, shown when a page cannot load. It does not
+          store copies of projects, news or comments on your device.
         </p>
       </section>
       <section className="detail-section">

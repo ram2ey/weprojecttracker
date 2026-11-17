@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { ManagedPage } from "@/lib/comments/policy";
+import { reasonLabels } from "@/lib/comments/reasons";
 
 async function fetchManaged(
   project: string,
@@ -112,6 +113,29 @@ export function CommentManager() {
         Visitor comments appear immediately. Only you can hide or restore them
         and close or reopen commenting.
       </p>
+      {!!data?.reported && state !== "reported" && (
+        <p role="status" className="comment-reported-alert">
+          <strong>
+            {data.reported === 1
+              ? "1 comment has"
+              : `${data.reported} comments have`}{" "}
+            been reported by visitors.
+          </strong>{" "}
+          <button
+            type="button"
+            className="cookie-settings-button"
+            disabled={busy}
+            onClick={() => {
+              setBusy(true);
+              setError("");
+              setNotice("");
+              setState("reported");
+            }}
+          >
+            Review reported comments
+          </button>
+        </p>
+      )}
       <div className="comment-filters">
         <div>
           <label htmlFor="comments-project-filter">Project or news story</label>
@@ -151,6 +175,9 @@ export function CommentManager() {
             }}
           >
             <option value="visible">Visible comments</option>
+            <option value="reported">
+              {`Reported comments${data?.reported ? ` (${data.reported})` : ""}`}
+            </option>
             <option value="hidden">Hidden comments</option>
           </select>
         </div>
@@ -199,7 +226,13 @@ export function CommentManager() {
       {notice && <p role="status">{notice}</p>}
       {data && (
         <>
-          {!data.items.length && <p>No {state} comments on this page.</p>}
+          {!data.items.length && (
+            <p>
+              {state === "reported"
+                ? "No comments are waiting for review."
+                : `No ${state} comments on this page.`}
+            </p>
+          )}
           <ul className="comment-list" aria-label="Manage comments">
             {data.items.map((comment) => (
               <li className="comment-card" key={comment.id}>
@@ -214,24 +247,56 @@ export function CommentManager() {
                   </time>
                 </div>
                 <p className="preserve-lines">{comment.body}</p>
-                <Button
-                  variant="outline"
-                  disabled={busy}
-                  onClick={() =>
-                    void action(
-                      {
-                        action: comment.hiddenAt ? "restore" : "hide",
-                        id: comment.id,
-                        version: comment.version,
-                      },
-                      comment.hiddenAt
-                        ? "Comment restored publicly."
-                        : "Comment hidden. You can restore it from Hidden comments.",
-                    )
-                  }
-                >
-                  {comment.hiddenAt ? "Restore comment" : "Hide comment"}
-                </Button>
+                {comment.reports > 0 && (
+                  <p className="comment-report-summary">
+                    <strong>
+                      Reported {comment.reports}{" "}
+                      {comment.reports === 1 ? "time" : "times"}
+                    </strong>
+                    :{" "}
+                    {comment.reportReasons
+                      .map((r) => reasonLabels[r])
+                      .join(", ")}
+                  </p>
+                )}
+                <div className="comment-actions">
+                  <Button
+                    variant="outline"
+                    disabled={busy}
+                    onClick={() =>
+                      void action(
+                        {
+                          action: comment.hiddenAt ? "restore" : "hide",
+                          id: comment.id,
+                          version: comment.version,
+                        },
+                        comment.hiddenAt
+                          ? "Comment restored publicly."
+                          : "Comment hidden. You can restore it from Hidden comments.",
+                      )
+                    }
+                  >
+                    {comment.hiddenAt ? "Restore comment" : "Hide comment"}
+                  </Button>
+                  {comment.reports > 0 && !comment.hiddenAt && (
+                    <Button
+                      variant="outline"
+                      disabled={busy}
+                      onClick={() =>
+                        void action(
+                          {
+                            action: "dismiss-reports",
+                            id: comment.id,
+                            version: comment.version,
+                          },
+                          "Reports dismissed. The comment stays public.",
+                        )
+                      }
+                    >
+                      Keep comment (dismiss reports)
+                    </Button>
+                  )}
+                </div>
               </li>
             ))}
           </ul>
