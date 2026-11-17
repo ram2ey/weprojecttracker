@@ -116,8 +116,24 @@ jobs:
       - run: docker build --target tools --build-arg RELEASE_ID="$RELEASE_ID" -t wassa-ci-tools:check .
       - run: node scripts/check-container-release.mjs
 
+  # Fixes one release tag per run. "Re-run failed jobs" does not re-run this
+  # successful job and keeps its output, so a re-run image build or deploy
+  # uses the same tag as the images already published, never one for the new
+  # attempt number (which left Coolify asking for an image that was never
+  # built on 17 Nov 2026). A full re-run gets a new tag for everything.
+  release-tag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - id: tag
+        env:
+          TAG: sha-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+        run: echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
   images:
-    needs: [checks, acceptance, container-rollout]
+    needs: [checks, acceptance, container-rollout, release-tag]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -151,18 +167,18 @@ jobs:
         with:
           context: .
           target: ${{ matrix.target }}
-          build-args: RELEASE_ID=sha-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          build-args: RELEASE_ID=${{ needs.release-tag.outputs.tag }}
           platforms: linux/amd64
           push: ${{ github.event_name == 'push' || inputs.publish == true }}
           load: ${{ github.event_name != 'push' && inputs.publish != true }}
-          tags: ${{ steps.image.outputs.name }}:sha-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          tags: ${{ steps.image.outputs.name }}:${{ needs.release-tag.outputs.tag }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
       - name: Check non-root media access
         if: ${{ github.event_name != 'push' && !inputs.publish }}
         env:
-          IMAGE: ${{ steps.image.outputs.name }}:sha-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          IMAGE: ${{ steps.image.outputs.name }}:${{ needs.release-tag.outputs.tag }}
         run: >-
           docker run --rm --entrypoint node "$IMAGE" -e
           "const fs=require('node:fs');if(process.getuid()!==1001)process.exit(1);fs.writeFileSync('/data/media/.permission-check','ok');fs.unlinkSync('/data/media/.permission-check');console.log('Non-root media write passed')"
@@ -176,7 +192,7 @@ jobs:
           printf '%s\n' "${TARGET} image: ${IMAGE}@${DIGEST}" >> "$GITHUB_STEP_SUMMARY"
 
   deploy:
-    needs: images
+    needs: [images, release-tag]
     if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || (inputs.publish && inputs.deploy)) }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -198,5 +214,5 @@ jobs:
           COOLIFY_RESOURCE_UUID: ${{ vars.COOLIFY_RESOURCE_UUID }}
           COOLIFY_RESOURCE_TYPE: ${{ vars.COOLIFY_RESOURCE_TYPE }}
           PUBLIC_APP_URL: ${{ vars.PUBLIC_APP_URL }}
-          IMAGE_TAG: sha-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          IMAGE_TAG: ${{ needs.release-tag.outputs.tag }}
         run: node scripts/coolify-deploy.mjs
