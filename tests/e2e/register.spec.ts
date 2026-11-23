@@ -3643,11 +3643,20 @@ test("updates bell, feed, one-tap notifications and settings work without an acc
   const topics = page.getByRole("group", { name: "Notification topics" });
   await expect(topics.getByRole("checkbox")).toHaveCount(6);
   await expect(topics.getByRole("checkbox", { checked: true })).toHaveCount(6);
+  // Reload only once the server has saved the change. (Playwright never treats
+  // a <fieldset> as disabled, so waiting for the group to be enabled returned
+  // at once and the reload could cancel the save.)
+  const saved = page.waitForResponse(
+    (r) =>
+      r.url().endsWith("/api/public/notifications") &&
+      r.request().method() === "POST",
+  );
   await topics.getByRole("checkbox", { name: "News & Features" }).uncheck();
+  expect((await saved).ok()).toBe(true);
   await expect(
     topics.getByRole("checkbox", { name: "News & Features" }),
   ).not.toBeChecked();
-  await expect(topics).toBeEnabled();
+  await expect(page.getByText("Saving…")).toHaveCount(0);
   await page.reload();
   await expect(
     topics.getByRole("checkbox", { name: "News & Features" }),

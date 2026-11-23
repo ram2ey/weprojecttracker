@@ -82,6 +82,11 @@ const server = spawn(process.execPath, [join(standalone, "server.js")], {
     NODE_ENV: "production",
     HOSTNAME: "127.0.0.1",
     PORT: "3100",
+    // Playwright's request contexts reuse idle connections, and the staff ones
+    // live for the whole run. Node closes idle connections after 5 seconds, so
+    // a request sent at that moment failed with ECONNRESET. Keep them open for
+    // longer than the CI job can run (production keeps the default).
+    KEEP_ALIVE_TIMEOUT: String(30 * 60 * 1000),
   },
   stdio: "inherit",
 });
