@@ -79,6 +79,4 @@ Then:
 Each of these blocked a release on 17 Nov until someone used "Re-run failed jobs". Re-running is safe since PR #29, but it costs time.
 
 1. **Keep the PostgreSQL signing key in the repo.** The `tools` image downloads `https://www.postgresql.org/media/keys/ACCC4CF8.asc` on every build (Dockerfile, `tools` stage). That download failed twice on 17 Nov. Commit a copy after checking its fingerprint and copy it into the image. Packages still come from apt.postgresql.org.
-2. **Fix the intermittent browser tests.** Each failed once and passed when re-run:
-   - a dropped connection to the test server (ECONNRESET) in two different staff API tests, including the self-publish test at desktop size;
-   - the notification settings checkbox check at the 430px phone size.
+2. ~~Fix the intermittent browser tests.~~ Done 23 Nov 2026. The test server now keeps idle connections open, ending the dropped connection (ECONNRESET) errors, and the notification settings test waits for the save before reloading.
