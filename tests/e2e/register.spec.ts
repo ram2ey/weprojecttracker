@@ -2444,6 +2444,10 @@ test("retirement worker removes only the app's offline caches and unregisters", 
   page,
 }) => {
   await page.goto("/");
+  // Every page now registers the offline worker for the same scope. Let it
+  // finish first, or it can replace the retirement worker after it has
+  // unregistered and leave one registration behind.
+  await page.evaluate(() => navigator.serviceWorker.ready);
   await page.evaluate(async () => {
     await (
       await caches.open("wassa-public-v1-pages")
