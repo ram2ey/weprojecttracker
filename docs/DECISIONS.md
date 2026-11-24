@@ -74,9 +74,12 @@ Then:
 
 **The upload key (keystore) must be backed up to at least two places on the day it is created and must never be committed.** Losing it can block app updates.
 
-### Release reliability (offered 18 Nov 2026, not started)
+### Release reliability (done 24 Nov 2026)
 
-Each of these blocked a release on 17 Nov until someone used "Re-run failed jobs". Re-running is safe since PR #29, but it costs time.
+Each of these blocked a release in mid-November until someone used "Re-run failed jobs". Re-running is safe since PR #29.
 
-1. **Keep the PostgreSQL signing key in the repo.** The `tools` image downloads `https://www.postgresql.org/media/keys/ACCC4CF8.asc` on every build (Dockerfile, `tools` stage). That download failed twice on 17 Nov. Commit a copy after checking its fingerprint and copy it into the image. Packages still come from apt.postgresql.org.
-2. ~~Fix the intermittent browser tests.~~ Done 23 Nov 2026. The test server now keeps idle connections open, ending the dropped connection (ECONNRESET) errors, and the notification settings test waits for the save before reloading.
+1. ~~Keep the PostgreSQL signing key in the repo.~~ Done 24 Nov 2026. `docker/postgresql-ACCC4CF8.asc` is the key from postgresql.org, checked against the Ubuntu keyserver copy and the published fingerprint `B97B 0AFC AA1A 47F0 44F2 44A0 7FCC 7D46 ACCC 4CF8`. It has no expiry date. The `tools` image copies it in instead of downloading it, and no longer installs curl or gnupg. Packages still come from apt.postgresql.org. If PostgreSQL ever replaces the key, apt will refuse the repository and the build will fail clearly; then download the new key, check its fingerprint against https://wiki.postgresql.org/wiki/Apt and replace the file.
+2. ~~Fix the intermittent browser tests.~~ Done 23 Nov 2026 (PR #31):
+   - the test server keeps idle connections open, ending the dropped connection (ECONNRESET) errors;
+   - the notification settings test waits for the save before reloading;
+   - the retirement worker test waits for the page's offline worker to register first.
