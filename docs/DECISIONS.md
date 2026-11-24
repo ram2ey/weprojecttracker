@@ -4,13 +4,22 @@ The product decisions behind this project, and the work that is still open. They
 
 When a decision changes, update its entry and give the new date. Don't delete the old reasoning without replacing it.
 
-## Current status (23 Nov 2026)
+## Current status (24 Nov 2026)
 
 - The website is live at https://wassaeastprojecttracker.com and deploys automatically when changes are merged into `main` ([AUTOMATIC_DEPLOYMENT.md](AUTOMATIC_DEPLOYMENT.md)).
 - Step 1 of the Google Play app (the website side) is live: PR #28, plus PR #29 for the release tag fix.
-- Step 2, the Android build with Bubblewrap, has not started. See [Open work](#open-work).
+- Step 2, the Android build with Bubblewrap, is ready to start: the package name and account type are decided. See [Open work](#open-work).
+- Release reliability fixes are done (PRs #31 and #32).
 
 ## Decisions
+
+### Google Play app: package name and account (24 Nov 2026)
+
+- **Package name: `com.wassaeast.projects`.** It is permanent once the first build is uploaded. It is also the value for `ANDROID_PACKAGE_NAME` in Coolify.
+- **Play developer account: personal.** Google's rules for personal accounts created after 13 Nov 2023:
+  - the app must run a **closed test with at least 12 testers opted in continuously for 14 days** before production access can be requested. Internal and open tests don't count, and production access is still a separate review ([Google's testing requirements](https://support.google.com/googleplay/android-developer/answer/14151465));
+  - the developer name shown on the listing is the account holder's.
+- *Note:* Google expects apps that are official government apps to be published from an organisation account with proof of authorisation. On a personal account, the listing and the app must not present it as an official government app, and should say who runs it and where its information comes from ([government information policy](https://support.google.com/googleplay/android-developer/answer/9514050)).
 
 ### Google Play app: step 1 details (17 Nov 2026)
 
@@ -61,16 +70,17 @@ When a decision changes, update its entry and give the new date. Don't delete th
 
 ### Android app, step 2: build and submit
 
-Waiting on two answers from the office:
+Package `com.wassaeast.projects` on a personal Play account (decided 24 Nov 2026, above). In order:
 
-1. **The permanent package name**, for example `com.wassaeast.projects`. It can never change after the first upload.
-2. **Whether the Google Play developer account is personal or an organisation.** New personal accounts must run a closed test with testers before they can publish.
-
-Then:
-
-- build the app with Bubblewrap, using the settings in [ANDROID_APP.md](ANDROID_APP.md);
-- set `ANDROID_PACKAGE_NAME` and `ANDROID_CERT_FINGERPRINTS` in Coolify, using the Play App Signing SHA-256 fingerprint. Until both are set, `/.well-known/assetlinks.json` returns 404;
-- complete the store listing and Data safety form ([GOOGLE_PLAY_SUBMISSION_PLAN.md](GOOGLE_PLAY_SUBMISSION_PLAN.md)).
+1. **Set up the build machine:** JDK 17 and the Android SDK (Bubblewrap can install both).
+2. **Build** the app with Bubblewrap, using the settings in [ANDROID_APP.md](ANDROID_APP.md). This creates the upload key; back it up the same day (below).
+3. **Create the app in Play Console** with that package name, and upload the first build to the internal test track. Play Console then shows the Play App Signing SHA-256 fingerprint.
+4. **Set `ANDROID_PACKAGE_NAME=com.wassaeast.projects` and `ANDROID_CERT_FINGERPRINTS`** in Coolify, using that fingerprint, and redeploy. Check that `/.well-known/assetlinks.json` now returns the statement and that the app opens without a browser address bar. Until both are set, the file returns 404.
+5. **Recruit at least 12 testers** with Android phones and Google accounts, and start the closed test. Keep at least 12 opted in for 14 days in a row.
+6. **Meanwhile:**
+   - complete the store listing (with who runs the app and where its information comes from), screenshots, content rating, target audience, Data safety form and government-app declaration ([GOOGLE_PLAY_SUBMISSION_PLAN.md](GOOGLE_PLAY_SUBMISSION_PLAN.md));
+   - fix what testers report.
+7. **Apply for production access** after the 14 days, then submit the production release.
 
 **The upload key (keystore) must be backed up to at least two places on the day it is created and must never be committed.** Losing it can block app updates.
 
