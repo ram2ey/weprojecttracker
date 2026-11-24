@@ -70,7 +70,30 @@ When a decision changes, update its entry and give the new date. Don't delete th
 
 ### Android app, step 2: build and submit
 
-Package `com.wassaeast.projects` on a personal Play account (decided 24 Nov 2026, above). In order:
+Package `com.wassaeast.projects` on a personal Play account (decided 24 Nov 2026, above). The build will be done on the office's other laptop, which already builds Android apps, so some tools may be installed there already.
+
+**Before starting (the account holder):**
+
+- **Play Console account ready:** the fee is paid and identity and phone verification are complete. Identity checks can take days.
+- **App name:** the website's install details use **"Wassa East Projects"**, with **"Wassa East"** under the icon. Use these unless the office decides otherwise.
+- **Two backup places for the signing key**, for example the password manager plus a USB stick.
+- **Start recruiting testers:** at least 12, ideally 15 or more, with Android phones and the Gmail addresses they use for Play.
+
+**Build tools needed:**
+
+| Tool | Approx. disk space |
+|---|---|
+| Java 17 (JDK) | ~320 MB |
+| Android command-line tools | ~200 MB |
+| Android build tools and the API 36 platform | ~300 MB |
+| Gradle and its cache | ~0.7–1.2 GB |
+| Bubblewrap (npm) | ~50 MB |
+
+Total: about 1.5–2.5 GB. Android Studio and an emulator are not needed; test on a real phone from the internal testing link. Check what is already installed first (`java -version`, `ANDROID_HOME`, `~/.bubblewrap/config.json`). Bubblewrap can point at an existing JDK and SDK.
+
+**The person holding the signing key creates it in the terminal**, typing passwords generated in the password manager. Passwords never go into chat, the repo or Coolify.
+
+**Steps:**
 
 1. **Set up the build machine:** JDK 17 and the Android SDK (Bubblewrap can install both).
 2. **Build** the app with Bubblewrap, using the settings in [ANDROID_APP.md](ANDROID_APP.md). This creates the upload key; back it up the same day (below).
