@@ -31,13 +31,17 @@ ENV RELEASE_ID=$RELEASE_ID
 ENV NODE_ENV=production APP_ENV=production
 # Backup tooling: PostgreSQL 16 client (must match the server major version;
 # Debian bookworm ships 15) from the official PGDG repository, and restic.
+# The PGDG signing key is kept in the repo (fingerprint
+# B97B 0AFC AA1A 47F0 44F2 44A0 7FCC 7D46 ACCC 4CF8, no expiry) because
+# downloading it from postgresql.org on every build failed twice on 17 Nov 2026.
+# apt reads the armored .asc directly, so curl and gnupg are not needed.
+COPY docker/postgresql-ACCC4CF8.asc /usr/share/keyrings/pgdg.asc
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates curl gnupg restic \
- && curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /usr/share/keyrings/pgdg.gpg \
- && echo "deb [signed-by=/usr/share/keyrings/pgdg.gpg] https://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" > /etc/apt/sources.list.d/pgdg.list \
+ && apt-get install -y --no-install-recommends ca-certificates restic \
+ && echo "deb [signed-by=/usr/share/keyrings/pgdg.asc] https://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" > /etc/apt/sources.list.d/pgdg.list \
  && apt-get update \
  && apt-get install -y --no-install-recommends postgresql-client-16 \
- && apt-get purge -y curl gnupg && apt-get autoremove -y && rm -rf /var/lib/apt/lists/* \
+ && apt-get autoremove -y && rm -rf /var/lib/apt/lists/* \
  && pg_dump --version && restic version
 RUN groupadd --system --gid 1001 app && useradd --system --uid 1001 --gid app app && mkdir -p /data/media && chown app:app /data/media
 COPY src ./src
